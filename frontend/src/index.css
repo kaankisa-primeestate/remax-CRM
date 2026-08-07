@@ -223,6 +223,16 @@ button {
 .status-badge--tenant { background: #dfeee2; color: var(--success); }
 .status-badge--landlord { background: #f1dcd6; color: var(--danger); }
 
+/* Portföy durumu */
+.status-badge--active { background: #dfeee2; color: var(--success); }
+.status-badge--passive { background: #eceae1; color: var(--muted); }
+.status-badge--sold { background: #f1dcd6; color: var(--danger); }
+.status-badge--rented { background: #dfe7f3; color: var(--ink-navy); }
+
+/* Satılık / Kiralık */
+.status-badge--sale { background: #f3e6d2; color: #6b4a1c; }
+.status-badge--rent { background: #dfe7f3; color: var(--ink-navy); }
+
 /* --- Müşteri detay: açık dosya görünümü --- */
 .dossier {
   background: var(--paper-raised);

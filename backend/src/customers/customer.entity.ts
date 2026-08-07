@@ -56,8 +56,7 @@ export class Customer {
   notes: string;
 
   // Mahremiyet Duvarı (brief 1.1): bu müşteri hangi danışmana ait.
-  // Auth modülü henüz yazılmadığı için şimdilik nullable serbest metin/ID
-  // olarak tutuyoruz; Auth modülünde gerçek bir User FK'sine bağlanacak.
+  // null ise "atanmamış" demektir (bkz. customers.service.ts).
   @Index()
   @Column({ type: 'varchar', nullable: true })
   agentId: string | null;

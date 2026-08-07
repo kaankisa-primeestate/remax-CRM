@@ -4,7 +4,18 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import CustomerListPage from './pages/CustomerListPage.jsx';
 import CustomerDetailPage from './pages/CustomerDetailPage.jsx';
+import PropertyListPage from './pages/PropertyListPage.jsx';
+import PropertyDetailPage from './pages/PropertyDetailPage.jsx';
 import AgentsPage from './pages/AgentsPage.jsx';
+
+const navLinkStyle = {
+  color: 'var(--brass-light)',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 12,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  textDecoration: 'none',
+};
 
 function Header() {
   const { user, logout, isBroker } = useAuth();
@@ -21,20 +32,12 @@ function Header() {
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
           <h1 className="app-header__title">Remax Entegre</h1>
         </Link>
-        {user && isBroker && (
-          <Link
-            to="/danismanlar"
-            style={{
-              color: 'var(--brass-light)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 12,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              textDecoration: 'none',
-            }}
-          >
-            Danışmanlar
-          </Link>
+        {user && (
+          <>
+            <Link to="/" style={navLinkStyle}>Müşteriler</Link>
+            <Link to="/portfoyler" style={navLinkStyle}>Portföyler</Link>
+            {isBroker && <Link to="/danismanlar" style={navLinkStyle}>Danışmanlar</Link>}
+          </>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -83,6 +86,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CustomerDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portfoyler"
+            element={
+              <ProtectedRoute>
+                <PropertyListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portfoyler/:id"
+            element={
+              <ProtectedRoute>
+                <PropertyDetailPage />
               </ProtectedRoute>
             }
           />

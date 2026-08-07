@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CustomersModule } from './customers/customers.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { PortfoliosModule } from './portfolios/portfolios.module';
 
 @Module({
   imports: [
@@ -28,10 +29,11 @@ import { UsersModule } from './users/users.module';
       }),
     }),
 
-    // Müşteri (CRM) modülü, Kimlik Doğrulama ve Kullanıcı (Broker/Danışman) yönetimi
+    // Müşteri (CRM), Kimlik Doğrulama, Kullanıcı ve Portföy modülleri
     CustomersModule,
     AuthModule,
     UsersModule,
+    PortfoliosModule,
   ],
 })
 export class AppModule {}
