@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CUSTOMER_TYPES } from '../api/customers';
+import { usersApi } from '../api/auth';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyForm = {
   firstName: '',
@@ -12,14 +14,25 @@ const emptyForm = {
   budgetCurrency: 'TRY',
   requirements: '',
   notes: '',
+  agentId: '',
 };
 
 export default function CustomerFormModal({ initialValues, onSubmit, onClose }) {
-  const [form, setForm] = useState({ ...emptyForm, ...initialValues });
+  const { isBroker } = useAuth();
+  const [form, setForm] = useState({ ...emptyForm, ...initialValues, agentId: initialValues?.agentId || '' });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [agents, setAgents] = useState([]);
 
   const isEdit = Boolean(initialValues?.id);
+
+  // Sadece Broker müşteriyi belirli bir danışmana atayabilir; bir
+  // Danışman için bu alan gösterilmez (backend zaten kendisine atar).
+  useEffect(() => {
+    if (isBroker) {
+      usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
+    }
+  }, [isBroker]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -38,6 +51,7 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
         address: form.address || undefined,
         requirements: form.requirements || undefined,
         notes: form.notes || undefined,
+        agentId: form.agentId || undefined,
       };
       await onSubmit(payload);
     } catch (err) {
@@ -92,6 +106,19 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
               <label>Bütçe (₺)</label>
               <input name="budget" type="number" min="0" value={form.budget} onChange={handleChange} />
             </div>
+            {isBroker && (
+              <div className="form-field">
+                <label>Danışman</label>
+                <select name="agentId" value={form.agentId} onChange={handleChange}>
+                  <option value="">Atanmamış</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="form-field full">
               <label>Adres</label>
               <input name="address" value={form.address} onChange={handleChange} />
