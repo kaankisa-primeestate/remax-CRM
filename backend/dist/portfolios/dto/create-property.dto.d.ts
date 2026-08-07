@@ -1,0 +1,30 @@
+import { PropertyType, ListingType, PropertyStatus } from '../property.entity';
+export declare class CreatePropertyDto {
+    title: string;
+    propertyType: PropertyType;
+    listingType: ListingType;
+    province: string;
+    district: string;
+    neighborhood: string;
+    areaM2: number;
+    price: number;
+    priceCurrency?: string;
+    deedStatus: string;
+    mortgageEligible?: boolean;
+    rooms?: string;
+    bathrooms?: number;
+    floor?: string;
+    heatingType?: string;
+    dues?: number;
+    hasPool?: boolean;
+    hasGym?: boolean;
+    hasSecurity?: boolean;
+    hasParking?: boolean;
+    view?: string;
+    facade?: string;
+    buildingAge?: number;
+    status?: PropertyStatus;
+    photoUrls?: string[];
+    notes?: string;
+    agentId?: string;
+}
