@@ -2,7 +2,9 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   OnModuleInit,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -52,6 +54,24 @@ export class UsersService implements OnModuleInit {
 
   async findById(id: string): Promise<User | null> {
     return this.userRepo.findOne({ where: { id } });
+  }
+
+  // Mevcut sifreyi dogrulayip yenisini kaydeder
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Kullanici bulunamadi');
+    }
+    const matches = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!matches) {
+      throw new UnauthorizedException('Mevcut sifre hatali');
+    }
+    user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await this.userRepo.save(user);
   }
 
   // Sadece Broker çağırabilir (bkz. users.controller.ts + RolesGuard)

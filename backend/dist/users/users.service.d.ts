@@ -9,6 +9,7 @@ export declare class UsersService implements OnModuleInit {
     onModuleInit(): Promise<void>;
     findByEmail(email: string): Promise<User | null>;
     findById(id: string): Promise<User | null>;
+    changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
     createAgent(dto: CreateAgentDto): Promise<Omit<User, 'passwordHash'>>;
     findAllAgents(): Promise<Omit<User, 'passwordHash'>[]>;
 }

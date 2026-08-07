@@ -16,6 +16,8 @@ exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("./users.service");
 const create_agent_dto_1 = require("./dto/create-agent.dto");
+const change_password_dto_1 = require("../auth/dto/change-password.dto");
+const current_user_decorator_1 = require("../auth/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
@@ -29,6 +31,10 @@ let UsersController = class UsersController {
     }
     createAgent(dto) {
         return this.usersService.createAgent(dto);
+    }
+    async changePassword(dto, user) {
+        await this.usersService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
+        return { success: true };
     }
 };
 exports.UsersController = UsersController;
@@ -47,6 +53,14 @@ __decorate([
     __metadata("design:paramtypes", [create_agent_dto_1.CreateAgentDto]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "createAgent", null);
+__decorate([
+    (0, common_1.Patch)('change-password'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [change_password_dto_1.ChangePasswordDto, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "changePassword", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),

@@ -46,6 +46,18 @@ let UsersService = UsersService_1 = class UsersService {
     async findById(id) {
         return this.userRepo.findOne({ where: { id } });
     }
+    async changePassword(userId, currentPassword, newPassword) {
+        const user = await this.userRepo.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new common_1.NotFoundException('Kullanici bulunamadi');
+        }
+        const matches = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!matches) {
+            throw new common_1.UnauthorizedException('Mevcut sifre hatali');
+        }
+        user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        await this.userRepo.save(user);
+    }
     async createAgent(dto) {
         const existing = await this.findByEmail(dto.email);
         if (existing) {
