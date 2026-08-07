@@ -8,6 +8,7 @@ import PropertyListPage from './pages/PropertyListPage.jsx';
 import PropertyDetailPage from './pages/PropertyDetailPage.jsx';
 import AgentsPage from './pages/AgentsPage.jsx';
 import CommissionsPage from './pages/CommissionsPage.jsx';
+import ChangePasswordPage from './pages/ChangePasswordPage.jsx';
 
 const navLinkStyle = {
   color: 'var(--brass-light)',
@@ -45,9 +46,11 @@ function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {user && (
           <>
-            <span className="app-header__subtitle">
-              {user.name} · {user.role === 'broker' ? 'Broker' : 'Danışman'}
-            </span>
+            <Link to="/sifre-degistir" style={navLinkStyle}>
+              <span className="app-header__subtitle">
+                {user.name} · {user.role === 'broker' ? 'Broker' : 'Danışman'}
+              </span>
+            </Link>
             <button
               onClick={handleLogout}
               className="btn btn-secondary"
@@ -112,6 +115,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CommissionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sifre-degistir"
+            element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
               </ProtectedRoute>
             }
           />
