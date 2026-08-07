@@ -60,7 +60,7 @@ export class Customer {
   // olarak tutuyoruz; Auth modülünde gerçek bir User FK'sine bağlanacak.
   @Index()
   @Column({ nullable: true })
-  agentId: string;
+  agentId: string | null;
 
   @OneToMany(() => Interaction, (interaction) => interaction.customer, {
     cascade: true,
