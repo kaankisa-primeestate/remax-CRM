@@ -7,6 +7,7 @@ import CustomerDetailPage from './pages/CustomerDetailPage.jsx';
 import PropertyListPage from './pages/PropertyListPage.jsx';
 import PropertyDetailPage from './pages/PropertyDetailPage.jsx';
 import AgentsPage from './pages/AgentsPage.jsx';
+import CommissionsPage from './pages/CommissionsPage.jsx';
 
 const navLinkStyle = {
   color: 'var(--brass-light)',
@@ -36,6 +37,7 @@ function Header() {
           <>
             <Link to="/" style={navLinkStyle}>Müşteriler</Link>
             <Link to="/portfoyler" style={navLinkStyle}>Portföyler</Link>
+            <Link to="/komisyonlar" style={navLinkStyle}>Komisyonlar</Link>
             {isBroker && <Link to="/danismanlar" style={navLinkStyle}>Danışmanlar</Link>}
           </>
         )}
@@ -102,6 +104,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <PropertyDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/komisyonlar"
+            element={
+              <ProtectedRoute>
+                <CommissionsPage />
               </ProtectedRoute>
             }
           />

@@ -458,3 +458,7 @@ button {
   gap: 10px;
   margin-top: 20px;
 }
+/* Komisyon durumu */
+.status-badge--pending { background: #f3e6d2; color: #6b4a1c; }
+.status-badge--approved { background: #dfe7f3; color: var(--ink-navy); }
+.status-badge--paid { background: #dfeee2; color: var(--success); }
