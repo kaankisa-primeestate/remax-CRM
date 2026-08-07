@@ -24,4 +24,7 @@ export const statusColors = {
   seller: { bg: '#f3e6d2', text: '#6b4a1c' },
   tenant: { bg: '#dfeee2', text: colors.success },
   landlord: { bg: '#f1dcd6', text: colors.danger },
+  pending: { bg: '#f3e6d2', text: '#6b4a1c' },
+  approved: { bg: '#dfe7f3', text: colors.inkNavy },
+  paid: { bg: '#dfeee2', text: colors.success },
 };

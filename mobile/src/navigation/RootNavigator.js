@@ -14,6 +14,8 @@ import PropertyListScreen from '../screens/PropertyListScreen';
 import PropertyDetailScreen from '../screens/PropertyDetailScreen';
 import PropertyFormScreen from '../screens/PropertyFormScreen';
 import AgentsScreen from '../screens/AgentsScreen';
+import CommissionListScreen from '../screens/CommissionListScreen';
+import CommissionFormScreen from '../screens/CommissionFormScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -99,6 +101,28 @@ function PropertiesStack() {
   );
 }
 
+function CommissionsStack() {
+  return (
+    <Stack.Navigator screenOptions={baseScreenOptions}>
+      <Stack.Screen
+        name="CommissionList"
+        component={CommissionListScreen}
+        options={({ navigation }) => ({
+          title: 'Komisyonlar',
+          headerRight: () => (
+            <ListHeaderRight onAdd={() => navigation.navigate('CommissionForm')} />
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="CommissionForm"
+        component={CommissionFormScreen}
+        options={{ title: 'Yeni Komisyon Kaydı' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 function AgentsStack() {
   return (
     <Stack.Navigator screenOptions={baseScreenOptions}>
@@ -122,6 +146,7 @@ function MainTabs() {
         tabBarIcon: ({ color, size }) => {
           let iconName = 'home-outline';
           if (route.name === 'MüşterilerTab') iconName = 'people-outline';
+          if (route.name === 'KomisyonlarTab') iconName = 'cash-outline';
           if (route.name === 'DanışmanlarTab') iconName = 'briefcase-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -129,6 +154,7 @@ function MainTabs() {
     >
       <Tab.Screen name="MüşterilerTab" component={CustomersStack} options={{ title: 'Müşteriler' }} />
       <Tab.Screen name="PortföylerTab" component={PropertiesStack} options={{ title: 'Portföyler' }} />
+      <Tab.Screen name="KomisyonlarTab" component={CommissionsStack} options={{ title: 'Komisyonlar' }} />
       {isBroker && (
         <Tab.Screen name="DanışmanlarTab" component={AgentsStack} options={{ title: 'Danışmanlar' }} />
       )}
