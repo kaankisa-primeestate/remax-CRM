@@ -59,7 +59,7 @@ export class Customer {
   // Auth modülü henüz yazılmadığı için şimdilik nullable serbest metin/ID
   // olarak tutuyoruz; Auth modülünde gerçek bir User FK'sine bağlanacak.
   @Index()
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   agentId: string | null;
 
   @OneToMany(() => Interaction, (interaction) => interaction.customer, {
