@@ -14,6 +14,7 @@ import PropertyListScreen from '../screens/PropertyListScreen';
 import PropertyDetailScreen from '../screens/PropertyDetailScreen';
 import PropertyFormScreen from '../screens/PropertyFormScreen';
 import AgentsScreen from '../screens/AgentsScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import CommissionListScreen from '../screens/CommissionListScreen';
 import CommissionFormScreen from '../screens/CommissionFormScreen';
 
@@ -26,6 +27,36 @@ function LogoutButton() {
     <TouchableOpacity onPress={logout} style={{ marginLeft: 16 }}>
       <Text style={{ color: colors.brassLight, fontWeight: '600' }}>Çıkış</Text>
     </TouchableOpacity>
+  );
+}
+
+// Her ekranın sag ustunde "Sifre" butonu + Cikis butonunu birlikte gosterir
+function HeaderRightWithPassword({ navigation, onAdd }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      {onAdd && (
+        <TouchableOpacity onPress={onAdd} style={{ marginRight: 4 }}>
+          <Ionicons name="add-circle" size={28} color={colors.white} />
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('ChangePassword')}
+        style={{ marginLeft: 12 }}
+      >
+        <Ionicons name="key-outline" size={22} color={colors.brassLight} />
+      </TouchableOpacity>
+      <LogoutButton />
+    </View>
+  );
+}
+
+function ChangePasswordStackScreen() {
+  return (
+    <Stack.Screen
+      name="ChangePassword"
+      component={ChangePasswordScreen}
+      options={{ title: 'Şifre Değiştir' }}
+    />
   );
 }
 
@@ -56,10 +87,11 @@ function CustomersStack() {
         options={({ navigation }) => ({
           title: 'Müşteriler',
           headerRight: () => (
-            <ListHeaderRight onAdd={() => navigation.navigate('CustomerForm')} />
+            <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('CustomerForm')} />
           ),
         })}
       />
+      {ChangePasswordStackScreen()}
       <Stack.Screen
         name="CustomerDetail"
         component={CustomerDetailScreen}
@@ -83,10 +115,11 @@ function PropertiesStack() {
         options={({ navigation }) => ({
           title: 'Portföyler',
           headerRight: () => (
-            <ListHeaderRight onAdd={() => navigation.navigate('PropertyForm')} />
+            <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('PropertyForm')} />
           ),
         })}
       />
+      {ChangePasswordStackScreen()}
       <Stack.Screen
         name="PropertyDetail"
         component={PropertyDetailScreen}
@@ -110,10 +143,11 @@ function CommissionsStack() {
         options={({ navigation }) => ({
           title: 'Komisyonlar',
           headerRight: () => (
-            <ListHeaderRight onAdd={() => navigation.navigate('CommissionForm')} />
+            <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('CommissionForm')} />
           ),
         })}
       />
+      {ChangePasswordStackScreen()}
       <Stack.Screen
         name="CommissionForm"
         component={CommissionFormScreen}
@@ -129,8 +163,12 @@ function AgentsStack() {
       <Stack.Screen
         name="AgentsList"
         component={AgentsScreen}
-        options={{ title: 'Danışmanlar', headerRight: LogoutButton }}
+        options={({ navigation }) => ({
+          title: 'Danışmanlar',
+          headerRight: () => <HeaderRightWithPassword navigation={navigation} />,
+        })}
       />
+      {ChangePasswordStackScreen()}
     </Stack.Navigator>
   );
 }
