@@ -1,0 +1,27 @@
+export const colors = {
+  inkNavy: '#1c2b45',
+  inkNavyLight: '#2c3f60',
+  brass: '#a97d3b',
+  brassLight: '#c99a56',
+  paper: '#f3f1e7',
+  paperRaised: '#fbfaf5',
+  paperLine: '#e0dbc9',
+  slate: '#2c2e33',
+  muted: '#6f7178',
+  danger: '#a8412c',
+  success: '#3f6b4f',
+  white: '#ffffff',
+};
+
+export const statusColors = {
+  active: { bg: '#dfeee2', text: colors.success },
+  passive: { bg: '#eceae1', text: colors.muted },
+  sold: { bg: '#f1dcd6', text: colors.danger },
+  rented: { bg: '#dfe7f3', text: colors.inkNavy },
+  sale: { bg: '#f3e6d2', text: '#6b4a1c' },
+  rent: { bg: '#dfe7f3', text: colors.inkNavy },
+  buyer: { bg: '#dfe7f3', text: colors.inkNavy },
+  seller: { bg: '#f3e6d2', text: '#6b4a1c' },
+  tenant: { bg: '#dfeee2', text: colors.success },
+  landlord: { bg: '#f1dcd6', text: colors.danger },
+};
