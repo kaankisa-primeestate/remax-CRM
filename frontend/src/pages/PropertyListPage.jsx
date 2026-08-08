@@ -5,6 +5,7 @@ import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PropertyStatusBadge, ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
+import MoneyInput from '../components/MoneyInput.jsx';
 
 const filterCardStyle = {
   background: 'var(--paper-raised, #fbfaf5)',
@@ -218,8 +219,8 @@ export default function PropertyListPage() {
               <div>
                 <label style={filterLabelStyle}>Fiyat Aralığı (₺)</label>
                 <div style={rangeInputRowStyle}>
-                  <input placeholder="Min" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
-                  <input placeholder="Maks" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
+                  <MoneyInput placeholder="Min" value={minPrice} onChange={setMinPrice} style={{ width: '50%', minWidth: 0 }} />
+                  <MoneyInput placeholder="Maks" value={maxPrice} onChange={setMaxPrice} style={{ width: '50%', minWidth: 0 }} />
                 </div>
               </div>
               <div>

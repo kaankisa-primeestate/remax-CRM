@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TRANSACTION_TYPES } from '../api/commissions';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
+import MoneyInput from './MoneyInput.jsx';
 
 const emptyForm = {
   agentId: '',
@@ -138,12 +139,9 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
 
             <div className="form-field">
               <label>İşlem Bedeli (₺) *</label>
-              <input
-                name="transactionAmount"
-                type="number"
-                min="0"
+              <MoneyInput
                 value={form.transactionAmount}
-                onChange={handleChange}
+                onChange={(v) => setForm((f) => ({ ...f, transactionAmount: v }))}
                 required
               />
             </div>
@@ -200,12 +198,9 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
             </div>
             <div className="form-field">
               <label>Ceza (₺)</label>
-              <input
-                name="penaltyAmount"
-                type="number"
-                min="0"
+              <MoneyInput
                 value={form.penaltyAmount}
-                onChange={handleChange}
+                onChange={(v) => setForm((f) => ({ ...f, penaltyAmount: v }))}
               />
             </div>
 

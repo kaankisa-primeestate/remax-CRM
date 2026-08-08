@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { PROPERTY_TYPES, LISTING_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { uploadFile } from '../api/client';
+import MoneyInput from './MoneyInput.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyForm = {
@@ -198,7 +199,7 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
             </div>
             <div className="form-field">
               <label>Fiyat (₺) *</label>
-              <input name="price" type="number" min="0" value={form.price} onChange={handleChange} required />
+              <MoneyInput value={form.price} onChange={(v) => setForm((f) => ({ ...f, price: v }))} required />
             </div>
             <div className="form-field">
               <label>Tapu Durumu *</label>
@@ -252,7 +253,7 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
                 </div>
                 <div className="form-field">
                   <label>Aidat (₺)</label>
-                  <input name="dues" type="number" min="0" value={form.dues} onChange={handleChange} />
+                  <MoneyInput value={form.dues} onChange={(v) => setForm((f) => ({ ...f, dues: v }))} />
                 </div>
                 <div className="form-field">
                   <label>Yapı Yaşı</label>

@@ -5,6 +5,7 @@ import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import CustomerFormModal from '../components/CustomerFormModal.jsx';
+import MoneyInput from '../components/MoneyInput.jsx';
 
 const filterCardStyle = {
   background: 'var(--paper-raised, #fbfaf5)',
@@ -153,8 +154,8 @@ export default function CustomerListPage() {
               <div>
                 <label style={filterLabelStyle}>Bütçe Aralığı (₺)</label>
                 <div style={rangeInputRowStyle}>
-                  <input placeholder="Min" value={minBudget} onChange={(e) => setMinBudget(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
-                  <input placeholder="Maks" value={maxBudget} onChange={(e) => setMaxBudget(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
+                  <MoneyInput placeholder="Min" value={minBudget} onChange={setMinBudget} style={{ width: '50%', minWidth: 0 }} />
+                  <MoneyInput placeholder="Maks" value={maxBudget} onChange={setMaxBudget} style={{ width: '50%', minWidth: 0 }} />
                 </div>
               </div>
             </div>

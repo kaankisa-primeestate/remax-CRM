@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CUSTOMER_TYPES } from '../api/customers';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
+import MoneyInput from './MoneyInput.jsx';
 
 const emptyForm = {
   firstName: '',
@@ -104,7 +105,7 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
             </div>
             <div className="form-field">
               <label>Bütçe (₺)</label>
-              <input name="budget" type="number" min="0" value={form.budget} onChange={handleChange} />
+              <MoneyInput value={form.budget} onChange={(v) => setForm((f) => ({ ...f, budget: v }))} />
             </div>
             {isBroker && (
               <div className="form-field">
