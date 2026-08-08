@@ -13,6 +13,16 @@ export const apiClient = axios.create({
   baseURL,
 });
 
+// Fotograf/video dosyasini backend uzerinden Cloudinary'e yukler, URL doner
+export async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  // Content-Type baslinigini elle vermiyoruz -- tarayici, FormData
+  // gonderirken gerekli 'boundary' degerini kendisi ekliyor.
+  const response = await apiClient.post('/upload', formData);
+  return response.data.url;
+}
+
 // Her isteğe, giriş yapmışsa JWT token'ı otomatik olarak ekler
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('remax_crm_token');

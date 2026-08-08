@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PROPERTY_TYPES, LISTING_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
+import { uploadFile } from '../api/client';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyForm = {
@@ -28,7 +29,6 @@ const emptyForm = {
   facade: '',
   buildingAge: '',
   status: 'active',
-  photoUrlsText: '',
   notes: '',
   agentId: '',
 };
@@ -38,14 +38,24 @@ function toFormState(initialValues) {
   return {
     ...emptyForm,
     ...initialValues,
-    photoUrlsText: (initialValues.photoUrls || []).join('\n'),
     agentId: initialValues.agentId || '',
   };
+}
+
+function toInitialPhotos(initialValues) {
+  if (!initialValues?.photoUrls) return [];
+  return initialValues.photoUrls.map((url, idx) => ({
+    id: `existing-${idx}-${url}`,
+    previewUrl: url,
+    url,
+    uploading: false,
+  }));
 }
 
 export default function PropertyFormModal({ initialValues, onSubmit, onClose }) {
   const { isBroker } = useAuth();
   const [form, setForm] = useState(() => toFormState(initialValues));
+  const [photos, setPhotos] = useState(() => toInitialPhotos(initialValues));
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [agents, setAgents] = useState([]);
@@ -64,15 +74,43 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
     setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
   }
 
+  async function handleFilesSelected(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ''; // ayni dosyayi tekrar secebilmek icin input'u sifirla
+
+    for (const file of files) {
+      const tempId = `${Date.now()}-${Math.random()}`;
+      const previewUrl = URL.createObjectURL(file);
+      setPhotos((prev) => [...prev, { id: tempId, previewUrl, url: null, uploading: true }]);
+
+      try {
+        const url = await uploadFile(file);
+        setPhotos((prev) =>
+          prev.map((p) => (p.id === tempId ? { ...p, url, uploading: false } : p)),
+        );
+      } catch (err) {
+        setPhotos((prev) => prev.filter((p) => p.id !== tempId));
+        alert('Fotoğraf yüklenemedi, tekrar deneyin.');
+      }
+    }
+  }
+
+  function removePhoto(id) {
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+
+    if (photos.some((p) => p.uploading)) {
+      setError('Fotoğraflar yükleniyor, lütfen bitmesini bekleyin.');
+      return;
+    }
+
     setSaving(true);
     try {
-      const photoUrls = form.photoUrlsText
-        .split('\n')
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const photoUrls = photos.filter((p) => p.url).map((p) => p.url);
 
       const payload = {
         ...form,
@@ -90,7 +128,6 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
         agentId: form.agentId || undefined,
         photoUrls: photoUrls.length ? photoUrls : undefined,
       };
-      delete payload.photoUrlsText;
 
       await onSubmit(payload);
     } catch (err) {
@@ -254,14 +291,74 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
             )}
 
             <div className="form-field full">
-              <label>Fotoğraf Linkleri (her satıra bir link)</label>
-              <textarea
-                name="photoUrlsText"
-                value={form.photoUrlsText}
-                onChange={handleChange}
-                placeholder="https://... (dosya yükleme henüz desteklenmiyor, harici bir görsel linki yapıştırın)"
-              />
+              <label>Fotoğraflar</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                {photos.map((p) => (
+                  <div key={p.id} style={{ position: 'relative', width: 84, height: 84 }}>
+                    <img
+                      src={p.previewUrl}
+                      alt=""
+                      style={{
+                        width: 84,
+                        height: 84,
+                        objectFit: 'cover',
+                        borderRadius: 6,
+                        border: '1px solid var(--ink-navy-light, #cfc9b8)',
+                        opacity: p.uploading ? 0.5 : 1,
+                      }}
+                    />
+                    {p.uploading && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 11,
+                          color: 'var(--ink-navy)',
+                        }}
+                      >
+                        Yükleniyor…
+                      </div>
+                    )}
+                    {!p.uploading && (
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(p.id)}
+                        style={{
+                          position: 'absolute',
+                          top: -6,
+                          right: -6,
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          background: 'var(--danger, #a8412c)',
+                          color: 'white',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          lineHeight: '20px',
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <label className="btn btn-secondary" style={{ display: 'inline-block', cursor: 'pointer' }}>
+                + Fotoğraf Ekle
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleFilesSelected}
+                  style={{ display: 'none' }}
+                />
+              </label>
             </div>
+
             <div className="form-field full">
               <label>Notlar</label>
               <textarea name="notes" value={form.notes} onChange={handleChange} />
