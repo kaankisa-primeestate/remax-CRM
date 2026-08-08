@@ -35,11 +35,17 @@ const emptyForm = {
 
 function toFormState(initialValues) {
   if (!initialValues) return emptyForm;
-  return {
-    ...emptyForm,
-    ...initialValues,
-    agentId: initialValues.agentId || '',
-  };
+  // Sadece emptyForm'da tanimli alanlari kopyala -- initialValues'daki
+  // id, createdAt, updatedAt gibi ekstra alanlar forma sizip backend'e
+  // gitmesin (backend bu alanlari kabul etmiyor, hata veriyordu).
+  const next = { ...emptyForm };
+  for (const key of Object.keys(emptyForm)) {
+    if (initialValues[key] !== undefined && initialValues[key] !== null) {
+      next[key] = initialValues[key];
+    }
+  }
+  next.agentId = initialValues.agentId || '';
+  return next;
 }
 
 function toInitialPhotos(initialValues) {
