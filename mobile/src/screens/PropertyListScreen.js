@@ -15,6 +15,7 @@ import { propertiesApi, LISTING_TYPES, PROPERTY_STATUSES } from '../api/properti
 import { usersApi } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 import ChipSelect from '../components/ChipSelect';
+import MoneyInput from '../components/MoneyInput';
 import { colors, statusColors } from '../theme';
 
 function Badge({ value, labelMap }) {
@@ -193,19 +194,17 @@ export default function PropertyListScreen({ navigation }) {
 
           <Text style={styles.filterLabel}>Fiyat Aralığı (₺)</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-            <TextInput
+            <MoneyInput
               style={[styles.filterInput, { flex: 1 }]}
               placeholder="Min"
               value={minPrice}
               onChangeText={setMinPrice}
-              keyboardType="numeric"
             />
-            <TextInput
+            <MoneyInput
               style={[styles.filterInput, { flex: 1 }]}
               placeholder="Maks"
               value={maxPrice}
               onChangeText={setMaxPrice}
-              keyboardType="numeric"
             />
           </View>
 

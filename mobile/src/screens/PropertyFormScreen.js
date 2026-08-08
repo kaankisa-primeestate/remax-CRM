@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { propertiesApi } from '../api/properties';
 import { uploadFile } from '../api/client';
 import ChipSelect from '../components/ChipSelect';
+import MoneyInput from '../components/MoneyInput';
 import { colors } from '../theme';
 
 const PROPERTY_TYPE_OPTIONS = [
@@ -235,7 +236,7 @@ export default function PropertyFormScreen({ navigation, route }) {
         <TextInput style={styles.input} value={form.areaM2} onChangeText={(v) => set('areaM2', v)} keyboardType="numeric" />
 
         <Text style={styles.label}>Fiyat (₺) *</Text>
-        <TextInput style={styles.input} value={form.price} onChangeText={(v) => set('price', v)} keyboardType="numeric" />
+        <MoneyInput style={styles.input} value={form.price} onChangeText={(v) => set('price', v)} />
 
         <Text style={styles.label}>Tapu Durumu *</Text>
         <TextInput
@@ -269,7 +270,7 @@ export default function PropertyFormScreen({ navigation, route }) {
             <TextInput style={styles.input} value={form.heatingType} onChangeText={(v) => set('heatingType', v)} />
 
             <Text style={styles.label}>Aidat (₺)</Text>
-            <TextInput style={styles.input} value={form.dues} onChangeText={(v) => set('dues', v)} keyboardType="numeric" />
+            <MoneyInput style={styles.input} value={form.dues} onChangeText={(v) => set('dues', v)} />
           </>
         )}
 

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { customersApi } from '../api/customers';
 import ChipSelect from '../components/ChipSelect';
+import MoneyInput from '../components/MoneyInput';
 import { colors } from '../theme';
 
 const CUSTOMER_TYPE_OPTIONS = [
@@ -103,11 +104,10 @@ export default function CustomerFormScreen({ navigation }) {
         />
 
         <Text style={styles.label}>Bütçe (₺)</Text>
-        <TextInput
+        <MoneyInput
           style={styles.input}
           value={form.budget}
           onChangeText={(v) => set('budget', v)}
-          keyboardType="numeric"
         />
 
         <Text style={styles.label}>Adres</Text>

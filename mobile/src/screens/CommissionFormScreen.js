@@ -14,6 +14,7 @@ import { commissionsApi } from '../api/commissions';
 import { usersApi } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 import ChipSelect from '../components/ChipSelect';
+import MoneyInput from '../components/MoneyInput';
 import { colors } from '../theme';
 
 const TRANSACTION_TYPE_OPTIONS = [
@@ -146,11 +147,10 @@ export default function CommissionFormScreen({ navigation }) {
         />
 
         <Text style={styles.label}>İşlem Bedeli (₺) *</Text>
-        <TextInput
+        <MoneyInput
           style={styles.input}
           value={form.transactionAmount}
           onChangeText={(v) => set('transactionAmount', v)}
-          keyboardType="numeric"
         />
 
         <Text style={styles.label}>Komisyon Oranı (%) *</Text>
@@ -186,11 +186,10 @@ export default function CommissionFormScreen({ navigation }) {
         />
 
         <Text style={styles.label}>Ceza (₺)</Text>
-        <TextInput
+        <MoneyInput
           style={styles.input}
           value={form.penaltyAmount}
           onChangeText={(v) => set('penaltyAmount', v)}
-          keyboardType="numeric"
         />
 
         {isBroker && (
