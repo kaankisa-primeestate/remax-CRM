@@ -12,9 +12,15 @@ const filterCardStyle = {
   borderRadius: 8,
   padding: 16,
   marginBottom: 16,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
+  boxSizing: 'border-box',
+  width: '100%',
+};
+
+const filterGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+  gap: '14px 16px',
+  marginBottom: 14,
 };
 
 const filterLabelStyle = {
@@ -27,7 +33,7 @@ const filterLabelStyle = {
   display: 'block',
 };
 
-const filterRowStyle = { display: 'flex', gap: 10, flexWrap: 'wrap' };
+const rangeInputRowStyle = { display: 'flex', gap: 8, minWidth: 0 };
 
 export default function PropertyListPage() {
   const { isBroker } = useAuth();
@@ -61,6 +67,11 @@ export default function PropertyListPage() {
       usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
     }
   }, [isBroker]);
+
+  // Sekme (Tümü/Konut/Arsa/...) değiştiğinde filtre panelini otomatik kapat
+  useEffect(() => {
+    setShowFilters(false);
+  }, [activeType]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -171,11 +182,11 @@ export default function PropertyListPage() {
 
         {showFilters && (
           <div style={filterCardStyle}>
-            <div style={filterRowStyle}>
+            <div style={filterGridStyle}>
               {isBroker && (
-                <div style={{ flex: 1, minWidth: 180 }}>
+                <div>
                   <label style={filterLabelStyle}>Danışman</label>
-                  <select value={agentId} onChange={(e) => setAgentId(e.target.value)}>
+                  <select value={agentId} onChange={(e) => setAgentId(e.target.value)} style={{ width: '100%' }}>
                     <option value="">Tümü</option>
                     {agents.map((a) => (
                       <option key={a.id} value={a.id}>{a.name}</option>
@@ -183,66 +194,51 @@ export default function PropertyListPage() {
                   </select>
                 </div>
               )}
-              <div style={{ flex: 1, minWidth: 180 }}>
+              <div>
                 <label style={filterLabelStyle}>Durum</label>
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ width: '100%' }}>
                   <option value="">Tümü</option>
                   {PROPERTY_STATUSES.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
               </div>
-              <div style={{ flex: 1, minWidth: 140 }}>
+              <div>
                 <label style={filterLabelStyle}>Oda Sayısı</label>
-                <input
-                  value={rooms}
-                  onChange={(e) => setRooms(e.target.value)}
-                  placeholder="Örn: 2+1"
-                />
+                <input value={rooms} onChange={(e) => setRooms(e.target.value)} placeholder="Örn: 2+1" style={{ width: '100%' }} />
               </div>
-              <div style={{ flex: 1, minWidth: 180 }}>
+              <div>
                 <label style={filterLabelStyle}>Isıtma Tipi</label>
-                <input
-                  value={heatingType}
-                  onChange={(e) => setHeatingType(e.target.value)}
-                  placeholder="Örn: Doğalgaz"
-                />
+                <input value={heatingType} onChange={(e) => setHeatingType(e.target.value)} placeholder="Örn: Doğalgaz" style={{ width: '100%' }} />
               </div>
-              <div style={{ flex: 1, minWidth: 160 }}>
+              <div>
                 <label style={filterLabelStyle}>Manzara</label>
-                <input
-                  value={view}
-                  onChange={(e) => setView(e.target.value)}
-                  placeholder="Örn: Deniz"
-                />
+                <input value={view} onChange={(e) => setView(e.target.value)} placeholder="Örn: Deniz" style={{ width: '100%' }} />
               </div>
-            </div>
-
-            <div style={filterRowStyle}>
-              <div style={{ flex: 1, minWidth: 220 }}>
+              <div>
                 <label style={filterLabelStyle}>Fiyat Aralığı (₺)</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input placeholder="Min" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} type="number" />
-                  <input placeholder="Maks" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} type="number" />
+                <div style={rangeInputRowStyle}>
+                  <input placeholder="Min" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
+                  <input placeholder="Maks" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
                 </div>
               </div>
-              <div style={{ flex: 1, minWidth: 220 }}>
+              <div>
                 <label style={filterLabelStyle}>Metrekare Aralığı</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input placeholder="Min" value={minArea} onChange={(e) => setMinArea(e.target.value)} type="number" />
-                  <input placeholder="Maks" value={maxArea} onChange={(e) => setMaxArea(e.target.value)} type="number" />
+                <div style={rangeInputRowStyle}>
+                  <input placeholder="Min" value={minArea} onChange={(e) => setMinArea(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
+                  <input placeholder="Maks" value={maxArea} onChange={(e) => setMaxArea(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
                 </div>
               </div>
-              <div style={{ flex: 1, minWidth: 220 }}>
+              <div>
                 <label style={filterLabelStyle}>Bina Yaşı Aralığı</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input placeholder="Min" value={minBuildingAge} onChange={(e) => setMinBuildingAge(e.target.value)} type="number" />
-                  <input placeholder="Maks" value={maxBuildingAge} onChange={(e) => setMaxBuildingAge(e.target.value)} type="number" />
+                <div style={rangeInputRowStyle}>
+                  <input placeholder="Min" value={minBuildingAge} onChange={(e) => setMinBuildingAge(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
+                  <input placeholder="Maks" value={maxBuildingAge} onChange={(e) => setMaxBuildingAge(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
                 </div>
               </div>
             </div>
 
-            <div style={filterRowStyle}>
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 14 }}>
               {[
                 [hasPool, setHasPool, 'Havuz'],
                 [hasGym, setHasGym, 'Spor Salonu'],
@@ -264,13 +260,14 @@ export default function PropertyListPage() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Örn: okula yakın, pazara yakın"
+                style={{ width: '100%', boxSizing: 'border-box' }}
               />
             </div>
 
             {activeFilterCount > 0 && (
               <button
                 className="btn btn-secondary"
-                style={{ alignSelf: 'flex-start', color: 'var(--danger)' }}
+                style={{ marginTop: 14, color: 'var(--danger)' }}
                 onClick={clearFilters}
               >
                 Filtreleri Temizle

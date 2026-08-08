@@ -8,6 +8,7 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { propertiesApi, LISTING_TYPES, PROPERTY_STATUSES } from '../api/properties';
@@ -47,6 +48,16 @@ export default function PropertyListScreen({ navigation }) {
   const [maxPrice, setMaxPrice] = useState('');
   const [minArea, setMinArea] = useState('');
   const [maxArea, setMaxArea] = useState('');
+  const [rooms, setRooms] = useState('');
+  const [minBuildingAge, setMinBuildingAge] = useState('');
+  const [maxBuildingAge, setMaxBuildingAge] = useState('');
+  const [heatingType, setHeatingType] = useState('');
+  const [view, setView] = useState('');
+  const [hasPool, setHasPool] = useState(false);
+  const [hasGym, setHasGym] = useState(false);
+  const [hasSecurity, setHasSecurity] = useState(false);
+  const [hasParking, setHasParking] = useState(false);
+  const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
     if (isBroker) {
@@ -64,10 +75,23 @@ export default function PropertyListScreen({ navigation }) {
       if (maxPrice) params.maxPrice = maxPrice;
       if (minArea) params.minArea = minArea;
       if (maxArea) params.maxArea = maxArea;
+      if (rooms) params.rooms = rooms;
+      if (minBuildingAge) params.minBuildingAge = minBuildingAge;
+      if (maxBuildingAge) params.maxBuildingAge = maxBuildingAge;
+      if (heatingType) params.heatingType = heatingType;
+      if (view) params.view = view;
+      if (hasPool) params.hasPool = 'true';
+      if (hasGym) params.hasGym = 'true';
+      if (hasSecurity) params.hasSecurity = 'true';
+      if (hasParking) params.hasParking = 'true';
+      if (keyword) params.keyword = keyword;
       const data = await propertiesApi.list(params);
       setProperties(data);
     },
-    [search, isBroker, agentId, status, minPrice, maxPrice, minArea, maxArea],
+    [
+      search, isBroker, agentId, status, minPrice, maxPrice, minArea, maxArea,
+      rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword,
+    ],
   );
 
   useFocusEffect(
@@ -83,7 +107,9 @@ export default function PropertyListScreen({ navigation }) {
     setRefreshing(false);
   }
 
-  const activeFilterCount = [agentId, status, minPrice, maxPrice, minArea, maxArea].filter(Boolean).length;
+  const activeFilterCount =
+    [agentId, status, minPrice, maxPrice, minArea, maxArea, rooms, minBuildingAge, maxBuildingAge, heatingType, view, keyword].filter(Boolean).length +
+    [hasPool, hasGym, hasSecurity, hasParking].filter(Boolean).length;
 
   function clearFilters() {
     setAgentId('');
@@ -92,6 +118,16 @@ export default function PropertyListScreen({ navigation }) {
     setMaxPrice('');
     setMinArea('');
     setMaxArea('');
+    setRooms('');
+    setMinBuildingAge('');
+    setMaxBuildingAge('');
+    setHeatingType('');
+    setView('');
+    setHasPool(false);
+    setHasGym(false);
+    setHasSecurity(false);
+    setHasParking(false);
+    setKeyword('');
   }
 
   const formatPrice = (p) =>
@@ -101,8 +137,11 @@ export default function PropertyListScreen({ navigation }) {
       maximumFractionDigits: 0,
     }).format(p.price);
 
-  return (
-    <View style={styles.container}>
+  // Arama kutusu + filtre paneli, FlatList'in kaydirilabilir basligi (header)
+  // olarak render ediliyor -- boylece filtre paneli uzun oldugunda da
+  // kullanici asagi kaydirip tum alanlara ve listeye ulasabiliyor.
+  const ListHeader = (
+    <View>
       <TextInput
         style={styles.searchInput}
         placeholder="Başlık, il, ilçe veya mahalle ile ara…"
@@ -128,6 +167,30 @@ export default function PropertyListScreen({ navigation }) {
           )}
           <ChipSelect label="Durum" options={STATUS_OPTIONS} value={status} onChange={setStatus} />
 
+          <Text style={styles.filterLabel}>Oda Sayısı</Text>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Örn: 2+1"
+            value={rooms}
+            onChangeText={setRooms}
+          />
+
+          <Text style={styles.filterLabel}>Isıtma Tipi</Text>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Örn: Doğalgaz Kombi"
+            value={heatingType}
+            onChangeText={setHeatingType}
+          />
+
+          <Text style={styles.filterLabel}>Manzara</Text>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Örn: Deniz"
+            value={view}
+            onChangeText={setView}
+          />
+
           <Text style={styles.filterLabel}>Fiyat Aralığı (₺)</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
             <TextInput
@@ -147,7 +210,7 @@ export default function PropertyListScreen({ navigation }) {
           </View>
 
           <Text style={styles.filterLabel}>Metrekare Aralığı</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
             <TextInput
               style={[styles.filterInput, { flex: 1 }]}
               placeholder="Min"
@@ -164,6 +227,47 @@ export default function PropertyListScreen({ navigation }) {
             />
           </View>
 
+          <Text style={styles.filterLabel}>Bina Yaşı Aralığı</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            <TextInput
+              style={[styles.filterInput, { flex: 1 }]}
+              placeholder="Min"
+              value={minBuildingAge}
+              onChangeText={setMinBuildingAge}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={[styles.filterInput, { flex: 1 }]}
+              placeholder="Maks"
+              value={maxBuildingAge}
+              onChangeText={setMaxBuildingAge}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <Text style={styles.filterLabel}>Ek Özellikler</Text>
+          <View style={{ marginBottom: 12 }}>
+            {[
+              [hasPool, setHasPool, 'Havuz'],
+              [hasGym, setHasGym, 'Spor Salonu'],
+              [hasSecurity, setHasSecurity, 'Güvenlik'],
+              [hasParking, setHasParking, 'Otopark'],
+            ].map(([val, setVal, label]) => (
+              <View key={label} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <Text style={{ fontSize: 14, color: colors.slate }}>{label}</Text>
+                <Switch value={val} onValueChange={setVal} trackColor={{ true: colors.brass }} />
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.filterLabel}>Anahtar Kelime (notlarda / açıklamada ara)</Text>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Örn: okula yakın, pazara yakın"
+            value={keyword}
+            onChangeText={setKeyword}
+          />
+
           {activeFilterCount > 0 && (
             <TouchableOpacity onPress={clearFilters} style={{ marginTop: 10 }}>
               <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>Filtreleri Temizle</Text>
@@ -171,15 +275,24 @@ export default function PropertyListScreen({ navigation }) {
           )}
         </View>
       )}
+    </View>
+  );
 
+  return (
+    <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
+        <>
+          {ListHeader}
+          <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
+        </>
       ) : (
         <FlatList
           data={properties}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          ListHeaderComponent={ListHeader}
           ListEmptyComponent={<Text style={styles.empty}>Kayıt bulunamadı.</Text>}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}
@@ -236,6 +349,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     fontSize: 14,
     backgroundColor: colors.white,
+    marginBottom: 12,
   },
   row: {
     backgroundColor: colors.paperRaised,

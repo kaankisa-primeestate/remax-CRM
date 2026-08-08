@@ -36,6 +36,7 @@ export default function CustomerListScreen({ navigation }) {
   const [agentId, setAgentId] = useState('');
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
+  const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
     if (isBroker) {
@@ -50,10 +51,11 @@ export default function CustomerListScreen({ navigation }) {
       if (isBroker && agentId) params.agentId = agentId;
       if (minBudget) params.minBudget = minBudget;
       if (maxBudget) params.maxBudget = maxBudget;
+      if (keyword) params.keyword = keyword;
       const data = await customersApi.list(params);
       setCustomers(data);
     },
-    [search, isBroker, agentId, minBudget, maxBudget],
+    [search, isBroker, agentId, minBudget, maxBudget, keyword],
   );
 
   useFocusEffect(
@@ -69,16 +71,20 @@ export default function CustomerListScreen({ navigation }) {
     setRefreshing(false);
   }
 
-  const activeFilterCount = [agentId, minBudget, maxBudget].filter(Boolean).length;
+  const activeFilterCount = [agentId, minBudget, maxBudget, keyword].filter(Boolean).length;
 
   function clearFilters() {
     setAgentId('');
     setMinBudget('');
     setMaxBudget('');
+    setKeyword('');
   }
 
-  return (
-    <View style={styles.container}>
+  // Arama kutusu + filtre paneli, FlatList'in kaydirilabilir basligi (header)
+  // olarak render ediliyor -- boylece filtre paneli uzun oldugunda da
+  // kullanici asagi kaydirip tum alanlara ve listeye ulasabiliyor.
+  const ListHeader = (
+    <View>
       <TextInput
         style={styles.searchInput}
         placeholder="Ad, soyad veya telefon ile ara…"
@@ -103,7 +109,7 @@ export default function CustomerListScreen({ navigation }) {
             />
           )}
           <Text style={styles.filterLabel}>Bütçe Aralığı (₺)</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
             <TextInput
               style={[styles.filterInput, { flex: 1 }]}
               placeholder="Min"
@@ -119,6 +125,15 @@ export default function CustomerListScreen({ navigation }) {
               keyboardType="numeric"
             />
           </View>
+
+          <Text style={styles.filterLabel}>Anahtar Kelime (istekler / notlarda ara)</Text>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Örn: 3+1, okula yakın"
+            value={keyword}
+            onChangeText={setKeyword}
+          />
+
           {activeFilterCount > 0 && (
             <TouchableOpacity onPress={clearFilters} style={{ marginTop: 10 }}>
               <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '600' }}>Filtreleri Temizle</Text>
@@ -126,17 +141,24 @@ export default function CustomerListScreen({ navigation }) {
           )}
         </View>
       )}
+    </View>
+  );
 
+  return (
+    <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
+        <>
+          {ListHeader}
+          <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
+        </>
       ) : (
         <FlatList
           data={customers}
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          ListEmptyComponent={
-            <Text style={styles.empty}>Kayıt bulunamadı.</Text>
-          }
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={<Text style={styles.empty}>Kayıt bulunamadı.</Text>}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}

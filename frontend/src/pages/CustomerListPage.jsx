@@ -12,9 +12,15 @@ const filterCardStyle = {
   borderRadius: 8,
   padding: 16,
   marginBottom: 16,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
+  boxSizing: 'border-box',
+  width: '100%',
+};
+
+const filterGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+  gap: '14px 16px',
+  marginBottom: 14,
 };
 
 const filterLabelStyle = {
@@ -27,7 +33,7 @@ const filterLabelStyle = {
   display: 'block',
 };
 
-const filterRowStyle = { display: 'flex', gap: 10, flexWrap: 'wrap' };
+const rangeInputRowStyle = { display: 'flex', gap: 8, minWidth: 0 };
 
 export default function CustomerListPage() {
   const { isBroker } = useAuth();
@@ -49,6 +55,11 @@ export default function CustomerListPage() {
       usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
     }
   }, [isBroker]);
+
+  // Sekme (Tümü/Alıcı/Satıcı/...) değiştiğinde filtre panelini otomatik kapat
+  useEffect(() => {
+    setShowFilters(false);
+  }, [activeType]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -127,11 +138,11 @@ export default function CustomerListPage() {
 
         {showFilters && (
           <div style={filterCardStyle}>
-            <div style={filterRowStyle}>
+            <div style={filterGridStyle}>
               {isBroker && (
-                <div style={{ flex: 1, minWidth: 180 }}>
+                <div>
                   <label style={filterLabelStyle}>Danışman</label>
-                  <select value={agentId} onChange={(e) => setAgentId(e.target.value)}>
+                  <select value={agentId} onChange={(e) => setAgentId(e.target.value)} style={{ width: '100%' }}>
                     <option value="">Tümü</option>
                     {agents.map((a) => (
                       <option key={a.id} value={a.id}>{a.name}</option>
@@ -139,11 +150,11 @@ export default function CustomerListPage() {
                   </select>
                 </div>
               )}
-              <div style={{ flex: 1, minWidth: 220 }}>
+              <div>
                 <label style={filterLabelStyle}>Bütçe Aralığı (₺)</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input placeholder="Min" value={minBudget} onChange={(e) => setMinBudget(e.target.value)} type="number" />
-                  <input placeholder="Maks" value={maxBudget} onChange={(e) => setMaxBudget(e.target.value)} type="number" />
+                <div style={rangeInputRowStyle}>
+                  <input placeholder="Min" value={minBudget} onChange={(e) => setMinBudget(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
+                  <input placeholder="Maks" value={maxBudget} onChange={(e) => setMaxBudget(e.target.value)} type="number" style={{ width: '50%', minWidth: 0 }} />
                 </div>
               </div>
             </div>
@@ -156,13 +167,14 @@ export default function CustomerListPage() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Örn: 3+1, okula yakın"
+                style={{ width: '100%', boxSizing: 'border-box' }}
               />
             </div>
 
             {activeFilterCount > 0 && (
               <button
                 className="btn btn-secondary"
-                style={{ alignSelf: 'flex-start', color: 'var(--danger)' }}
+                style={{ marginTop: 14, color: 'var(--danger)' }}
                 onClick={clearFilters}
               >
                 Filtreleri Temizle
