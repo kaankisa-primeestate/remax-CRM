@@ -8,10 +8,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   Switch,
+  Image,
+  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { propertiesApi } from '../api/properties';
+import { uploadFile } from '../api/client';
 import ChipSelect from '../components/ChipSelect';
 import { colors } from '../theme';
 
@@ -47,6 +51,7 @@ export default function PropertyFormScreen({ navigation }) {
     dues: '',
     notes: '',
   });
+  const [photos, setPhotos] = useState([]); // { localUri, url, uploading }
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -56,14 +61,72 @@ export default function PropertyFormScreen({ navigation }) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  async function uploadAndAddPhoto(asset) {
+    const localUri = asset.uri;
+    const tempId = `${Date.now()}-${Math.random()}`;
+    setPhotos((prev) => [...prev, { id: tempId, localUri, url: null, uploading: true }]);
+
+    try {
+      const url = await uploadFile(localUri, asset.mimeType);
+      setPhotos((prev) =>
+        prev.map((p) => (p.id === tempId ? { ...p, url, uploading: false } : p)),
+      );
+    } catch (err) {
+      setPhotos((prev) => prev.filter((p) => p.id !== tempId));
+      Alert.alert('Yükleme Hatası', String(err?.message || err));
+    }
+  }
+
+  async function pickFromLibrary() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('İzin Gerekli', 'Fotoğraf seçebilmek için galeri izni vermeniz gerekiyor.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      quality: 0.7,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+    });
+    if (!result.canceled) {
+      for (const asset of result.assets) {
+        uploadAndAddPhoto(asset);
+      }
+    }
+  }
+
+  async function takePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('İzin Gerekli', 'Fotoğraf çekebilmek için kamera izni vermeniz gerekiyor.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      uploadAndAddPhoto(result.assets[0]);
+    }
+  }
+
+  function removePhoto(id) {
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+  }
+
   async function handleSave() {
     if (!form.title || !form.province || !form.district || !form.neighborhood || !form.areaM2 || !form.price || !form.deedStatus) {
       setError('Yıldızlı (zorunlu) alanları doldurun.');
       return;
     }
+    if (photos.some((p) => p.uploading)) {
+      setError('Fotoğraflar yükleniyor, lütfen bitmesini bekleyin.');
+      return;
+    }
     setError(null);
     setSaving(true);
     try {
+      const photoUrls = photos.filter((p) => p.url).map((p) => p.url);
       await propertiesApi.create({
         ...form,
         areaM2: Number(form.areaM2),
@@ -74,6 +137,7 @@ export default function PropertyFormScreen({ navigation }) {
         floor: form.floor || undefined,
         heatingType: form.heatingType || undefined,
         notes: form.notes || undefined,
+        photoUrls: photoUrls.length ? photoUrls : undefined,
       });
       navigation.goBack();
     } catch (err) {
@@ -162,6 +226,33 @@ export default function PropertyFormScreen({ navigation }) {
           </>
         )}
 
+        <Text style={styles.label}>Fotoğraflar</Text>
+        <View style={styles.photoRow}>
+          {photos.map((p) => (
+            <View key={p.id} style={styles.photoThumbWrap}>
+              <Image source={{ uri: p.localUri }} style={styles.photoThumb} />
+              {p.uploading && (
+                <View style={styles.photoUploadingOverlay}>
+                  <ActivityIndicator color={colors.white} size="small" />
+                </View>
+              )}
+              {!p.uploading && (
+                <TouchableOpacity style={styles.photoRemoveBtn} onPress={() => removePhoto(p.id)}>
+                  <Text style={styles.photoRemoveBtnText}>×</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          <TouchableOpacity style={styles.photoActionBtn} onPress={pickFromLibrary}>
+            <Text style={styles.photoActionBtnText}>Galeriden Seç</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.photoActionBtn} onPress={takePhoto}>
+            <Text style={styles.photoActionBtnText}>Fotoğraf Çek</Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.label}>Notlar</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
@@ -207,6 +298,46 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   switchLabel: { fontSize: 15, color: colors.slate },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  photoThumbWrap: { position: 'relative' },
+  photoThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: colors.paperRaised,
+  },
+  photoUploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(28,43,69,0.5)',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoRemoveBtn: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoRemoveBtnText: { color: colors.white, fontSize: 14, fontWeight: '700', lineHeight: 16 },
+  photoActionBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.inkNavy,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  photoActionBtnText: { color: colors.inkNavy, fontWeight: '600', fontSize: 13 },
   error: { color: colors.danger, marginTop: 14, fontSize: 13 },
   button: {
     backgroundColor: colors.inkNavy,
