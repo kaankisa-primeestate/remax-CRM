@@ -4,6 +4,8 @@ export const propertiesApi = {
   list: (params) => apiClient.get('/properties', { params }).then((r) => r.data),
   getOne: (id) => apiClient.get(`/properties/${id}`).then((r) => r.data),
   create: (payload) => apiClient.post('/properties', payload).then((r) => r.data),
+  update: (id, payload) =>
+    apiClient.patch(`/properties/${id}`, payload).then((r) => r.data),
 };
 
 export const PROPERTY_TYPES = {

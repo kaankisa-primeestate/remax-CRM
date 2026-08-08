@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -32,28 +32,69 @@ const LISTING_TYPE_OPTIONS = [
   { value: 'rent', label: 'Kiralık' },
 ];
 
-export default function PropertyFormScreen({ navigation }) {
-  const [form, setForm] = useState({
-    title: '',
-    propertyType: 'apartment',
-    listingType: 'sale',
-    province: '',
-    district: '',
-    neighborhood: '',
-    areaM2: '',
-    price: '',
-    deedStatus: '',
-    mortgageEligible: false,
-    rooms: '',
-    bathrooms: '',
-    floor: '',
-    heatingType: '',
-    dues: '',
-    notes: '',
-  });
-  const [photos, setPhotos] = useState([]); // { localUri, url, uploading }
+function toFormState(property) {
+  if (!property) {
+    return {
+      title: '',
+      propertyType: 'apartment',
+      listingType: 'sale',
+      province: '',
+      district: '',
+      neighborhood: '',
+      areaM2: '',
+      price: '',
+      deedStatus: '',
+      mortgageEligible: false,
+      rooms: '',
+      bathrooms: '',
+      floor: '',
+      heatingType: '',
+      dues: '',
+      notes: '',
+    };
+  }
+  return {
+    title: property.title || '',
+    propertyType: property.propertyType || 'apartment',
+    listingType: property.listingType || 'sale',
+    province: property.province || '',
+    district: property.district || '',
+    neighborhood: property.neighborhood || '',
+    areaM2: property.areaM2 != null ? String(property.areaM2) : '',
+    price: property.price != null ? String(property.price) : '',
+    deedStatus: property.deedStatus || '',
+    mortgageEligible: Boolean(property.mortgageEligible),
+    rooms: property.rooms || '',
+    bathrooms: property.bathrooms != null ? String(property.bathrooms) : '',
+    floor: property.floor || '',
+    heatingType: property.heatingType || '',
+    dues: property.dues != null ? String(property.dues) : '',
+    notes: property.notes || '',
+  };
+}
+
+function toInitialPhotos(property) {
+  if (!property?.photoUrls) return [];
+  return property.photoUrls.map((url, idx) => ({
+    id: `existing-${idx}-${url}`,
+    localUri: url,
+    url,
+    uploading: false,
+  }));
+}
+
+export default function PropertyFormScreen({ navigation, route }) {
+  const editingProperty = route.params?.property || null;
+  const isEdit = Boolean(editingProperty);
+
+  const [form, setForm] = useState(() => toFormState(editingProperty));
+  const [photos, setPhotos] = useState(() => toInitialPhotos(editingProperty));
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: isEdit ? 'Portföyü Düzenle' : 'Yeni Portföy' });
+  }, [navigation, isEdit]);
 
   const isResidential = form.propertyType === 'apartment' || form.propertyType === 'timeshare';
 
@@ -127,7 +168,7 @@ export default function PropertyFormScreen({ navigation }) {
     setSaving(true);
     try {
       const photoUrls = photos.filter((p) => p.url).map((p) => p.url);
-      await propertiesApi.create({
+      const payload = {
         ...form,
         areaM2: Number(form.areaM2),
         price: Number(form.price),
@@ -138,7 +179,13 @@ export default function PropertyFormScreen({ navigation }) {
         heatingType: form.heatingType || undefined,
         notes: form.notes || undefined,
         photoUrls: photoUrls.length ? photoUrls : undefined,
-      });
+      };
+
+      if (isEdit) {
+        await propertiesApi.update(editingProperty.id, payload);
+      } else {
+        await propertiesApi.create(payload);
+      }
       navigation.goBack();
     } catch (err) {
       const message = err?.response?.data?.message ?? 'Kaydedilemedi, tekrar deneyin.';
@@ -264,7 +311,11 @@ export default function PropertyFormScreen({ navigation }) {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <TouchableOpacity style={styles.button} onPress={handleSave} disabled={saving}>
-          {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Kaydet</Text>}
+          {saving ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <Text style={styles.buttonText}>{isEdit ? 'Güncelle' : 'Kaydet'}</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

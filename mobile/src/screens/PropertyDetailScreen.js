@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { useState, useCallback, useLayoutEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { propertiesApi, PROPERTY_TYPES, LISTING_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { colors } from '../theme';
@@ -13,7 +13,7 @@ function Field({ label, value }) {
   );
 }
 
-export default function PropertyDetailScreen({ route }) {
+export default function PropertyDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const [property, setProperty] = useState(null);
 
@@ -22,6 +22,20 @@ export default function PropertyDetailScreen({ route }) {
       propertiesApi.getOne(id).then(setProperty);
     }, [id]),
   );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () =>
+        property ? (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('PropertyForm', { property })}
+            style={{ marginRight: 4 }}
+          >
+            <Text style={{ color: colors.white, fontWeight: '700', fontSize: 14 }}>Düzenle</Text>
+          </TouchableOpacity>
+        ) : null,
+    });
+  }, [navigation, property]);
 
   if (!property) {
     return <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />;
@@ -32,6 +46,7 @@ export default function PropertyDetailScreen({ route }) {
     currency: property.priceCurrency || 'TRY',
     maximumFractionDigits: 0,
   }).format(property.price);
+
   const isResidential = property.propertyType === 'apartment' || property.propertyType === 'timeshare';
   const extras = [
     property.hasPool && 'Havuz',
@@ -46,11 +61,13 @@ export default function PropertyDetailScreen({ route }) {
       <Text style={styles.subtitle}>
         {LISTING_TYPES[property.listingType]} · {PROPERTY_TYPES[property.propertyType]} · {PROPERTY_STATUSES[property.status]}
       </Text>
-
-      {property.photoUrls?.[0] && (
-        <Image source={{ uri: property.photoUrls[0] }} style={styles.image} />
+      {property.photoUrls?.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+          {property.photoUrls.map((url, idx) => (
+            <Image key={idx} source={{ uri: url }} style={styles.image} />
+          ))}
+        </ScrollView>
       )}
-
       <View style={styles.card}>
         <Field label="Konum" value={`${property.neighborhood}, ${property.district} / ${property.province}`} />
         <Field label="Fiyat" value={priceLabel} />
@@ -77,7 +94,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.paper },
   title: { fontSize: 22, fontWeight: '700', color: colors.inkNavy },
   subtitle: { fontSize: 13, color: colors.muted, marginTop: 4, marginBottom: 14 },
-  image: { width: '100%', height: 180, borderRadius: 10, marginBottom: 14, backgroundColor: colors.paperLine },
+  image: { width: 160, height: 140, borderRadius: 10, marginRight: 10, backgroundColor: colors.paperLine },
   card: {
     backgroundColor: colors.paperRaised,
     borderRadius: 10,
