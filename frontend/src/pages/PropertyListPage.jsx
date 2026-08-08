@@ -1,25 +1,96 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
+import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
+import { usersApi } from '../api/auth';
+import { useAuth } from '../context/AuthContext.jsx';
 import { PropertyStatusBadge, ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
 
+const filterCardStyle = {
+  background: 'var(--paper-raised, #fbfaf5)',
+  border: '1px solid var(--ink-navy-light, #cfc9b8)',
+  borderRadius: 8,
+  padding: 16,
+  marginBottom: 16,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+};
+
+const filterLabelStyle = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: 11,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: 'var(--muted)',
+  marginBottom: 4,
+  display: 'block',
+};
+
+const filterRowStyle = { display: 'flex', gap: 10, flexWrap: 'wrap' };
+
 export default function PropertyListPage() {
+  const { isBroker } = useAuth();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeType, setActiveType] = useState('all');
   const [showForm, setShowForm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [agents, setAgents] = useState([]);
+
+  const [agentId, setAgentId] = useState('');
+  const [status, setStatus] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [minArea, setMinArea] = useState('');
+  const [maxArea, setMaxArea] = useState('');
+  const [rooms, setRooms] = useState('');
+  const [minBuildingAge, setMinBuildingAge] = useState('');
+  const [maxBuildingAge, setMaxBuildingAge] = useState('');
+  const [heatingType, setHeatingType] = useState('');
+  const [view, setView] = useState('');
+  const [hasPool, setHasPool] = useState(false);
+  const [hasGym, setHasGym] = useState(false);
+  const [hasSecurity, setHasSecurity] = useState(false);
+  const [hasParking, setHasParking] = useState(false);
+  const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    if (isBroker) {
+      usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
+    }
+  }, [isBroker]);
 
   const load = useCallback(async () => {
     setLoading(true);
     const params = {};
     if (search) params.search = search;
     if (activeType !== 'all') params.propertyType = activeType;
+    if (isBroker && agentId) params.agentId = agentId;
+    if (status) params.status = status;
+    if (minPrice) params.minPrice = minPrice;
+    if (maxPrice) params.maxPrice = maxPrice;
+    if (minArea) params.minArea = minArea;
+    if (maxArea) params.maxArea = maxArea;
+    if (rooms) params.rooms = rooms;
+    if (minBuildingAge) params.minBuildingAge = minBuildingAge;
+    if (maxBuildingAge) params.maxBuildingAge = maxBuildingAge;
+    if (heatingType) params.heatingType = heatingType;
+    if (view) params.view = view;
+    if (hasPool) params.hasPool = 'true';
+    if (hasGym) params.hasGym = 'true';
+    if (hasSecurity) params.hasSecurity = 'true';
+    if (hasParking) params.hasParking = 'true';
+    if (keyword) params.keyword = keyword;
+
     const data = await propertiesApi.list(params);
     setProperties(data);
     setLoading(false);
-  }, [search, activeType]);
+  }, [
+    search, activeType, isBroker, agentId, status, minPrice, maxPrice, minArea, maxArea,
+    rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword,
+  ]);
 
   useEffect(() => {
     const timeout = setTimeout(load, 250);
@@ -30,6 +101,30 @@ export default function PropertyListPage() {
     await propertiesApi.create(payload);
     setShowForm(false);
     load();
+  }
+
+  const activeFilterCount = [
+    agentId, status, minPrice, maxPrice, minArea, maxArea, rooms,
+    minBuildingAge, maxBuildingAge, heatingType, view, keyword,
+  ].filter(Boolean).length + [hasPool, hasGym, hasSecurity, hasParking].filter(Boolean).length;
+
+  function clearFilters() {
+    setAgentId('');
+    setStatus('');
+    setMinPrice('');
+    setMaxPrice('');
+    setMinArea('');
+    setMaxArea('');
+    setRooms('');
+    setMinBuildingAge('');
+    setMaxBuildingAge('');
+    setHeatingType('');
+    setView('');
+    setHasPool(false);
+    setHasGym(false);
+    setHasSecurity(false);
+    setHasParking(false);
+    setKeyword('');
   }
 
   const formatPrice = (p) =>
@@ -58,7 +153,6 @@ export default function PropertyListPage() {
           </button>
         ))}
       </div>
-
       <div className="folder-panel">
         <div className="toolbar">
           <input
@@ -67,10 +161,123 @@ export default function PropertyListPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)}>
+            Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? '▲' : '▼'}
+          </button>
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
             + Yeni Portföy
           </button>
         </div>
+
+        {showFilters && (
+          <div style={filterCardStyle}>
+            <div style={filterRowStyle}>
+              {isBroker && (
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <label style={filterLabelStyle}>Danışman</label>
+                  <select value={agentId} onChange={(e) => setAgentId(e.target.value)}>
+                    <option value="">Tümü</option>
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <label style={filterLabelStyle}>Durum</label>
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option value="">Tümü</option>
+                  {PROPERTY_STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <label style={filterLabelStyle}>Oda Sayısı</label>
+                <input
+                  value={rooms}
+                  onChange={(e) => setRooms(e.target.value)}
+                  placeholder="Örn: 2+1"
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <label style={filterLabelStyle}>Isıtma Tipi</label>
+                <input
+                  value={heatingType}
+                  onChange={(e) => setHeatingType(e.target.value)}
+                  placeholder="Örn: Doğalgaz"
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={filterLabelStyle}>Manzara</label>
+                <input
+                  value={view}
+                  onChange={(e) => setView(e.target.value)}
+                  placeholder="Örn: Deniz"
+                />
+              </div>
+            </div>
+
+            <div style={filterRowStyle}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <label style={filterLabelStyle}>Fiyat Aralığı (₺)</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input placeholder="Min" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} type="number" />
+                  <input placeholder="Maks" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} type="number" />
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <label style={filterLabelStyle}>Metrekare Aralığı</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input placeholder="Min" value={minArea} onChange={(e) => setMinArea(e.target.value)} type="number" />
+                  <input placeholder="Maks" value={maxArea} onChange={(e) => setMaxArea(e.target.value)} type="number" />
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <label style={filterLabelStyle}>Bina Yaşı Aralığı</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input placeholder="Min" value={minBuildingAge} onChange={(e) => setMinBuildingAge(e.target.value)} type="number" />
+                  <input placeholder="Maks" value={maxBuildingAge} onChange={(e) => setMaxBuildingAge(e.target.value)} type="number" />
+                </div>
+              </div>
+            </div>
+
+            <div style={filterRowStyle}>
+              {[
+                [hasPool, setHasPool, 'Havuz'],
+                [hasGym, setHasGym, 'Spor Salonu'],
+                [hasSecurity, setHasSecurity, 'Güvenlik'],
+                [hasParking, setHasParking, 'Otopark'],
+              ].map(([val, setVal, label]) => (
+                <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+                  <input type="checkbox" checked={val} onChange={(e) => setVal(e.target.checked)} style={{ width: 'auto' }} />
+                  {label}
+                </label>
+              ))}
+            </div>
+
+            <div>
+              <label style={filterLabelStyle}>
+                Anahtar Kelime (notlarda / ilan açıklamasında ara — örn: "okula yakın")
+              </label>
+              <input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Örn: okula yakın, pazara yakın"
+              />
+            </div>
+
+            {activeFilterCount > 0 && (
+              <button
+                className="btn btn-secondary"
+                style={{ alignSelf: 'flex-start', color: 'var(--danger)' }}
+                onClick={clearFilters}
+              >
+                Filtreleri Temizle
+              </button>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="empty-state">Yükleniyor…</div>
@@ -92,7 +299,6 @@ export default function PropertyListPage() {
           </div>
         )}
       </div>
-
       {showForm && (
         <PropertyFormModal onSubmit={handleCreate} onClose={() => setShowForm(false)} />
       )}
