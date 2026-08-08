@@ -38,9 +38,22 @@ export class PortfoliosController {
     @Query('minArea') minArea?: string,
     @Query('maxArea') maxArea?: string,
     @Query('agentId') agentId?: string,
+    @Query('rooms') rooms?: string,
+    @Query('minBuildingAge') minBuildingAge?: string,
+    @Query('maxBuildingAge') maxBuildingAge?: string,
+    @Query('heatingType') heatingType?: string,
+    @Query('view') view?: string,
+    @Query('hasPool') hasPool?: string,
+    @Query('hasGym') hasGym?: string,
+    @Query('hasSecurity') hasSecurity?: string,
+    @Query('hasParking') hasParking?: string,
+    @Query('keyword') keyword?: string,
   ) {
     return this.portfoliosService.findAll(
-      { search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId },
+      {
+        search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId,
+        rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword,
+      },
       user,
     );
   }

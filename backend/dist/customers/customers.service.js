@@ -42,6 +42,9 @@ let CustomersService = class CustomersService {
         if (query.type) {
             qb.andWhere('customer.type = :type', { type: query.type });
         }
+        if (query.keyword) {
+            qb.andWhere('(customer.requirements ILIKE :keyword OR customer.notes ILIKE :keyword)', { keyword: `%${query.keyword}%` });
+        }
         if (currentUser.role === 'agent') {
             qb.andWhere('customer.agentId = :agentId', { agentId: currentUser.userId });
         }

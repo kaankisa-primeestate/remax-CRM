@@ -17,6 +17,7 @@ export interface FindCustomersQuery {
   search?: string; // ad, soyad veya telefonda arar
   type?: string; // buyer/seller/tenant/landlord
   agentId?: string; // sadece Broker için geçerli, isteğe bağlı filtre
+  keyword?: string; // istekler/notlarda serbest metin arar
 }
 
 @Injectable()
@@ -57,6 +58,12 @@ export class CustomersService {
     }
     if (query.type) {
       qb.andWhere('customer.type = :type', { type: query.type });
+    }
+    if (query.keyword) {
+      qb.andWhere(
+        '(customer.requirements ILIKE :keyword OR customer.notes ILIKE :keyword)',
+        { keyword: `%${query.keyword}%` },
+      );
     }
 
     // Mahremiyet Duvarı: bir Danışman sadece kendi müşterilerini görebilir.

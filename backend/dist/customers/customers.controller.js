@@ -27,8 +27,8 @@ let CustomersController = class CustomersController {
     create(dto, user) {
         return this.customersService.create(dto, user);
     }
-    findAll(user, search, type, agentId) {
-        return this.customersService.findAll({ search, type, agentId }, user);
+    findAll(user, search, type, agentId, keyword) {
+        return this.customersService.findAll({ search, type, agentId, keyword }, user);
     }
     findOne(id, user) {
         return this.customersService.findOne(id, user);
@@ -58,8 +58,9 @@ __decorate([
     __param(1, (0, common_1.Query)('search')),
     __param(2, (0, common_1.Query)('type')),
     __param(3, (0, common_1.Query)('agentId')),
+    __param(4, (0, common_1.Query)('keyword')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String, String]),
+    __metadata("design:paramtypes", [Object, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], CustomersController.prototype, "findAll", null);
 __decorate([

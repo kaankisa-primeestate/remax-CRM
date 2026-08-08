@@ -14,6 +14,16 @@ export interface FindPropertiesQuery {
     minArea?: string;
     maxArea?: string;
     agentId?: string;
+    rooms?: string;
+    minBuildingAge?: string;
+    maxBuildingAge?: string;
+    heatingType?: string;
+    view?: string;
+    hasPool?: string;
+    hasGym?: string;
+    hasSecurity?: string;
+    hasParking?: string;
+    keyword?: string;
 }
 export declare class PortfoliosService {
     private readonly propertyRepo;

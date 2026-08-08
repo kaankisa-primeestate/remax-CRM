@@ -39,8 +39,9 @@ export class CustomersController {
     @Query('search') search?: string,
     @Query('type') type?: string,
     @Query('agentId') agentId?: string,
+    @Query('keyword') keyword?: string,
   ) {
-    return this.customersService.findAll({ search, type, agentId }, user);
+    return this.customersService.findAll({ search, type, agentId, keyword }, user);
   }
 
   // GET /api/customers/:id

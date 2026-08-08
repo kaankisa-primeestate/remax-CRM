@@ -57,6 +57,36 @@ let PortfoliosService = class PortfoliosService {
         if (query.maxArea) {
             qb.andWhere('property.areaM2 <= :maxArea', { maxArea: query.maxArea });
         }
+        if (query.rooms) {
+            qb.andWhere('property.rooms = :rooms', { rooms: query.rooms });
+        }
+        if (query.minBuildingAge) {
+            qb.andWhere('property.buildingAge >= :minBuildingAge', { minBuildingAge: query.minBuildingAge });
+        }
+        if (query.maxBuildingAge) {
+            qb.andWhere('property.buildingAge <= :maxBuildingAge', { maxBuildingAge: query.maxBuildingAge });
+        }
+        if (query.heatingType) {
+            qb.andWhere('property.heatingType ILIKE :heatingType', { heatingType: `%${query.heatingType}%` });
+        }
+        if (query.view) {
+            qb.andWhere('property.view ILIKE :view', { view: `%${query.view}%` });
+        }
+        if (query.hasPool === 'true') {
+            qb.andWhere('property.hasPool = true');
+        }
+        if (query.hasGym === 'true') {
+            qb.andWhere('property.hasGym = true');
+        }
+        if (query.hasSecurity === 'true') {
+            qb.andWhere('property.hasSecurity = true');
+        }
+        if (query.hasParking === 'true') {
+            qb.andWhere('property.hasParking = true');
+        }
+        if (query.keyword) {
+            qb.andWhere('(property.notes ILIKE :keyword OR property.view ILIKE :keyword OR property.facade ILIKE :keyword OR property.heatingType ILIKE :keyword OR property.deedStatus ILIKE :keyword OR property.title ILIKE :keyword)', { keyword: `%${query.keyword}%` });
+        }
         if (currentUser.role === 'agent') {
             qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
         }

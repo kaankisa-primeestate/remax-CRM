@@ -9,6 +9,7 @@ export interface FindCustomersQuery {
     search?: string;
     type?: string;
     agentId?: string;
+    keyword?: string;
 }
 export declare class CustomersService {
     private readonly customerRepo;
