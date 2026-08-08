@@ -144,35 +144,37 @@ export default function CustomerListScreen({ navigation }) {
     </View>
   );
 
+  // FlatList her zaman ayni ekilde monte kalir (loading durumunda bile
+  // degistirilmez) -- boylece arama kutusu her harfte yeniden olusturulup
+  // klavyenin kapanmasina sebep olmuyor.
   return (
     <View style={styles.container}>
-      {loading ? (
-        <>
-          {ListHeader}
-          <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
-        </>
-      ) : (
-        <FlatList
-          data={customers}
-          keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          ListHeaderComponent={ListHeader}
-          ListEmptyComponent={<Text style={styles.empty}>Kayıt bulunamadı.</Text>}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => navigation.navigate('CustomerDetail', { id: item.id })}
-            >
-              <Badge type={item.type} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.rowTitle}>{item.firstName} {item.lastName}</Text>
-                <Text style={styles.rowSubtitle}>{item.phone}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+      <FlatList
+        data={loading ? [] : customers}
+        keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
+          ) : (
+            <Text style={styles.empty}>Kayıt bulunamadı.</Text>
+          )
+        }
+        keyboardShouldPersistTaps="handled"
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => navigation.navigate('CustomerDetail', { id: item.id })}
+          >
+            <Badge type={item.type} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.rowTitle}>{item.firstName} {item.lastName}</Text>
+              <Text style={styles.rowSubtitle}>{item.phone}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 }

@@ -278,36 +278,38 @@ export default function PropertyListScreen({ navigation }) {
     </View>
   );
 
+  // FlatList her zaman ayni ekilde monte kalir (loading durumunda bile
+  // degistirilmez) -- boylece arama kutusu her harfte yeniden olusturulup
+  // klavyenin kapanmasina sebep olmuyor.
   return (
     <View style={styles.container}>
-      {loading ? (
-        <>
-          {ListHeader}
-          <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
-        </>
-      ) : (
-        <FlatList
-          data={properties}
-          keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          ListHeaderComponent={ListHeader}
-          ListEmptyComponent={<Text style={styles.empty}>Kayıt bulunamadı.</Text>}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
-            >
-              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
-                <Badge value={item.listingType} labelMap={LISTING_TYPES} />
-                <Badge value={item.status} labelMap={PROPERTY_STATUSES} />
-              </View>
-              <Text style={styles.rowTitle}>{item.title}</Text>
-              <Text style={styles.rowSubtitle}>{item.district} · {formatPrice(item)}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+      <FlatList
+        data={loading ? [] : properties}
+        keyExtractor={(item) => item.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.inkNavy} />
+          ) : (
+            <Text style={styles.empty}>Kayıt bulunamadı.</Text>
+          )
+        }
+        keyboardShouldPersistTaps="handled"
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => navigation.navigate('PropertyDetail', { id: item.id })}
+          >
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
+              <Badge value={item.listingType} labelMap={LISTING_TYPES} />
+              <Badge value={item.status} labelMap={PROPERTY_STATUSES} />
+            </View>
+            <Text style={styles.rowTitle}>{item.title}</Text>
+            <Text style={styles.rowSubtitle}>{item.district} · {formatPrice(item)}</Text>
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 }
