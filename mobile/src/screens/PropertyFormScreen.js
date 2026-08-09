@@ -168,6 +168,9 @@ export default function PropertyFormScreen({ navigation, route }) {
     setError(null);
     setSaving(true);
     try {
+      // DIKKAT: photoUrls'i BOS DIZI olsa bile her zaman gonderiyoruz
+      // (undefined'a cevirmiyoruz). Aksi halde "tum fotograflari sil"
+      // islemi backend'e hic ulasmiyor, eski fotograflar silinmiyordu.
       const photoUrls = photos.filter((p) => p.url).map((p) => p.url);
       const payload = {
         ...form,
@@ -179,7 +182,7 @@ export default function PropertyFormScreen({ navigation, route }) {
         floor: form.floor || undefined,
         heatingType: form.heatingType || undefined,
         notes: form.notes || undefined,
-        photoUrls: photoUrls.length ? photoUrls : undefined,
+        photoUrls,
       };
 
       if (isEdit) {

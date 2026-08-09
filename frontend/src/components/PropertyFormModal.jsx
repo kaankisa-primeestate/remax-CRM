@@ -117,6 +117,9 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
 
     setSaving(true);
     try {
+      // DIKKAT: photoUrls'i BOS DIZI olsa bile her zaman gonderiyoruz
+      // (undefined'a cevirmiyoruz). Aksi halde "tum fotograflari sil"
+      // islemi backend'e hic ulasmiyor, eski fotograflar silinmiyordu.
       const photoUrls = photos.filter((p) => p.url).map((p) => p.url);
 
       const payload = {
@@ -133,7 +136,7 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
         facade: form.facade || undefined,
         notes: form.notes || undefined,
         agentId: form.agentId || undefined,
-        photoUrls: photoUrls.length ? photoUrls : undefined,
+        photoUrls,
       };
 
       await onSubmit(payload);
