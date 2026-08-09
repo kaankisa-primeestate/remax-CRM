@@ -32,7 +32,7 @@ function Header() {
     <header className="app-header">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 20 }}>
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h1 className="app-header__title">Remax Entegre</h1>
+          <h1 className="app-header__title">PrimeCRM</h1>
         </Link>
         {user && (
           <>

@@ -1,7 +1,7 @@
 {
   "name": "remax-crm-backend",
   "version": "0.1.0",
-  "description": "Remax Entegre Emlak Ofisi - Müşteri (CRM) Modülü API",
+  "description": "PrimeCRM - Emlak Ofisi Müşteri İlişkileri Yönetimi API",
   "scripts": {
     "build": "nest build",
     "start": "nest start",

@@ -39,7 +39,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Remax Entegre</Text>
+        <Text style={styles.title}>PrimeCRM</Text>
         <Text style={styles.subtitle}>Saha CRM'ine giriş yapın</Text>
 
         <Text style={styles.label}>E-posta</Text>

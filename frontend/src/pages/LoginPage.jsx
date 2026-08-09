@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1 className="login-card__title">Remax Entegre</h1>
+        <h1 className="login-card__title">PrimeCRM</h1>
         <p className="login-card__subtitle">Müşteri Kayıt Defteri'ne giriş yapın</p>
 
         <form onSubmit={handleSubmit}>

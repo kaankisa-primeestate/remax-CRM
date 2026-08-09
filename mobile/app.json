@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Remax Entegre",
+    "name": "PrimeCRM",
     "slug": "remax-crm-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,13 +8,21 @@
     "splash": {
       "backgroundColor": "#1c2b45"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#1c2b45"
+      },
+      "package": "com.kaankisa.remaxcrmmobile"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a8fd495d-fe38-48bd-98da-29db87bd4b0d"
       }
     }
   }
