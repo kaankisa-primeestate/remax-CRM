@@ -26,16 +26,24 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
-                useFactory: (config) => ({
-                    type: 'postgres',
-                    host: config.get('DB_HOST', 'localhost'),
-                    port: parseInt(config.get('DB_PORT', '5432'), 10),
-                    username: config.get('DB_USERNAME', 'postgres'),
-                    password: config.get('DB_PASSWORD', 'postgres'),
-                    database: config.get('DB_DATABASE', 'remax_crm'),
-                    autoLoadEntities: true,
-                    synchronize: config.get('DB_SYNCHRONIZE', 'true') === 'true',
-                }),
+                useFactory: (config) => {
+                    const databaseUrl = config.get('DATABASE_URL');
+                    const base = databaseUrl
+                        ? { url: databaseUrl }
+                        : {
+                            host: config.get('DB_HOST', 'localhost'),
+                            port: parseInt(config.get('DB_PORT', '5432'), 10),
+                            username: config.get('DB_USERNAME', 'postgres'),
+                            password: config.get('DB_PASSWORD', 'postgres'),
+                            database: config.get('DB_DATABASE', 'remax_crm'),
+                        };
+                    return {
+                        type: 'postgres',
+                        ...base,
+                        autoLoadEntities: true,
+                        synchronize: config.get('DB_SYNCHRONIZE', 'true') === 'true',
+                    };
+                },
             }),
             customers_module_1.CustomersModule,
             auth_module_1.AuthModule,
