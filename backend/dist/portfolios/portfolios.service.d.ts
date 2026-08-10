@@ -34,4 +34,29 @@ export declare class PortfoliosService {
     update(id: string, dto: UpdatePropertyDto, currentUser: CurrentUserPayload): Promise<Property>;
     remove(id: string, currentUser: CurrentUserPayload): Promise<void>;
     private assertAccess;
+    findOnePublic(id: string): Promise<{
+        id: string;
+        title: string;
+        propertyType: import("./property.entity").PropertyType;
+        listingType: import("./property.entity").ListingType;
+        province: string;
+        district: string;
+        neighborhood: string;
+        areaM2: number;
+        price: number;
+        priceCurrency: string;
+        rooms: string | null;
+        bathrooms: number | null;
+        floor: string | null;
+        heatingType: string | null;
+        dues: number | null;
+        hasPool: boolean;
+        hasGym: boolean;
+        hasSecurity: boolean;
+        hasParking: boolean;
+        view: string | null;
+        facade: string | null;
+        buildingAge: number | null;
+        photoUrls: string[] | null;
+    }>;
 }

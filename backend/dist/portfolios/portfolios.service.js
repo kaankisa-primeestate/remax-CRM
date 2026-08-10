@@ -118,6 +118,37 @@ let PortfoliosService = class PortfoliosService {
             throw new common_1.ForbiddenException('Bu portföye erişim yetkiniz yok');
         }
     }
+    async findOnePublic(id) {
+        const property = await this.propertyRepo.findOne({ where: { id } });
+        if (!property) {
+            throw new common_1.NotFoundException('İlan bulunamadı');
+        }
+        return {
+            id: property.id,
+            title: property.title,
+            propertyType: property.propertyType,
+            listingType: property.listingType,
+            province: property.province,
+            district: property.district,
+            neighborhood: property.neighborhood,
+            areaM2: property.areaM2,
+            price: property.price,
+            priceCurrency: property.priceCurrency,
+            rooms: property.rooms,
+            bathrooms: property.bathrooms,
+            floor: property.floor,
+            heatingType: property.heatingType,
+            dues: property.dues,
+            hasPool: property.hasPool,
+            hasGym: property.hasGym,
+            hasSecurity: property.hasSecurity,
+            hasParking: property.hasParking,
+            view: property.view,
+            facade: property.facade,
+            buildingAge: property.buildingAge,
+            photoUrls: property.photoUrls,
+        };
+    }
 };
 exports.PortfoliosService = PortfoliosService;
 exports.PortfoliosService = PortfoliosService = __decorate([

@@ -153,4 +153,39 @@ export class PortfoliosService {
       throw new ForbiddenException('Bu portföye erişim yetkiniz yok');
     }
   }
+
+  // Herkese acik paylasim sayfasi icin kullanilir (giris yapmadan erisilir).
+  // DIKKAT: sadece guvenli/genel alanlar dondurulur. notes, tam adres,
+  // agentId, musteri bilgisi gibi hassas alanlar KESINLIKLE dondurulmez.
+  async findOnePublic(id: string) {
+    const property = await this.propertyRepo.findOne({ where: { id } });
+    if (!property) {
+      throw new NotFoundException('İlan bulunamadı');
+    }
+    return {
+      id: property.id,
+      title: property.title,
+      propertyType: property.propertyType,
+      listingType: property.listingType,
+      province: property.province,
+      district: property.district,
+      neighborhood: property.neighborhood,
+      areaM2: property.areaM2,
+      price: property.price,
+      priceCurrency: property.priceCurrency,
+      rooms: property.rooms,
+      bathrooms: property.bathrooms,
+      floor: property.floor,
+      heatingType: property.heatingType,
+      dues: property.dues,
+      hasPool: property.hasPool,
+      hasGym: property.hasGym,
+      hasSecurity: property.hasSecurity,
+      hasParking: property.hasParking,
+      view: property.view,
+      facade: property.facade,
+      buildingAge: property.buildingAge,
+      photoUrls: property.photoUrls,
+    };
+  }
 }

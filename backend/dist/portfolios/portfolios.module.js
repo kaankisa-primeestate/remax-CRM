@@ -12,13 +12,14 @@ const typeorm_1 = require("@nestjs/typeorm");
 const property_entity_1 = require("./property.entity");
 const portfolios_service_1 = require("./portfolios.service");
 const portfolios_controller_1 = require("./portfolios.controller");
+const public_portfolios_controller_1 = require("./public-portfolios.controller");
 let PortfoliosModule = class PortfoliosModule {
 };
 exports.PortfoliosModule = PortfoliosModule;
 exports.PortfoliosModule = PortfoliosModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([property_entity_1.Property])],
-        controllers: [portfolios_controller_1.PortfoliosController],
+        controllers: [portfolios_controller_1.PortfoliosController, public_portfolios_controller_1.PublicPortfoliosController],
         providers: [portfolios_service_1.PortfoliosService],
         exports: [portfolios_service_1.PortfoliosService],
     })
