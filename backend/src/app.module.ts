@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { PortfoliosModule } from './portfolios/portfolios.module';
 import { CommissionsModule } from './commissions/commissions.module';
 import { UploadModule } from './upload/upload.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { UploadModule } from './upload/upload.module';
     PortfoliosModule,
     CommissionsModule,
     UploadModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

@@ -16,6 +16,7 @@ const users_module_1 = require("./users/users.module");
 const portfolios_module_1 = require("./portfolios/portfolios.module");
 const commissions_module_1 = require("./commissions/commissions.module");
 const upload_module_1 = require("./upload/upload.module");
+const dashboard_module_1 = require("./dashboard/dashboard.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -51,6 +52,7 @@ exports.AppModule = AppModule = __decorate([
             portfolios_module_1.PortfoliosModule,
             commissions_module_1.CommissionsModule,
             upload_module_1.UploadModule,
+            dashboard_module_1.DashboardModule,
         ],
     })
 ], AppModule);
