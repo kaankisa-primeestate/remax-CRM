@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { commissionsApi } from '../api/commissions';
 import { usersApi } from '../api/users';
 import { useAuth } from '../context/AuthContext';
@@ -46,6 +47,26 @@ const formatMoney = (n) =>
     maximumFractionDigits: 0,
   }).format(n || 0);
 
+// Bugunun tarihini GG.AA.YYYY formatinda dondurur -- yeni kayit acildiginda
+// varsayilan olarak bu deger gelir, kullanici degistirmek isterse takvimden secer.
+function todayFormatted() {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+// GG.AA.YYYY formatindaki metni gercek bir Date nesnesine cevirir
+// (takvim widget'ini acarken hangi tarihte baslayacagini bilmek icin).
+function parseFormatted(str) {
+  const parts = (str || '').split('.');
+  if (parts.length !== 3) return new Date();
+  const [dd, mm, yyyy] = parts;
+  const parsed = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
 export default function CommissionFormScreen({ navigation }) {
   const { isBroker } = useAuth();
   const [form, setForm] = useState({
@@ -57,13 +78,14 @@ export default function CommissionFormScreen({ navigation }) {
     withholdingTaxPercent: '0',
     vatPercent: '0',
     penaltyAmount: '0',
-    dueDate: '',
+    dueDate: todayFormatted(),
     notes: '',
     agentId: '',
   });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [agents, setAgents] = useState([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (isBroker) {
@@ -75,6 +97,16 @@ export default function CommissionFormScreen({ navigation }) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function handleDateChange(event, selectedDate) {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      const dd = String(selectedDate.getDate()).padStart(2, '0');
+      const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const yyyy = selectedDate.getFullYear();
+      set('dueDate', `${dd}.${mm}.${yyyy}`);
+    }
+  }
+
   async function handleSave() {
     if (
       !form.transactionAmount ||
@@ -83,7 +115,7 @@ export default function CommissionFormScreen({ navigation }) {
       !form.dueDate ||
       (isBroker && !form.agentId)
     ) {
-      setError('Yıldızlı (zorunlu) alanları doldurun. Tarihi GG.AA.YYYY formatında yazın (örn: 15.09.2026).');
+      setError('Yıldızlı (zorunlu) alanları doldurun.');
       return;
     }
     setError(null);
@@ -118,10 +150,7 @@ export default function CommissionFormScreen({ navigation }) {
   const preview = calculatePreview(form);
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
         <ChipSelect
           label="İşlem Tipi *"
@@ -130,13 +159,13 @@ export default function CommissionFormScreen({ navigation }) {
           onChange={(v) => set('transactionType', v)}
         />
 
-        <Text style={styles.label}>Vade Tarihi * (GG.AA.YYYY)</Text>
-        <TextInput
-          style={styles.input}
-          value={form.dueDate}
-          onChangeText={(v) => set('dueDate', v)}
-          placeholder="15.09.2026"
-        />
+        <Text style={styles.label}>Vade Tarihi *</Text>
+        <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+          <Text style={styles.dateText}>{form.dueDate}</Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker value={parseFormatted(form.dueDate)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleDateChange} />
+        )}
 
         <Text style={styles.label}>Portföy / İşlem Açıklaması</Text>
         <TextInput
@@ -243,6 +272,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: colors.white,
   },
+  dateText: { fontSize: 15, color: colors.slate },
   multiline: { minHeight: 70, textAlignVertical: 'top' },
   previewBox: {
     backgroundColor: colors.paperRaised,
