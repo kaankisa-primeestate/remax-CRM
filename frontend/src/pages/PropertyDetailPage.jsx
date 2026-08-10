@@ -3,12 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
 import { PropertyStatusBadge, ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
+import PropertyShareModal from '../components/PropertyShareModal.jsx';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const load = useCallback(async () => {
     const data = await propertiesApi.getOne(id);
@@ -66,6 +68,7 @@ export default function PropertyDetailPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary" onClick={() => setShowShare(true)}>Paylaş</button>
             <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>Düzenle</button>
             <button className="btn btn-danger" onClick={handleDelete}>Sil</button>
           </div>
@@ -166,6 +169,10 @@ export default function PropertyDetailPage() {
           onSubmit={handleUpdate}
           onClose={() => setShowEdit(false)}
         />
+      )}
+
+      {showShare && (
+        <PropertyShareModal propertyId={property.id} onClose={() => setShowShare(false)} />
       )}
     </div>
   );

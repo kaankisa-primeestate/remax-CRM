@@ -9,6 +9,7 @@ import PropertyDetailPage from './pages/PropertyDetailPage.jsx';
 import AgentsPage from './pages/AgentsPage.jsx';
 import CommissionsPage from './pages/CommissionsPage.jsx';
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx';
+import PublicPropertyPage from './pages/PublicPropertyPage.jsx';
 
 const navLinkStyle = {
   color: 'var(--brass-light)',
@@ -78,6 +79,7 @@ export default function App() {
       <main className="app-body">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/ilan/:id" element={<PublicPropertyPage />} />
           <Route
             path="/"
             element={
