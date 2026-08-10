@@ -1,4 +1,4 @@
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -73,9 +73,12 @@ function Header() {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isPublicPage = location.pathname.startsWith('/ilan/');
+
   return (
     <div>
-      <Header />
+      {!isPublicPage && <Header />}
       <main className="app-body">
         <Routes>
           <Route path="/login" element={<LoginPage />} />

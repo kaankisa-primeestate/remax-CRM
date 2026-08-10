@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, Touchable
 import { useFocusEffect } from '@react-navigation/native';
 import { propertiesApi, PROPERTY_TYPES, LISTING_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { colors } from '../theme';
+import PropertyShareModal from '../components/PropertyShareModal';
 
 function Field({ label, value }) {
   return (
@@ -16,6 +17,7 @@ function Field({ label, value }) {
 export default function PropertyDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const [property, setProperty] = useState(null);
+  const [showShare, setShowShare] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,12 +29,17 @@ export default function PropertyDetailScreen({ route, navigation }) {
     navigation.setOptions({
       headerRight: () =>
         property ? (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('PropertyForm', { property })}
-            style={{ marginRight: 4 }}
-          >
-            <Text style={{ color: colors.white, fontWeight: '700', fontSize: 14 }}>Düzenle</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setShowShare(true)} style={{ marginRight: 16 }}>
+              <Text style={{ color: colors.white, fontWeight: '700', fontSize: 14 }}>Paylaş</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('PropertyForm', { property })}
+              style={{ marginRight: 4 }}
+            >
+              <Text style={{ color: colors.white, fontWeight: '700', fontSize: 14 }}>Düzenle</Text>
+            </TouchableOpacity>
+          </View>
         ) : null,
     });
   }, [navigation, property]);
@@ -86,6 +93,12 @@ export default function PropertyDetailScreen({ route, navigation }) {
         <Field label="Ek Özellikler" value={extras || null} />
         {property.notes ? <Field label="Notlar" value={property.notes} /> : null}
       </View>
+      <PropertyShareModal
+        visible={showShare}
+        propertyId={property.id}
+        propertyTitle={property.title}
+        onClose={() => setShowShare(false)}
+      />
     </ScrollView>
   );
 }
