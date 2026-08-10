@@ -10,6 +10,7 @@ import AgentsPage from './pages/AgentsPage.jsx';
 import CommissionsPage from './pages/CommissionsPage.jsx';
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx';
 import PublicPropertyPage from './pages/PublicPropertyPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
 
 const navLinkStyle = {
   color: 'var(--brass-light)',
@@ -40,6 +41,7 @@ function Header() {
             <Link to="/" style={navLinkStyle}>Müşteriler</Link>
             <Link to="/portfoyler" style={navLinkStyle}>Portföyler</Link>
             <Link to="/komisyonlar" style={navLinkStyle}>Komisyonlar</Link>
+            {isBroker && <Link to="/dashboard" style={navLinkStyle}>Dashboard</Link>}
             {isBroker && <Link to="/danismanlar" style={navLinkStyle}>Danışmanlar</Link>}
           </>
         )}
@@ -128,6 +130,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute brokerOnly>
+                <DashboardPage />
               </ProtectedRoute>
             }
           />
