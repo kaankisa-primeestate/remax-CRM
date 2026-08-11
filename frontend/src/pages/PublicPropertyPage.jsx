@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
+import PhotoLightbox from '../components/PhotoLightbox.jsx';
 
 const OFFICE_WHATSAPP = '905423781540';
 const OFFICE_PHONE_DISPLAY = '+90 542 378 15 40';
@@ -17,6 +18,7 @@ export default function PublicPropertyPage() {
   const { id } = useParams();
   const [property, setProperty] = useState(null);
   const [error, setError] = useState(null);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   useEffect(() => {
     apiClient
@@ -72,8 +74,9 @@ export default function PublicPropertyPage() {
               key={i}
               src={url}
               alt={`${property.title} fotoğraf ${i + 1}`}
-              style={{ width: '100%', maxWidth: 340, height: 240, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--paper-line)' }}
+              style={{ width: '100%', maxWidth: 340, height: 240, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--paper-line)', cursor: 'pointer' }}
               onError={(e) => { e.target.style.display = 'none'; }}
+              onClick={() => setLightboxIndex(i)}
             />
           ))}
         </div>
@@ -114,6 +117,13 @@ export default function PublicPropertyPage() {
         }}>
         WhatsApp ile İletişime Geç ({OFFICE_PHONE_DISPLAY})
       </a>
+
+      <PhotoLightbox
+        photos={property.photoUrls || []}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={setLightboxIndex}
+      />
     </div>
   );
 }

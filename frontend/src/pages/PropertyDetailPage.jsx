@@ -4,6 +4,7 @@ import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
 import { PropertyStatusBadge, ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
 import PropertyShareModal from '../components/PropertyShareModal.jsx';
+import PhotoLightbox from '../components/PhotoLightbox.jsx';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   const load = useCallback(async () => {
     const data = await propertiesApi.getOne(id);
@@ -154,8 +156,9 @@ export default function PropertyDetailPage() {
                   key={i}
                   src={url}
                   alt={`${property.title} fotoğraf ${i + 1}`}
-                  style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--paper-line)' }}
+                  style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--paper-line)', cursor: 'pointer' }}
                   onError={(e) => { e.target.style.display = 'none'; }}
+                  onClick={() => setLightboxIndex(i)}
                 />
               ))}
             </div>
@@ -174,6 +177,13 @@ export default function PropertyDetailPage() {
       {showShare && (
         <PropertyShareModal propertyId={property.id} onClose={() => setShowShare(false)} />
       )}
+
+      <PhotoLightbox
+        photos={property.photoUrls || []}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={setLightboxIndex}
+      />
     </div>
   );
 }
