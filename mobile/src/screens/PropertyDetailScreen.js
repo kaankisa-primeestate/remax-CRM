@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { propertiesApi, PROPERTY_TYPES, LISTING_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { colors } from '../theme';
 import PropertyShareModal from '../components/PropertyShareModal';
+import PhotoLightbox from '../components/PhotoLightbox';
 
 function Field({ label, value }) {
   return (
@@ -18,6 +19,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const [property, setProperty] = useState(null);
   const [showShare, setShowShare] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -71,7 +73,9 @@ export default function PropertyDetailScreen({ route, navigation }) {
       {property.photoUrls?.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
           {property.photoUrls.map((url, idx) => (
-            <Image key={idx} source={{ uri: url }} style={styles.image} />
+            <TouchableOpacity key={idx} onPress={() => setLightboxIndex(idx)}>
+              <Image source={{ uri: url }} style={styles.image} />
+            </TouchableOpacity>
           ))}
         </ScrollView>
       )}
@@ -98,6 +102,12 @@ export default function PropertyDetailScreen({ route, navigation }) {
         propertyId={property.id}
         propertyTitle={property.title}
         onClose={() => setShowShare(false)}
+      />
+      <PhotoLightbox
+        visible={lightboxIndex !== null}
+        photos={property.photoUrls || []}
+        initialIndex={lightboxIndex || 0}
+        onClose={() => setLightboxIndex(null)}
       />
     </ScrollView>
   );
