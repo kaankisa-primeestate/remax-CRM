@@ -8,9 +8,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Customer } from './customer.entity';
 import { Interaction } from './interaction.entity';
+import { VoiceNote } from './voice-note.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
+import { CreateVoiceNoteDto } from './dto/create-voice-note.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
 export interface FindCustomersQuery {
@@ -27,6 +29,8 @@ export class CustomersService {
     private readonly customerRepo: Repository<Customer>,
     @InjectRepository(Interaction)
     private readonly interactionRepo: Repository<Interaction>,
+    @InjectRepository(VoiceNote)
+    private readonly voiceNoteRepo: Repository<VoiceNote>,
   ) {}
 
   async create(dto: CreateCustomerDto, currentUser: CurrentUserPayload): Promise<Customer> {
@@ -121,6 +125,43 @@ export class CustomersService {
       occurredAt: new Date(dto.occurredAt),
     });
     return this.interactionRepo.save(interaction);
+  }
+
+  // --- Sesli Notlar ---
+
+  async addVoiceNote(
+    customerId: string,
+    dto: CreateVoiceNoteDto,
+    currentUser: CurrentUserPayload,
+  ): Promise<VoiceNote> {
+    // findOne zaten erişim kontrolünü (Mahremiyet Duvarı) uyguluyor
+    await this.findOne(customerId, currentUser);
+    const voiceNote = this.voiceNoteRepo.create({ ...dto, customerId });
+    return this.voiceNoteRepo.save(voiceNote);
+  }
+
+  async findVoiceNotes(customerId: string, currentUser: CurrentUserPayload): Promise<VoiceNote[]> {
+    await this.findOne(customerId, currentUser);
+    return this.voiceNoteRepo.find({
+      where: { customerId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async removeVoiceNote(
+    customerId: string,
+    voiceNoteId: string,
+    currentUser: CurrentUserPayload,
+  ): Promise<void> {
+    // findOne zaten erişim kontrolünü (Mahremiyet Duvarı) uyguluyor
+    await this.findOne(customerId, currentUser);
+    const voiceNote = await this.voiceNoteRepo.findOne({
+      where: { id: voiceNoteId, customerId },
+    });
+    if (!voiceNote) {
+      throw new NotFoundException('Sesli not bulunamadı');
+    }
+    await this.voiceNoteRepo.remove(voiceNote);
   }
 
   // Bir Danışman'ın, kendisine ait olmayan bir müşteri kaydına erişmeye

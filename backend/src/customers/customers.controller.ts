@@ -13,6 +13,7 @@ import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
+import { CreateVoiceNoteDto } from './dto/create-voice-note.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -74,5 +75,31 @@ export class CustomersController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.customersService.addInteraction(id, dto, user);
+  }
+
+  // POST /api/customers/:id/voice-notes
+  @Post(':id/voice-notes')
+  addVoiceNote(
+    @Param('id') id: string,
+    @Body() dto: CreateVoiceNoteDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.customersService.addVoiceNote(id, dto, user);
+  }
+
+  // GET /api/customers/:id/voice-notes
+  @Get(':id/voice-notes')
+  findVoiceNotes(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.customersService.findVoiceNotes(id, user);
+  }
+
+  // DELETE /api/customers/:id/voice-notes/:voiceNoteId
+  @Delete(':id/voice-notes/:voiceNoteId')
+  removeVoiceNote(
+    @Param('id') id: string,
+    @Param('voiceNoteId') voiceNoteId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.customersService.removeVoiceNote(id, voiceNoteId, user);
   }
 }

@@ -18,10 +18,12 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const customer_entity_1 = require("./customer.entity");
 const interaction_entity_1 = require("./interaction.entity");
+const voice_note_entity_1 = require("./voice-note.entity");
 let CustomersService = class CustomersService {
-    constructor(customerRepo, interactionRepo) {
+    constructor(customerRepo, interactionRepo, voiceNoteRepo) {
         this.customerRepo = customerRepo;
         this.interactionRepo = interactionRepo;
+        this.voiceNoteRepo = voiceNoteRepo;
     }
     async create(dto, currentUser) {
         const existing = await this.customerRepo.findOne({ where: { phone: dto.phone } });
@@ -84,6 +86,28 @@ let CustomersService = class CustomersService {
         });
         return this.interactionRepo.save(interaction);
     }
+    async addVoiceNote(customerId, dto, currentUser) {
+        await this.findOne(customerId, currentUser);
+        const voiceNote = this.voiceNoteRepo.create({ ...dto, customerId });
+        return this.voiceNoteRepo.save(voiceNote);
+    }
+    async findVoiceNotes(customerId, currentUser) {
+        await this.findOne(customerId, currentUser);
+        return this.voiceNoteRepo.find({
+            where: { customerId },
+            order: { createdAt: 'DESC' },
+        });
+    }
+    async removeVoiceNote(customerId, voiceNoteId, currentUser) {
+        await this.findOne(customerId, currentUser);
+        const voiceNote = await this.voiceNoteRepo.findOne({
+            where: { id: voiceNoteId, customerId },
+        });
+        if (!voiceNote) {
+            throw new common_1.NotFoundException('Sesli not bulunamadı');
+        }
+        await this.voiceNoteRepo.remove(voiceNote);
+    }
     assertAccess(customer, currentUser) {
         if (currentUser.role === 'agent' && customer.agentId !== currentUser.userId) {
             throw new common_1.ForbiddenException('Bu müşteri kaydına erişim yetkiniz yok');
@@ -95,7 +119,9 @@ exports.CustomersService = CustomersService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
     __param(1, (0, typeorm_1.InjectRepository)(interaction_entity_1.Interaction)),
+    __param(2, (0, typeorm_1.InjectRepository)(voice_note_entity_1.VoiceNote)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository])
 ], CustomersService);
 //# sourceMappingURL=customers.service.js.map

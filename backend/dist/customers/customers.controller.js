@@ -18,6 +18,7 @@ const customers_service_1 = require("./customers.service");
 const create_customer_dto_1 = require("./dto/create-customer.dto");
 const update_customer_dto_1 = require("./dto/update-customer.dto");
 const create_interaction_dto_1 = require("./dto/create-interaction.dto");
+const create_voice_note_dto_1 = require("./dto/create-voice-note.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const current_user_decorator_1 = require("../auth/current-user.decorator");
 let CustomersController = class CustomersController {
@@ -41,6 +42,15 @@ let CustomersController = class CustomersController {
     }
     addInteraction(id, dto, user) {
         return this.customersService.addInteraction(id, dto, user);
+    }
+    addVoiceNote(id, dto, user) {
+        return this.customersService.addVoiceNote(id, dto, user);
+    }
+    findVoiceNotes(id, user) {
+        return this.customersService.findVoiceNotes(id, user);
+    }
+    removeVoiceNote(id, voiceNoteId, user) {
+        return this.customersService.removeVoiceNote(id, voiceNoteId, user);
     }
 };
 exports.CustomersController = CustomersController;
@@ -97,6 +107,32 @@ __decorate([
     __metadata("design:paramtypes", [String, create_interaction_dto_1.CreateInteractionDto, Object]),
     __metadata("design:returntype", void 0)
 ], CustomersController.prototype, "addInteraction", null);
+__decorate([
+    (0, common_1.Post)(':id/voice-notes'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, create_voice_note_dto_1.CreateVoiceNoteDto, Object]),
+    __metadata("design:returntype", void 0)
+], CustomersController.prototype, "addVoiceNote", null);
+__decorate([
+    (0, common_1.Get)(':id/voice-notes'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], CustomersController.prototype, "findVoiceNotes", null);
+__decorate([
+    (0, common_1.Delete)(':id/voice-notes/:voiceNoteId'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('voiceNoteId')),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], CustomersController.prototype, "removeVoiceNote", null);
 exports.CustomersController = CustomersController = __decorate([
     (0, common_1.Controller)('customers'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
