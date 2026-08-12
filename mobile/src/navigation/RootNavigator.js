@@ -125,7 +125,7 @@ function PropertiesStack() {
           options={({ navigation }) => ({
             title: 'Portföyler',
             headerRight: () => (
-              <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('WizardCategory')} />
+              <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('WizardListingType')} />
             ),
           })}
         />

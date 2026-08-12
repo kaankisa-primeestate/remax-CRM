@@ -7,7 +7,7 @@ export default function WizardListingTypeScreen({ navigation }) {
 
   function handleSelect(value) {
     updateDraft({ listingType: value });
-    navigation.navigate('WizardDetails');
+    navigation.navigate('WizardCategory');
   }
 
   return (
