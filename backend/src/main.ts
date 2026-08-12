@@ -3,12 +3,30 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
+// Sadece bu adreslerden gelen tarayici isteklerine izin verilir.
+// NOT: Bu liste sadece tarayici (web) isteklerini etkiler -- mobil
+// uygulama (React Native) ve curl gibi araclar CORS'a tabi degildir,
+// bu yuzden mobil uygulama bu listeden etkilenmez.
+const ALLOWED_ORIGINS = [
+  'https://remaxbostanci.com',
+  'https://www.remaxbostanci.com',
+  'https://remax-crm.netlify.app', // Netlify varsayilan alan adi (yedek)
+  'http://localhost:5173', // yerel gelistirme (vite dev server)
+];
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Frontend (React) için CORS izni
+  // Frontend (React) için CORS izni -- sadece bilinen adreslerden erisime izin verilir
   app.enableCors({
-    origin: true,
+    origin: (origin, callback) => {
+      // origin bos ise (mobil uygulama, curl, Postman vb.) her zaman izin ver
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS: Bu adresten erisime izin verilmiyor'), false);
+      }
+    },
     credentials: true,
   });
 
