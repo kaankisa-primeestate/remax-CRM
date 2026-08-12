@@ -3,6 +3,8 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Linking, Touchab
 import { useFocusEffect } from '@react-navigation/native';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { colors } from '../theme';
+import { fetchWithCache } from '../utils/offlineCache';
+import OfflineBanner from '../components/OfflineBanner';
 
 function Field({ label, value }) {
   return (
@@ -16,10 +18,16 @@ function Field({ label, value }) {
 export default function CustomerDetailScreen({ route }) {
   const { id } = route.params;
   const [customer, setCustomer] = useState(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
-      customersApi.getOne(id).then(setCustomer);
+      fetchWithCache(`customer:${id}`, () => customersApi.getOne(id))
+        .then((result) => {
+          setCustomer(result.data);
+          setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
+        })
+        .catch(() => {});
     }, [id]),
   );
 
@@ -33,6 +41,7 @@ export default function CustomerDetailScreen({ route }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+      <OfflineBanner cachedAt={offlineCachedAt} />
       <Text style={styles.name}>{customer.firstName} {customer.lastName}</Text>
       <Text style={styles.type}>{CUSTOMER_TYPES[customer.type] || customer.type}</Text>
 

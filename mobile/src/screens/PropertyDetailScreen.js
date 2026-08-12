@@ -5,6 +5,8 @@ import { propertiesApi, PROPERTY_TYPES, LISTING_TYPES, PROPERTY_STATUSES } from 
 import { colors } from '../theme';
 import PropertyShareModal from '../components/PropertyShareModal';
 import PhotoLightbox from '../components/PhotoLightbox';
+import { fetchWithCache } from '../utils/offlineCache';
+import OfflineBanner from '../components/OfflineBanner';
 
 function Field({ label, value }) {
   return (
@@ -20,10 +22,16 @@ export default function PropertyDetailScreen({ route, navigation }) {
   const [property, setProperty] = useState(null);
   const [showShare, setShowShare] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [offlineCachedAt, setOfflineCachedAt] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
-      propertiesApi.getOne(id).then(setProperty);
+      fetchWithCache(`property:${id}`, () => propertiesApi.getOne(id))
+        .then((result) => {
+          setProperty(result.data);
+          setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
+        })
+        .catch(() => {});
     }, [id]),
   );
 
@@ -66,6 +74,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+      <OfflineBanner cachedAt={offlineCachedAt} />
       <Text style={styles.title}>{property.title}</Text>
       <Text style={styles.subtitle}>
         {LISTING_TYPES[property.listingType]} · {PROPERTY_TYPES[property.propertyType]} · {PROPERTY_STATUSES[property.status]}

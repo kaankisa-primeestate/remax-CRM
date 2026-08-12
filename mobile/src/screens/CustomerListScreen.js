@@ -16,6 +16,8 @@ import { useAuth } from '../context/AuthContext';
 import ChipSelect from '../components/ChipSelect';
 import MoneyInput from '../components/MoneyInput';
 import { colors, statusColors } from '../theme';
+import { fetchWithCache } from '../utils/offlineCache';
+import OfflineBanner from '../components/OfflineBanner';
 
 function Badge({ type }) {
   const c = statusColors[type] || statusColors.buyer;
@@ -38,6 +40,7 @@ export default function CustomerListScreen({ navigation }) {
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
   const [keyword, setKeyword] = useState('');
+  const [offlineCachedAt, setOfflineCachedAt] = useState(null);
 
   useEffect(() => {
     if (isBroker) {
@@ -53,8 +56,10 @@ export default function CustomerListScreen({ navigation }) {
       if (minBudget) params.minBudget = minBudget;
       if (maxBudget) params.maxBudget = maxBudget;
       if (keyword) params.keyword = keyword;
-      const data = await customersApi.list(params);
-      setCustomers(data);
+      const cacheKey = `customers:list:${JSON.stringify(params)}`;
+      const result = await fetchWithCache(cacheKey, () => customersApi.list(params));
+      setCustomers(result.data);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     },
     [search, isBroker, agentId, minBudget, maxBudget, keyword],
   );
@@ -62,7 +67,9 @@ export default function CustomerListScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      load().finally(() => setLoading(false));
+      load()
+        .catch(() => {})
+        .finally(() => setLoading(false));
     }, [load]),
   );
 
@@ -148,6 +155,7 @@ export default function CustomerListScreen({ navigation }) {
   // klavyenin kapanmasina sebep olmuyor.
   return (
     <View style={styles.container}>
+      <OfflineBanner cachedAt={offlineCachedAt} />
       <FlatList
         data={loading ? [] : customers}
         keyExtractor={(item) => item.id}

@@ -17,6 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import ChipSelect from '../components/ChipSelect';
 import MoneyInput from '../components/MoneyInput';
 import { colors, statusColors } from '../theme';
+import { fetchWithCache } from '../utils/offlineCache';
+import OfflineBanner from '../components/OfflineBanner';
 
 function Badge({ value, labelMap }) {
   const c = statusColors[value] || statusColors.active;
@@ -59,6 +61,7 @@ export default function PropertyListScreen({ navigation }) {
   const [hasSecurity, setHasSecurity] = useState(false);
   const [hasParking, setHasParking] = useState(false);
   const [keyword, setKeyword] = useState('');
+  const [offlineCachedAt, setOfflineCachedAt] = useState(null);
 
   useEffect(() => {
     if (isBroker) {
@@ -86,8 +89,10 @@ export default function PropertyListScreen({ navigation }) {
       if (hasSecurity) params.hasSecurity = 'true';
       if (hasParking) params.hasParking = 'true';
       if (keyword) params.keyword = keyword;
-      const data = await propertiesApi.list(params);
-      setProperties(data);
+      const cacheKey = `properties:list:${JSON.stringify(params)}`;
+      const result = await fetchWithCache(cacheKey, () => propertiesApi.list(params));
+      setProperties(result.data);
+      setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
     },
     [
       search, isBroker, agentId, status, minPrice, maxPrice, minArea, maxArea,
@@ -98,7 +103,9 @@ export default function PropertyListScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      load().finally(() => setLoading(false));
+      load()
+        .catch(() => {})
+        .finally(() => setLoading(false));
     }, [load]),
   );
 
@@ -282,6 +289,7 @@ export default function PropertyListScreen({ navigation }) {
   // klavyenin kapanmasina sebep olmuyor.
   return (
     <View style={styles.container}>
+      <OfflineBanner cachedAt={offlineCachedAt} />
       <FlatList
         data={loading ? [] : properties}
         keyExtractor={(item) => item.id}
