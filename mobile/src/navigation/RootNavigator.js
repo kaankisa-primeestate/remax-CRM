@@ -13,6 +13,14 @@ import CustomerFormScreen from '../screens/CustomerFormScreen';
 import PropertyListScreen from '../screens/PropertyListScreen';
 import PropertyDetailScreen from '../screens/PropertyDetailScreen';
 import PropertyFormScreen from '../screens/PropertyFormScreen';
+import WizardCategoryScreen from '../screens/wizard/WizardCategoryScreen';
+import WizardListingTypeScreen from '../screens/wizard/WizardListingTypeScreen';
+import WizardDetailsScreen from '../screens/wizard/WizardDetailsScreen';
+import WizardLocationScreen from '../screens/wizard/WizardLocationScreen';
+import WizardPriceScreen from '../screens/wizard/WizardPriceScreen';
+import WizardPhotosScreen from '../screens/wizard/WizardPhotosScreen';
+import WizardPreviewScreen from '../screens/wizard/WizardPreviewScreen';
+import { PropertyWizardProvider } from '../context/PropertyWizardContext';
 import AgentsScreen from '../screens/AgentsScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import CommissionListScreen from '../screens/CommissionListScreen';
@@ -109,29 +117,66 @@ function CustomersStack() {
 
 function PropertiesStack() {
   return (
-    <Stack.Navigator screenOptions={baseScreenOptions}>
-      <Stack.Screen
-        name="PropertyList"
-        component={PropertyListScreen}
-        options={({ navigation }) => ({
-          title: 'Portföyler',
-          headerRight: () => (
-            <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('PropertyForm')} />
-          ),
-        })}
-      />
-      {ChangePasswordStackScreen()}
-      <Stack.Screen
-        name="PropertyDetail"
-        component={PropertyDetailScreen}
-        options={{ title: 'Portföy Detayı' }}
-      />
-      <Stack.Screen
-        name="PropertyForm"
-        component={PropertyFormScreen}
-        options={{ title: 'Yeni Portföy' }}
-      />
-    </Stack.Navigator>
+    <PropertyWizardProvider>
+      <Stack.Navigator screenOptions={baseScreenOptions}>
+        <Stack.Screen
+          name="PropertyList"
+          component={PropertyListScreen}
+          options={({ navigation }) => ({
+            title: 'Portföyler',
+            headerRight: () => (
+              <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('WizardCategory')} />
+            ),
+          })}
+        />
+        {ChangePasswordStackScreen()}
+        <Stack.Screen
+          name="PropertyDetail"
+          component={PropertyDetailScreen}
+          options={{ title: 'Portföy Detayı' }}
+        />
+        <Stack.Screen
+          name="PropertyForm"
+          component={PropertyFormScreen}
+          options={{ title: 'Portföyü Düzenle' }}
+        />
+        <Stack.Screen
+          name="WizardCategory"
+          component={WizardCategoryScreen}
+          options={{ title: 'Yeni İlan' }}
+        />
+        <Stack.Screen
+          name="WizardListingType"
+          component={WizardListingTypeScreen}
+          options={{ title: 'Satılık / Kiralık' }}
+        />
+        <Stack.Screen
+          name="WizardDetails"
+          component={WizardDetailsScreen}
+          options={{ title: 'Temel Bilgiler' }}
+        />
+        <Stack.Screen
+          name="WizardLocation"
+          component={WizardLocationScreen}
+          options={{ title: 'Konum' }}
+        />
+        <Stack.Screen
+          name="WizardPrice"
+          component={WizardPriceScreen}
+          options={{ title: 'Fiyat & Hukuki' }}
+        />
+        <Stack.Screen
+          name="WizardPhotos"
+          component={WizardPhotosScreen}
+          options={{ title: 'Fotoğraflar' }}
+        />
+        <Stack.Screen
+          name="WizardPreview"
+          component={WizardPreviewScreen}
+          options={{ title: 'Önizleme' }}
+        />
+      </Stack.Navigator>
+    </PropertyWizardProvider>
   );
 }
 
