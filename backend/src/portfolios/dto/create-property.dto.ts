@@ -5,6 +5,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Min,
@@ -96,6 +97,9 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsBoolean()
   nearMetro?: boolean;
+  @IsOptional()
+  @IsObject()
+  extraAttributes?: Record<string, any>;
 
   @IsOptional()
   @IsString()

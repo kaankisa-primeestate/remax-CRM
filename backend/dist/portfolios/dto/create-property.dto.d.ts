@@ -21,6 +21,7 @@ export declare class CreatePropertyDto {
     hasSecurity?: boolean;
     hasParking?: boolean;
     nearMetro?: boolean;
+    extraAttributes?: Record<string, any>;
     view?: string;
     facade?: string;
     buildingAge?: number;

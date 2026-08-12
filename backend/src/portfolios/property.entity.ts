@@ -125,6 +125,9 @@ export class Property {
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;
+  // Kategoriye ozel esnek alanlar (extra ozellikler)
+  @Column({ type: 'jsonb', nullable: true })
+  extraAttributes: Record<string, any> | null;
 
   // Mahremiyet Duvarı: bu portföy hangi danışmana ait (bkz. customer.entity.ts)
   @Index()

@@ -121,6 +121,11 @@ __decorate([
 ], CreatePropertyDto.prototype, "nearMetro", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsObject)(),
+    __metadata("design:type", Object)
+], CreatePropertyDto.prototype, "extraAttributes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreatePropertyDto.prototype, "view", void 0);

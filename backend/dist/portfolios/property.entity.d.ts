@@ -44,6 +44,7 @@ export declare class Property {
     status: PropertyStatus;
     photoUrls: string[] | null;
     notes: string | null;
+    extraAttributes: Record<string, any> | null;
     agentId: string | null;
     createdAt: Date;
     updatedAt: Date;
