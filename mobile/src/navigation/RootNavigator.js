@@ -17,6 +17,7 @@ import AgentsScreen from '../screens/AgentsScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import CommissionListScreen from '../screens/CommissionListScreen';
 import CommissionFormScreen from '../screens/CommissionFormScreen';
+import CommissionDetailScreen from '../screens/CommissionDetailScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -148,6 +149,11 @@ function CommissionsStack() {
         })}
       />
       {ChangePasswordStackScreen()}
+      <Stack.Screen
+        name="CommissionDetail"
+        component={CommissionDetailScreen}
+        options={{ title: 'Komisyon Detayı' }}
+      />
       <Stack.Screen
         name="CommissionForm"
         component={CommissionFormScreen}

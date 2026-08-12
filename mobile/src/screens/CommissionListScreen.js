@@ -44,6 +44,7 @@ const formatDate = (d) => {
 };
 
 export default function CommissionListScreen({ navigation }) {
+  // (navigation zaten parametre olarak geliyor, satira tiklayinca detay ekranina gidecegiz)
   const { isBroker } = useAuth();
   const [commissions, setCommissions] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -146,7 +147,10 @@ export default function CommissionListScreen({ navigation }) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           ListEmptyComponent={<Text style={styles.empty}>Kayıt bulunamadı.</Text>}
           renderItem={({ item }) => (
-            <View style={styles.row}>
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => navigation.navigate('CommissionDetail', { id: item.id })}
+            >
               <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
                 <Badge value={item.status} labelMap={COMMISSION_STATUSES} />
               </View>
@@ -157,7 +161,7 @@ export default function CommissionListScreen({ navigation }) {
                 {isBroker ? `${agentName(item.agentId)} · ` : ''}Vade: {formatDate(item.dueDate)}
               </Text>
               <Text style={styles.rowAmount}>{formatMoney(item.netPayable)}</Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}

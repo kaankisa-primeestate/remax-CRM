@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -67,21 +67,54 @@ function parseFormatted(str) {
   return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
-export default function CommissionFormScreen({ navigation }) {
+// ISO (YYYY-MM-DD) formatindaki tarihi GG.AA.YYYY formatina cevirir
+// (duzenleme modunda backend'den gelen tarihi forma yerlestirmek icin).
+function isoToFormatted(iso) {
+  if (!iso) return todayFormatted();
+  const parts = iso.slice(0, 10).split('-');
+  if (parts.length !== 3) return todayFormatted();
+  const [yyyy, mm, dd] = parts;
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+export default function CommissionFormScreen({ navigation, route }) {
   const { isBroker } = useAuth();
-  const [form, setForm] = useState({
-    transactionType: 'sale',
-    propertyTitle: '',
-    transactionAmount: '',
-    commissionRate: '',
-    agentSharePercent: '50',
-    withholdingTaxPercent: '0',
-    vatPercent: '0',
-    penaltyAmount: '0',
-    dueDate: todayFormatted(),
-    notes: '',
-    agentId: '',
-  });
+  const editingCommission = route.params?.commission || null;
+  const isEdit = Boolean(editingCommission);
+
+  const [form, setForm] = useState(
+    editingCommission
+      ? {
+          transactionType: editingCommission.transactionType || 'sale',
+          propertyTitle: editingCommission.propertyTitle || '',
+          transactionAmount: String(editingCommission.transactionAmount ?? ''),
+          commissionRate: String(editingCommission.commissionRate ?? ''),
+          agentSharePercent: String(editingCommission.agentSharePercent ?? '50'),
+          withholdingTaxPercent: String(editingCommission.withholdingTaxPercent ?? '0'),
+          vatPercent: String(editingCommission.vatPercent ?? '0'),
+          penaltyAmount: String(editingCommission.penaltyAmount ?? '0'),
+          dueDate: isoToFormatted(editingCommission.dueDate),
+          notes: editingCommission.notes || '',
+          agentId: editingCommission.agentId || '',
+        }
+      : {
+          transactionType: 'sale',
+          propertyTitle: '',
+          transactionAmount: '',
+          commissionRate: '',
+          agentSharePercent: '50',
+          withholdingTaxPercent: '0',
+          vatPercent: '0',
+          penaltyAmount: '0',
+          dueDate: todayFormatted(),
+          notes: '',
+          agentId: '',
+        },
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: isEdit ? 'Komisyonu Düzenle' : 'Yeni Komisyon Kaydı' });
+  }, [navigation, isEdit]);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [agents, setAgents] = useState([]);
@@ -125,7 +158,7 @@ export default function CommissionFormScreen({ navigation }) {
       const isoDate =
         parts.length === 3 ? `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}` : form.dueDate;
 
-      await commissionsApi.create({
+      const payload = {
         ...form,
         transactionAmount: Number(form.transactionAmount),
         commissionRate: Number(form.commissionRate),
@@ -137,7 +170,13 @@ export default function CommissionFormScreen({ navigation }) {
         propertyTitle: form.propertyTitle || undefined,
         notes: form.notes || undefined,
         agentId: form.agentId || undefined,
-      });
+      };
+
+      if (isEdit) {
+        await commissionsApi.update(editingCommission.id, payload);
+      } else {
+        await commissionsApi.create(payload);
+      }
       navigation.goBack();
     } catch (err) {
       const message = err?.response?.data?.message ?? 'Kaydedilemedi, tekrar deneyin.';
@@ -246,7 +285,7 @@ export default function CommissionFormScreen({ navigation }) {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <TouchableOpacity style={styles.button} onPress={handleSave} disabled={saving}>
-          {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Kaydet</Text>}
+          {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>{isEdit ? 'Güncelle' : 'Kaydet'}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
