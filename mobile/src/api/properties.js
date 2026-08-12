@@ -6,6 +6,8 @@ export const propertiesApi = {
   create: (payload) => apiClient.post('/properties', payload).then((r) => r.data),
   update: (id, payload) =>
     apiClient.patch(`/properties/${id}`, payload).then((r) => r.data),
+  matchingCustomers: (id) =>
+    apiClient.get(`/properties/${id}/matching-customers`).then((r) => r.data),
 };
 
 export const PROPERTY_TYPES = {

@@ -8,6 +8,9 @@ import PhotoLightbox from '../components/PhotoLightbox';
 import { fetchWithCache } from '../utils/offlineCache';
 import OfflineBanner from '../components/OfflineBanner';
 
+const formatMoney = (n) =>
+  new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n || 0);
+
 function Field({ label, value }) {
   return (
     <View style={styles.field}>
@@ -23,6 +26,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
   const [showShare, setShowShare] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [offlineCachedAt, setOfflineCachedAt] = useState(null);
+  const [matches, setMatches] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -32,6 +36,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
           setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
         })
         .catch(() => {});
+      propertiesApi.matchingCustomers(id).then(setMatches).catch(() => setMatches([]));
     }, [id]),
   );
 
@@ -106,6 +111,22 @@ export default function PropertyDetailScreen({ route, navigation }) {
         <Field label="Ek Özellikler" value={extras || null} />
         {property.notes ? <Field label="Notlar" value={property.notes} /> : null}
       </View>
+
+      {matches.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Uygun Müşteriler</Text>
+          {matches.map((m) => (
+            <View key={m.customer.id} style={styles.matchCard}>
+              <Text style={styles.matchTitle}>{m.customer.firstName} {m.customer.lastName}</Text>
+              <Text style={styles.matchSubtitle}>
+                {m.customer.budget ? formatMoney(m.customer.budget) : ''}{m.agentName ? ` · ${m.agentName}` : ''}
+              </Text>
+              <Text style={styles.matchScore}>{m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})</Text>
+            </View>
+          ))}
+        </>
+      )}
+
       <PropertyShareModal
         visible={showShare}
         propertyId={property.id}
@@ -137,4 +158,16 @@ const styles = StyleSheet.create({
   field: { marginBottom: 12 },
   fieldLabel: { fontSize: 11, textTransform: 'uppercase', color: colors.muted, marginBottom: 2 },
   fieldValue: { fontSize: 15, color: colors.slate },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.inkNavy, marginTop: 24, marginBottom: 10 },
+  matchCard: {
+    backgroundColor: colors.paperRaised,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.inkNavy,
+  },
+  matchTitle: { fontSize: 14, fontWeight: '600', color: colors.slate },
+  matchSubtitle: { fontSize: 12, color: colors.muted, marginTop: 2 },
+  matchScore: { fontSize: 11, color: colors.inkNavy, marginTop: 4, fontWeight: '600' },
 });

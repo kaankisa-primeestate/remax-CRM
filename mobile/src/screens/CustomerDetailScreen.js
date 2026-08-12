@@ -9,6 +9,9 @@ import VoiceNoteRecorder from '../components/VoiceNoteRecorder';
 import VoiceNoteList from '../components/VoiceNoteList';
 import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact';
 
+const formatMoney = (n) =>
+  new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n || 0);
+
 function Field({ label, value }) {
   return (
     <View style={styles.field}>
@@ -23,6 +26,7 @@ export default function CustomerDetailScreen({ route }) {
   const [customer, setCustomer] = useState(null);
   const [offlineCachedAt, setOfflineCachedAt] = useState(null);
   const [voiceNotes, setVoiceNotes] = useState([]);
+  const [matches, setMatches] = useState([]);
 
   const loadVoiceNotes = useCallback(() => {
     customersApi.listVoiceNotes(id).then(setVoiceNotes).catch(() => {});
@@ -37,6 +41,7 @@ export default function CustomerDetailScreen({ route }) {
         })
         .catch(() => {});
       loadVoiceNotes();
+      customersApi.matchingProperties(id).then(setMatches).catch(() => setMatches([]));
     }, [id, loadVoiceNotes]),
   );
 
@@ -88,6 +93,21 @@ export default function CustomerDetailScreen({ route }) {
         <Field label="Aradığı Özellikler" value={customer.requirements} />
         <Field label="Notlar" value={customer.notes} />
       </View>
+
+      {matches.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Uygun Portföyler</Text>
+          {matches.map((m) => (
+            <View key={m.property.id} style={styles.matchCard}>
+              <Text style={styles.matchTitle}>{m.property.title} — {m.property.district}</Text>
+              <Text style={styles.matchSubtitle}>
+                {formatMoney(m.property.price)}{m.agentName ? ` · ${m.agentName}` : ''}
+              </Text>
+              <Text style={styles.matchScore}>{m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})</Text>
+            </View>
+          ))}
+        </>
+      )}
 
       <Text style={styles.sectionTitle}>Sesli Notlar</Text>
       <VoiceNoteRecorder customerId={id} onSaved={loadVoiceNotes} />
@@ -152,4 +172,15 @@ const styles = StyleSheet.create({
   },
   interactionDate: { fontSize: 11, color: colors.muted, marginBottom: 4 },
   interactionNotes: { fontSize: 14, color: colors.slate },
+  matchCard: {
+    backgroundColor: colors.paperRaised,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.inkNavy,
+  },
+  matchTitle: { fontSize: 14, fontWeight: '600', color: colors.slate },
+  matchSubtitle: { fontSize: 12, color: colors.muted, marginTop: 2 },
+  matchScore: { fontSize: 11, color: colors.inkNavy, marginTop: 4, fontWeight: '600' },
 });

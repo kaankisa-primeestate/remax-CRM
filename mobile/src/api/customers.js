@@ -9,6 +9,8 @@ export const customersApi = {
     apiClient.post(`/customers/${id}/voice-notes`, { url }).then((r) => r.data),
   removeVoiceNote: (id, voiceNoteId) =>
     apiClient.delete(`/customers/${id}/voice-notes/${voiceNoteId}`),
+  matchingProperties: (id) =>
+    apiClient.get(`/customers/${id}/matching-properties`).then((r) => r.data),
 };
 
 export const CUSTOMER_TYPES = {
