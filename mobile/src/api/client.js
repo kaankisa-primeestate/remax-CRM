@@ -11,7 +11,7 @@ export const apiClient = axios.create({
 });
 
 // Fotograf/video dosyasini Cloudinary'e yukler, geriye URL doner
-export async function uploadFile(fileUri, mimeType) {
+export async function uploadFile(fileUri, mimeType, fileName) {
   const token = await AsyncStorage.getItem('remax_crm_token');
   if (!token) {
     throw new Error('Token bulunamadi -- oturum acik degil gibi gorunuyor. Cikis yapip tekrar giris deneyin.');
@@ -20,7 +20,7 @@ export async function uploadFile(fileUri, mimeType) {
   formData.append('file', {
     uri: fileUri,
     type: mimeType || 'image/jpeg',
-    name: 'upload.jpg',
+    name: fileName || 'upload.jpg',
   });
 
   // NOT: Content-Type BASLIGINI ELLE VERMIYORUZ -- fetch, FormData gonderirken

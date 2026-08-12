@@ -5,6 +5,8 @@ import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { colors } from '../theme';
 import { fetchWithCache } from '../utils/offlineCache';
 import OfflineBanner from '../components/OfflineBanner';
+import VoiceNoteRecorder from '../components/VoiceNoteRecorder';
+import VoiceNoteList from '../components/VoiceNoteList';
 
 function Field({ label, value }) {
   return (
@@ -19,6 +21,11 @@ export default function CustomerDetailScreen({ route }) {
   const { id } = route.params;
   const [customer, setCustomer] = useState(null);
   const [offlineCachedAt, setOfflineCachedAt] = useState(null);
+  const [voiceNotes, setVoiceNotes] = useState([]);
+
+  const loadVoiceNotes = useCallback(() => {
+    customersApi.listVoiceNotes(id).then(setVoiceNotes).catch(() => {});
+  }, [id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,7 +35,8 @@ export default function CustomerDetailScreen({ route }) {
           setOfflineCachedAt(result.fromCache ? result.cachedAt : null);
         })
         .catch(() => {});
-    }, [id]),
+      loadVoiceNotes();
+    }, [id, loadVoiceNotes]),
   );
 
   if (!customer) {
@@ -55,6 +63,12 @@ export default function CustomerDetailScreen({ route }) {
         <Field label="Bütçe" value={budgetLabel} />
         <Field label="Aradığı Özellikler" value={customer.requirements} />
         <Field label="Notlar" value={customer.notes} />
+      </View>
+
+      <Text style={styles.sectionTitle}>Sesli Notlar</Text>
+      <VoiceNoteRecorder customerId={id} onSaved={loadVoiceNotes} />
+      <View style={{ marginTop: 12 }}>
+        <VoiceNoteList customerId={id} notes={voiceNotes} onDeleted={loadVoiceNotes} />
       </View>
 
       <Text style={styles.sectionTitle}>Görüşme Geçmişi</Text>
