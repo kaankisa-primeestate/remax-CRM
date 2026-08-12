@@ -5,6 +5,7 @@ import StatusBadge from '../components/StatusBadge.jsx';
 import CustomerFormModal from '../components/CustomerFormModal.jsx';
 import InteractionTimeline from '../components/InteractionTimeline.jsx';
 import AddInteractionForm from '../components/AddInteractionForm.jsx';
+import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact.js';
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
@@ -65,6 +66,14 @@ export default function CustomerDetailPage() {
             <StatusBadge type={customer.type} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <a href={buildWhatsappUrl(customer.phone, `Merhaba ${customer.firstName}, size ulaşmak istedim.`)} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ textDecoration: 'none', background: '#25D366', color: 'white', borderColor: '#25D366' }}>
+              WhatsApp
+            </a>
+            {customer.email && (
+              <a href={buildMailtoUrl(customer.email, 'Merhaba', `Merhaba ${customer.firstName},\n\n`)} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                E-posta
+              </a>
+            )}
             <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>
               Düzenle
             </button>
