@@ -8,44 +8,80 @@ import { CustomersService } from '../customers/customers.service';
 import { PortfoliosService } from '../portfolios/portfolios.service';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
-const MIN_SCORE = 25; // en az butce ya da lokasyon eslesmesi olmali
+// Anlamsiz/cok genel kelimeleri elemek icin -- eslestirme kalitesini artirir
+const STOPWORDS = new Set([
+  've', 'veya', 'ile', 'bir', 'bu', 'su', 'sunu', 'cok', 'daha', 'gibi', 'olan', 'olsun',
+  'istiyorum', 'istemiyor', 'istemiyorum', 'istiyoruz', 'yok', 'var', 'de', 'da', 'mi', 'mu',
+  'ama', 'fakat', 'ancak', 'icin', 'kadar', 'gore', 'olmali', 'lazim', 'tercih', 'tercihen',
+  'ediyorum', 'bize', 'bana', 'sizin', 'benim', 'onun', 'her', 'herhangi', 'm2', 'tl', 'k',
+  'bin', 'milyon', 'adet', 'tane', 'not', 'notlar',
+]);
 
-function scoreProperty(customer: Customer, property: Property): number {
-  let score = 0;
+const MIN_SCORE = 40; // yuzde 40 ve uzeri kelime eslesmesi olan sonuclar gosterilir
 
-  if (customer.preferredDistrict && property.district) {
-    if (property.district.toLowerCase().includes(customer.preferredDistrict.toLowerCase())) {
-      score += 30;
-    }
+function normalize(text: string): string {
+  return (text || '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i')
+    .replace(/[^a-z0-9\s]/gi, ' ');
+}
+
+function extractKeywords(text: string): string[] {
+  const cleaned = normalize(text);
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  const unique = Array.from(new Set(words));
+  return unique.filter((w) => w.length >= 3 && !STOPWORDS.has(w));
+}
+
+function buildPropertySearchText(property: Property): string {
+  const extras = [
+    property.hasPool && 'havuz',
+    property.hasGym && 'spor salonu',
+    property.hasSecurity && 'guvenlik',
+    property.hasParking && 'otopark',
+    property.nearMetro && 'metro',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const raw = [
+    property.title,
+    property.district,
+    property.neighborhood,
+    property.rooms,
+    property.view,
+    property.facade,
+    property.heatingType,
+    property.deedStatus,
+    property.notes,
+    extras,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return normalize(raw);
+}
+
+interface MatchResult {
+  score: number;
+  matchedCount: number;
+  totalCount: number;
+  matchedKeywords: string[];
+}
+
+function scoreMatch(customer: Customer, property: Property): MatchResult {
+  const customerText = [customer.requirements, customer.notes].filter(Boolean).join(' ');
+  const keywords = extractKeywords(customerText);
+  if (keywords.length === 0) {
+    return { score: 0, matchedCount: 0, totalCount: 0, matchedKeywords: [] };
   }
+  const propertyText = buildPropertySearchText(property);
+  const matched = keywords.filter((k) => propertyText.includes(k));
+  const score = Math.round((matched.length / keywords.length) * 100);
+  return { score, matchedCount: matched.length, totalCount: keywords.length, matchedKeywords: matched };
+}
 
-  if (customer.budget != null && property.price != null) {
-    const budget = Number(customer.budget);
-    const price = Number(property.price);
-    if (price <= budget) {
-      score += 25;
-    } else if (price <= budget * 1.1) {
-      score += 10;
-    }
-  }
-
-  if (customer.preferredRooms && customer.preferredRooms.length > 0 && property.rooms) {
-    if (customer.preferredRooms.includes(property.rooms)) {
-      score += 20;
-    }
-  }
-
-  if (customer.wantsSeaView === true && property.view) {
-    if (property.view.toLowerCase().includes('deniz')) {
-      score += 15;
-    }
-  }
-
-  if (customer.wantsNearMetro === true && property.nearMetro) {
-    score += 10;
-  }
-
-  return score;
+function isAffordable(customer: Customer, property: Property): boolean {
+  if (customer.budget == null || property.price == null) return true;
+  return Number(property.price) <= Number(customer.budget) * 1.5;
 }
 
 @Injectable()
@@ -74,7 +110,6 @@ export class MatchingService {
   async findMatchingPropertiesForCustomer(customerId: string, currentUser: CurrentUserPayload) {
     const customer = await this.customersService.findOne(customerId, currentUser);
 
-    // Sadece arayis icinde olan musteri tipleri icin anlamli
     if (customer.type !== CustomerType.BUYER && customer.type !== CustomerType.TENANT) {
       return [];
     }
@@ -90,12 +125,16 @@ export class MatchingService {
     const agentNameById = await this.agentNameMap(currentUser);
 
     return properties
-      .map((property) => ({
-        property,
-        score: scoreProperty(customer, property),
-        agentName: currentUser.role === 'broker' ? this.nameFor(property.agentId, agentNameById) : undefined,
-      }))
-      .filter((r) => r.score >= MIN_SCORE)
+      .filter((property) => isAffordable(customer, property))
+      .map((property) => {
+        const match = scoreMatch(customer, property);
+        return {
+          property,
+          ...match,
+          agentName: currentUser.role === 'broker' ? this.nameFor(property.agentId, agentNameById) : undefined,
+        };
+      })
+      .filter((r) => r.matchedCount >= 1 && r.score >= MIN_SCORE)
       .sort((a, b) => b.score - a.score);
   }
 
@@ -115,12 +154,16 @@ export class MatchingService {
     const agentNameById = await this.agentNameMap(currentUser);
 
     return customers
-      .map((customer) => ({
-        customer,
-        score: scoreProperty(customer, property),
-        agentName: currentUser.role === 'broker' ? this.nameFor(customer.agentId, agentNameById) : undefined,
-      }))
-      .filter((r) => r.score >= MIN_SCORE)
+      .filter((customer) => isAffordable(customer, property))
+      .map((customer) => {
+        const match = scoreMatch(customer, property);
+        return {
+          customer,
+          ...match,
+          agentName: currentUser.role === 'broker' ? this.nameFor(customer.agentId, agentNameById) : undefined,
+        };
+      })
+      .filter((r) => r.matchedCount >= 1 && r.score >= MIN_SCORE)
       .sort((a, b) => b.score - a.score);
   }
 }
