@@ -175,7 +175,7 @@ export default function PropertyDetailPage() {
       )}
 
       {showShare && (
-        <PropertyShareModal propertyId={property.id} onClose={() => setShowShare(false)} />
+        <PropertyShareModal propertyId={property.id} propertyTitle={property.title} onClose={() => setShowShare(false)} />
       )}
 
       <PhotoLightbox
