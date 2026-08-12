@@ -13,6 +13,7 @@ export default function PropertyDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [matches, setMatches] = useState([]);
 
   const load = useCallback(async () => {
     const data = await propertiesApi.getOne(id);
@@ -22,6 +23,10 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    propertiesApi.matchingCustomers(id).then(setMatches).catch(() => setMatches([]));
+  }, [id]);
 
   async function handleUpdate(payload) {
     await propertiesApi.update(id, payload);
@@ -160,6 +165,32 @@ export default function PropertyDetailPage() {
                   onError={(e) => { e.target.style.display = 'none'; }}
                   onClick={() => setLightboxIndex(i)}
                 />
+              ))}
+            </div>
+          </>
+        )}
+
+        {matches.length > 0 && (
+          <>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12, marginTop: 24 }}>
+              Uygun Müşteriler
+            </h3>
+            <div>
+              {matches.map((m) => (
+                <Link
+                  key={m.customer.id}
+                  to={`/musteriler/${m.customer.id}`}
+                  className="record-row"
+                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between' }}
+                >
+                  <span className="record-row__name">
+                    {m.customer.firstName} {m.customer.lastName}
+                    {m.agentName ? ` (${m.agentName})` : ''}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                    {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
+                  </span>
+                </Link>
               ))}
             </div>
           </>

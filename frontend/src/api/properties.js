@@ -7,6 +7,8 @@ export const propertiesApi = {
   update: (id, payload) =>
     apiClient.patch(`/properties/${id}`, payload).then((r) => r.data),
   remove: (id) => apiClient.delete(`/properties/${id}`),
+  matchingCustomers: (id) =>
+    apiClient.get(`/properties/${id}/matching-customers`).then((r) => r.data),
 };
 
 // Backend enum'larıyla birebir eşleşir (property.entity.ts)

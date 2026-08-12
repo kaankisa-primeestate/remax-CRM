@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { propertiesApi } from '../api/properties';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import StatusBadge from '../components/StatusBadge.jsx';
 import CustomerFormModal from '../components/CustomerFormModal.jsx';
@@ -12,6 +13,7 @@ export default function CustomerDetailPage() {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
+  const [matches, setMatches] = useState([]);
 
   const load = useCallback(async () => {
     const data = await customersApi.getOne(id);
@@ -21,6 +23,10 @@ export default function CustomerDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    customersApi.matchingProperties(id).then(setMatches).catch(() => setMatches([]));
+  }, [id]);
 
   async function handleUpdate(payload) {
     await customersApi.update(id, payload);
@@ -109,6 +115,32 @@ export default function CustomerDetailPage() {
             <div>{customer.notes || '—'}</div>
           </div>
         </div>
+
+        {matches.length > 0 && (
+          <>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12 }}>
+              Uygun Portföyler
+            </h3>
+            <div style={{ marginBottom: 24 }}>
+              {matches.map((m) => (
+                <Link
+                  key={m.property.id}
+                  to={`/portfoyler/${m.property.id}`}
+                  className="record-row"
+                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between' }}
+                >
+                  <span className="record-row__name">
+                    {m.property.title} — {m.property.district}
+                    {m.agentName ? ` (${m.agentName})` : ''}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                    {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
 
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12 }}>
           Görüşme Geçmişi
