@@ -7,6 +7,7 @@ import { fetchWithCache } from '../utils/offlineCache';
 import OfflineBanner from '../components/OfflineBanner';
 import VoiceNoteRecorder from '../components/VoiceNoteRecorder';
 import VoiceNoteList from '../components/VoiceNoteList';
+import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact';
 
 function Field({ label, value }) {
   return (
@@ -57,6 +58,29 @@ export default function CustomerDetailScreen({ route }) {
         <Text style={styles.phoneLink}>📞 {customer.phone}</Text>
       </TouchableOpacity>
 
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+        <TouchableOpacity
+          style={styles.contactButton}
+          onPress={() =>
+            Linking.openURL(
+              buildWhatsappUrl(customer.phone, `Merhaba ${customer.firstName}, size ulaşmak istedim.`),
+            )
+          }
+        >
+          <Text style={styles.contactButtonText}>WhatsApp</Text>
+        </TouchableOpacity>
+        {customer.email ? (
+          <TouchableOpacity
+            style={[styles.contactButton, styles.contactButtonSecondary]}
+            onPress={() =>
+              Linking.openURL(buildMailtoUrl(customer.email, 'Merhaba', `Merhaba ${customer.firstName},\n\n`))
+            }
+          >
+            <Text style={styles.contactButtonSecondaryText}>E-posta</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
       <View style={styles.card}>
         <Field label="E-posta" value={customer.email} />
         <Field label="Adres" value={customer.address} />
@@ -91,7 +115,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.paper },
   name: { fontSize: 24, fontWeight: '700', color: colors.inkNavy },
   type: { fontSize: 13, color: colors.muted, marginTop: 2, marginBottom: 10 },
-  phoneLink: { fontSize: 15, color: colors.brass, fontWeight: '600', marginBottom: 16 },
+  phoneLink: { fontSize: 15, color: colors.brass, fontWeight: '600', marginBottom: 10 },
+  contactButton: {
+    flex: 1,
+    backgroundColor: '#25D366',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  contactButtonText: { color: colors.white, fontWeight: '600', fontSize: 13 },
+  contactButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.paperLine,
+  },
+  contactButtonSecondaryText: { color: colors.slate, fontWeight: '600', fontSize: 13 },
   card: {
     backgroundColor: colors.paperRaised,
     borderRadius: 10,
