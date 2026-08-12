@@ -5,6 +5,7 @@ import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PropertyStatusBadge, ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
+import PropertyWizardModal from '../components/PropertyWizardModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 
 const filterCardStyle = {
@@ -298,7 +299,7 @@ export default function PropertyListPage() {
         )}
       </div>
       {showForm && (
-        <PropertyFormModal onSubmit={handleCreate} onClose={() => setShowForm(false)} />
+        <PropertyWizardModal onSubmit={handleCreate} onClose={() => setShowForm(false)} />
       )}
     </div>
   );
