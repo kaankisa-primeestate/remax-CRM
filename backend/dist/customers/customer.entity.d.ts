@@ -17,6 +17,10 @@ export declare class Customer {
     budgetCurrency: string;
     requirements: string;
     notes: string;
+    preferredDistrict: string | null;
+    preferredRooms: string[] | null;
+    wantsSeaView: boolean | null;
+    wantsNearMetro: boolean | null;
     agentId: string | null;
     interactions: Interaction[];
     createdAt: Date;

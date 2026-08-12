@@ -55,6 +55,21 @@ export class Customer {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
+  // --- Otomatik Eşleştirme için Yapılandırılmış Arama Kriterleri ---
+  // Sadece alıcı/kiracı için anlamlı (satıcı/ev sahibi için bos kalabilir)
+  @Column({ type: 'varchar', nullable: true })
+  preferredDistrict: string | null; // Tercih ettigi ilce
+
+  @Column({ type: 'simple-array', nullable: true })
+  preferredRooms: string[] | null; // Tercih ettigi oda sayilari, orn: ["2+1","3+1"]
+
+  // true = istiyor, false = istemiyor, null = farketmez
+  @Column({ type: 'boolean', nullable: true })
+  wantsSeaView: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  wantsNearMetro: boolean | null;
+
   // Mahremiyet Duvarı (brief 1.1): bu müşteri hangi danışmana ait.
   // null ise "atanmamış" demektir (bkz. customers.service.ts).
   @Index()

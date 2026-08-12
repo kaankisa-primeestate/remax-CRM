@@ -8,6 +8,7 @@ import { PortfoliosModule } from './portfolios/portfolios.module';
 import { CommissionsModule } from './commissions/commissions.module';
 import { UploadModule } from './upload/upload.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { MatchingModule } from './matching/matching.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     CommissionsModule,
     UploadModule,
     DashboardModule,
+    MatchingModule,
   ],
 })
 export class AppModule {}

@@ -37,6 +37,7 @@ export declare class Property {
     hasGym: boolean;
     hasSecurity: boolean;
     hasParking: boolean;
+    nearMetro: boolean;
     view: string | null;
     facade: string | null;
     buildingAge: number | null;

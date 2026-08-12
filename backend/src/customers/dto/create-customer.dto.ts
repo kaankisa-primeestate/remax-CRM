@@ -1,4 +1,6 @@
 import {
+  IsArray,
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsNotEmpty,
@@ -53,4 +55,17 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsString()
   agentId?: string;
+  @IsOptional()
+  @IsString()
+  preferredDistrict?: string;
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredRooms?: string[];
+  @IsOptional()
+  @IsBoolean()
+  wantsSeaView?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  wantsNearMetro?: boolean;
 }

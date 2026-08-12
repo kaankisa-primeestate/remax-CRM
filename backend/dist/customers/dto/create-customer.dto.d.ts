@@ -11,4 +11,8 @@ export declare class CreateCustomerDto {
     requirements?: string;
     notes?: string;
     agentId?: string;
+    preferredDistrict?: string;
+    preferredRooms?: string[];
+    wantsSeaView?: boolean;
+    wantsNearMetro?: boolean;
 }

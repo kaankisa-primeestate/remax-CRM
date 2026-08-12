@@ -101,6 +101,10 @@ export class Property {
   @Column({ default: false })
   hasParking: boolean;
 
+  // Otomatik eslestirme icin -- musteri "metroya yakin olsun" kriteri girerse kullanilir
+  @Column({ default: false })
+  nearMetro: boolean;
+
   @Column({ type: 'varchar', nullable: true })
   view: string | null; // Manzara
 

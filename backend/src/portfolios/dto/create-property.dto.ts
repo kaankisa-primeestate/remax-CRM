@@ -93,6 +93,9 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsBoolean()
   hasParking?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  nearMetro?: boolean;
 
   @IsOptional()
   @IsString()

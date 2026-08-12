@@ -121,6 +121,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Property.prototype, "hasParking", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Property.prototype, "nearMetro", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", Object)
 ], Property.prototype, "view", void 0);
