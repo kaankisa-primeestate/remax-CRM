@@ -462,3 +462,28 @@ button {
 .status-badge--pending { background: #f3e6d2; color: #6b4a1c; }
 .status-badge--approved { background: #dfe7f3; color: var(--ink-navy); }
 .status-badge--paid { background: #dfeee2; color: var(--success); }
+
+/* --- Mobil responsive düzenlemeler --- */
+@media (max-width: 768px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .app-header__title {
+    font-size: 18px;
+  }
+  .app-body {
+    padding: 16px;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .modal {
+    max-width: 92vw;
+    padding: 18px;
+  }
+  .folder-tabs {
+    flex-wrap: wrap;
+  }
+}

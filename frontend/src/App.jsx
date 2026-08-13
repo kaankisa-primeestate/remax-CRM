@@ -32,7 +32,7 @@ function Header() {
 
   return (
     <header className="app-header">
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 20, flexWrap: 'wrap', rowGap: 10 }}>
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
           <h1 className="app-header__title">PrimeCRM</h1>
         </Link>
@@ -46,7 +46,7 @@ function Header() {
           </>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         {user && (
           <>
             <Link to="/sifre-degistir" style={navLinkStyle}>
