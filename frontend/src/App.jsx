@@ -12,6 +12,7 @@ import CommissionsPage from './pages/CommissionsPage.jsx';
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx';
 import PublicPropertyPage from './pages/PublicPropertyPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import NotificationBell from './components/NotificationBell.jsx';
 
 const navLinkStyle = {
   color: 'var(--brass-light)',
@@ -41,11 +42,14 @@ function Header() {
           <h1 className="app-header__title">PrimeCRM</h1>
         </Link>
         {user && (
-          <button type="button" className="app-header__hamburger" onClick={() => setMenuOpen((v) => !v)} aria-label="Menüyü aç/kapat" aria-expanded={menuOpen}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <NotificationBell />
+            <button type="button" className="app-header__hamburger" onClick={() => setMenuOpen((v) => !v)} aria-label="Menüyü aç/kapat" aria-expanded={menuOpen}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+          </div>
         )}
       </div>
       {user && (
