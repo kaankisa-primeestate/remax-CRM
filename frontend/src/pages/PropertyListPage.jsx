@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
-import { PropertyStatusBadge, ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
+import { ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
 import PropertyWizardModal from '../components/PropertyWizardModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
+import QuickStatusSelect from '../components/QuickStatusSelect.jsx';
 
 const filterCardStyle = {
   background: 'var(--paper-raised, #fbfaf5)',
@@ -114,6 +115,11 @@ export default function PropertyListPage() {
     await propertiesApi.create(payload);
     setShowForm(false);
     load();
+  }
+
+  async function handleStatusChange(propertyId, newStatus) {
+    await propertiesApi.update(propertyId, { status: newStatus });
+    setProperties((prev) => prev.map((p) => (p.id === propertyId ? { ...p, status: newStatus } : p)));
   }
 
   const activeFilterCount = [
@@ -289,7 +295,10 @@ export default function PropertyListPage() {
             {properties.map((p) => (
               <Link to={`/portfoyler/${p.id}`} className="record-row" key={p.id}>
                 <ListingTypeBadge listingType={p.listingType} />
-                <PropertyStatusBadge status={p.status} />
+                <QuickStatusSelect
+                  status={p.status}
+                  onChange={(newStatus) => handleStatusChange(p.id, newStatus)}
+                />
                 <span className="record-row__name">{p.title}</span>
                 <span className="record-row__phone">{p.district}</span>
                 <span className="record-row__budget">{formatPrice(p)}</span>

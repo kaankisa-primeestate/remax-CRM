@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
-import { PropertyStatusBadge, ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
+import { ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
 import PropertyShareModal from '../components/PropertyShareModal.jsx';
 import PhotoLightbox from '../components/PhotoLightbox.jsx';
+import QuickStatusSelect from '../components/QuickStatusSelect.jsx';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
@@ -40,6 +41,11 @@ export default function PropertyDetailPage() {
     navigate('/portfoyler');
   }
 
+  async function handleStatusChange(newStatus) {
+    await propertiesApi.update(id, { status: newStatus });
+    setProperty((prev) => ({ ...prev, status: newStatus }));
+  }
+
   if (!property) return <div className="empty-state">Yükleniyor…</div>;
 
   const typeLabel = PROPERTY_TYPES.find((t) => t.value === property.propertyType)?.label;
@@ -68,7 +74,7 @@ export default function PropertyDetailPage() {
             <h2 className="dossier__name">{property.title}</h2>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <ListingTypeBadge listingType={property.listingType} />
-              <PropertyStatusBadge status={property.status} />
+              <QuickStatusSelect status={property.status} onChange={handleStatusChange} />
               <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--slate)' }}>
                 {typeLabel}
               </span>
