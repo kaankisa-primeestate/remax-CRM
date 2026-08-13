@@ -89,6 +89,10 @@ __decorate([
     __metadata("design:type", String)
 ], Commission.prototype, "status", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], Commission.prototype, "statusChangedAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", Object)
 ], Commission.prototype, "notes", void 0);

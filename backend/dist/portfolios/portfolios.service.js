@@ -106,7 +106,11 @@ let PortfoliosService = class PortfoliosService {
     async update(id, dto, currentUser) {
         const property = await this.findOne(id, currentUser);
         const safeDto = currentUser.role === 'agent' ? { ...dto, agentId: undefined } : dto;
+        const statusChanging = safeDto.status !== undefined && safeDto.status !== property.status;
         Object.assign(property, safeDto);
+        if (statusChanging) {
+            property.statusChangedAt = new Date();
+        }
         return this.propertyRepo.save(property);
     }
     async remove(id, currentUser) {

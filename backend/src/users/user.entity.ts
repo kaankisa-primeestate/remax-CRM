@@ -29,6 +29,10 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.AGENT })
   role: UserRole;
 
+  // Bildirim zilini en son ne zaman actigi/gordugu (okunmamis sayaci icin)
+  @Column({ type: 'timestamp', nullable: true })
+  lastNotificationsSeenAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

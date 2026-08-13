@@ -147,6 +147,8 @@ export class CommissionsService {
       );
     }
 
+    const statusChanging = dto.status !== undefined && dto.status !== commission.status;
+
     const merged = { ...commission, ...dto } as any;
     const { grossCommission, agentGrossShare, netPayable } =
       this.calculateAmounts(merged);
@@ -156,6 +158,9 @@ export class CommissionsService {
       agentGrossShare,
       netPayable,
     });
+    if (statusChanging) {
+      commission.statusChangedAt = new Date();
+    }
 
     return this.commissionsRepository.save(commission);
   }

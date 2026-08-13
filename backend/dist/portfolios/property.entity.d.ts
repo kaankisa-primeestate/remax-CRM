@@ -42,6 +42,7 @@ export declare class Property {
     facade: string | null;
     buildingAge: number | null;
     status: PropertyStatus;
+    statusChangedAt: Date | null;
     photoUrls: string[] | null;
     notes: string | null;
     extraAttributes: Record<string, any> | null;

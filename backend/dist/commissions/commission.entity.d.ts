@@ -21,6 +21,7 @@ export declare class Commission {
     netPayable: number;
     dueDate: string;
     status: CommissionStatus;
+    statusChangedAt: Date | null;
     notes: string | null;
     createdAt: Date;
     updatedAt: Date;

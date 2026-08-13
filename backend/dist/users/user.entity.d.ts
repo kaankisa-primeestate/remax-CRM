@@ -8,5 +8,6 @@ export declare class User {
     email: string;
     passwordHash: string;
     role: UserRole;
+    lastNotificationsSeenAt: Date | null;
     createdAt: Date;
 }

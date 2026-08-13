@@ -72,6 +72,10 @@ export class Commission {
   @Column({ type: 'varchar', default: CommissionStatus.PENDING })
   status: CommissionStatus;
 
+  // Durum en son ne zaman degisti (bildirim zili icin kullanilir - orn. "onaylandi" ani)
+  @Column({ type: 'timestamp', nullable: true })
+  statusChangedAt: Date | null;
+
   @Column({ type: 'varchar', nullable: true })
   notes: string | null;
 

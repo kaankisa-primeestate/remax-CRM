@@ -117,6 +117,10 @@ export class Property {
   @Column({ type: 'enum', enum: PropertyStatus, default: PropertyStatus.ACTIVE })
   status: PropertyStatus;
 
+  // Durum en son ne zaman degisti (bildirim zili icin kullanilir)
+  @Column({ type: 'timestamp', nullable: true })
+  statusChangedAt: Date | null;
+
   // Basit fotoğraf desteği: gerçek dosya yükleme altyapısı (S3/Cloudinary vb.)
   // henüz kurulmadığı için, danışman harici bir görsel linki ekleyebilir.
   // Gerçek "fotoğraf yükleme" mobil uygulama fazında eklenecek.

@@ -18,6 +18,7 @@ const commissions_module_1 = require("./commissions/commissions.module");
 const upload_module_1 = require("./upload/upload.module");
 const dashboard_module_1 = require("./dashboard/dashboard.module");
 const matching_module_1 = require("./matching/matching.module");
+const notifications_module_1 = require("./notifications/notifications.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -55,6 +56,7 @@ exports.AppModule = AppModule = __decorate([
             upload_module_1.UploadModule,
             dashboard_module_1.DashboardModule,
             matching_module_1.MatchingModule,
+            notifications_module_1.NotificationsModule,
         ],
     })
 ], AppModule);

@@ -99,6 +99,7 @@ let CommissionsService = class CommissionsService {
         if (requestingUserRole === 'agent' && dto.status) {
             throw new common_1.ForbiddenException('Durum değişikliğini sadece Broker yapabilir');
         }
+        const statusChanging = dto.status !== undefined && dto.status !== commission.status;
         const merged = { ...commission, ...dto };
         const { grossCommission, agentGrossShare, netPayable } = this.calculateAmounts(merged);
         Object.assign(commission, dto, {
@@ -106,6 +107,9 @@ let CommissionsService = class CommissionsService {
             agentGrossShare,
             netPayable,
         });
+        if (statusChanging) {
+            commission.statusChangedAt = new Date();
+        }
         return this.commissionsRepository.save(commission);
     }
     async remove(id, requestingUserRole) {

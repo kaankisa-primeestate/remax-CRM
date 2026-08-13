@@ -9,6 +9,7 @@ import { CommissionsModule } from './commissions/commissions.module';
 import { UploadModule } from './upload/upload.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { MatchingModule } from './matching/matching.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { MatchingModule } from './matching/matching.module';
     UploadModule,
     DashboardModule,
     MatchingModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
