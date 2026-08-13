@@ -77,7 +77,7 @@ export default function DashboardPage() {
           ))}
         </div>
         {period === 'custom' && (
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div className="form-field" style={{ margin: 0 }}>
               <label>Başlangıç</label>
               <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />

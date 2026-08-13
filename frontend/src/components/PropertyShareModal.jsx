@@ -44,7 +44,7 @@ export default function PropertyShareModal({ propertyId, propertyTitle, onClose 
           {shareUrl}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={handleCopy}>
             {copied ? 'Kopyalandı ✓' : 'Linki Kopyala'}
           </button>
@@ -72,7 +72,7 @@ export default function PropertyShareModal({ propertyId, propertyTitle, onClose 
           )}
 
           {selectedCustomer && (
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <a href={buildWhatsappUrl(selectedCustomer.phone, messageText)} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ textDecoration: 'none', background: '#25D366', color: 'white', borderColor: '#25D366', flex: 1, textAlign: 'center' }}>
                 WhatsApp
               </a>

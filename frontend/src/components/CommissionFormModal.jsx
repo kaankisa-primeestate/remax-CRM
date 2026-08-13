@@ -114,7 +114,7 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 680 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: 'min(680px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
         <h2>{isEdit ? 'Komisyon Kaydını Düzenle' : 'Yeni Komisyon Kaydı'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">

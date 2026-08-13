@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -24,56 +25,51 @@ const navLinkStyle = {
 function Header() {
   const { user, logout, isBroker } = useAuth();
   const navigate = useNavigate();
-
+  const [menuOpen, setMenuOpen] = useState(false);
   function handleLogout() {
     logout();
     navigate('/login');
+    setMenuOpen(false);
   }
-
+  function closeMenu() {
+    setMenuOpen(false);
+  }
   return (
     <header className="app-header">
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 20, flexWrap: 'wrap', rowGap: 10 }}>
-        <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <div className="app-header__top">
+        <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }} onClick={closeMenu}>
           <h1 className="app-header__title">PrimeCRM</h1>
         </Link>
         {user && (
-          <>
-            <Link to="/" style={navLinkStyle}>Müşteriler</Link>
-            <Link to="/portfoyler" style={navLinkStyle}>Portföyler</Link>
-            <Link to="/komisyonlar" style={navLinkStyle}>Komisyonlar</Link>
-            {isBroker && <Link to="/dashboard" style={navLinkStyle}>Dashboard</Link>}
-            {isBroker && <Link to="/danismanlar" style={navLinkStyle}>Danışmanlar</Link>}
-          </>
+          <button type="button" className="app-header__hamburger" onClick={() => setMenuOpen((v) => !v)} aria-label="Menüyü aç/kapat" aria-expanded={menuOpen}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        {user && (
-          <>
-            <Link to="/sifre-degistir" style={navLinkStyle}>
-              <span className="app-header__subtitle">
-                {user.name} · {user.role === 'broker' ? 'Broker' : 'Danışman'}
-              </span>
+      {user && (
+        <nav className={`app-header__nav${menuOpen ? ' is-open' : ''}`}>
+          <div className="app-header__links">
+            <Link to="/" style={navLinkStyle} onClick={closeMenu}>Müşteriler</Link>
+            <Link to="/portfoyler" style={navLinkStyle} onClick={closeMenu}>Portföyler</Link>
+            <Link to="/komisyonlar" style={navLinkStyle} onClick={closeMenu}>Komisyonlar</Link>
+            {isBroker && <Link to="/dashboard" style={navLinkStyle} onClick={closeMenu}>Dashboard</Link>}
+            {isBroker && <Link to="/danismanlar" style={navLinkStyle} onClick={closeMenu}>Danışmanlar</Link>}
+          </div>
+          <div className="app-header__account">
+            <Link to="/sifre-degistir" style={navLinkStyle} onClick={closeMenu}>
+              <span className="app-header__subtitle">{user.name} · {user.role === 'broker' ? 'Broker' : 'Danışman'}</span>
             </Link>
-            <button
-              onClick={handleLogout}
-              className="btn btn-secondary"
-              style={{
-                background: 'transparent',
-                color: 'var(--paper-raised)',
-                borderColor: 'var(--ink-navy-light)',
-                padding: '6px 12px',
-                fontSize: 12,
-              }}
-            >
+            <button onClick={handleLogout} className="btn btn-secondary" style={{ background: 'transparent', color: 'var(--paper-raised)', borderColor: 'var(--ink-navy-light)', padding: '6px 12px', fontSize: 12 }}>
               Çıkış
             </button>
-          </>
-        )}
-      </div>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
-
 export default function App() {
   const location = useLocation();
   const isPublicPage = location.pathname.startsWith('/ilan/');

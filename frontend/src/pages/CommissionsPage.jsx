@@ -180,7 +180,7 @@ export default function CommissionsPage() {
               <div
                 className="record-row"
                 key={c.id}
-                style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 12 }}
+                style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
               >
                 <CommissionStatusBadge status={c.status} />
                 <span className="record-row__name" style={{ flex: 2 }}>
@@ -198,7 +198,7 @@ export default function CommissionsPage() {
                   {formatMoney(c.netPayable)}
                 </span>
 
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {isBroker && c.status !== 'paid' && (
                     <select
                       value={c.status}
