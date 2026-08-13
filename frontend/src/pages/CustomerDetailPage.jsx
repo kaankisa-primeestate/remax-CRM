@@ -71,7 +71,7 @@ export default function CustomerDetailPage() {
             </h2>
             <StatusBadge type={customer.type} />
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <a href={buildWhatsappUrl(customer.phone, `Merhaba ${customer.firstName}, size ulaşmak istedim.`)} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ textDecoration: 'none', background: '#25D366', color: 'white', borderColor: '#25D366' }}>
               WhatsApp
             </a>

@@ -66,7 +66,7 @@ export default function PropertyDetailPage() {
         <div className="dossier__header">
           <div>
             <h2 className="dossier__name">{property.title}</h2>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <ListingTypeBadge listingType={property.listingType} />
               <PropertyStatusBadge status={property.status} />
               <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--slate)' }}>
@@ -74,7 +74,7 @@ export default function PropertyDetailPage() {
               </span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => setShowShare(true)}>Paylaş</button>
             <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>Düzenle</button>
             <button className="btn btn-danger" onClick={handleDelete}>Sil</button>
