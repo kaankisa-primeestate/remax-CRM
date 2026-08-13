@@ -13,6 +13,7 @@ const CATEGORIES = [
 
 const LISTING_LABELS = { sale: 'Satılık', rent: 'Kiralık' };
 const CATEGORY_LABELS = { apartment: 'Konut', land: 'Arsa', field: 'Tarla', commercial: 'İşyeri', timeshare: 'Devre Mülk' };
+const DEED_STATUS_OPTIONS = ['Kat Mülkiyeti', 'Kat İrtifakı', 'Hisseli Tapu', 'Müstakil Tapu', 'Arsa Tapusu'];
 
 const emptyDraft = {
   listingType: null,
@@ -191,6 +192,13 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
                       <input type="checkbox" checked={!!fieldValue(field)} onChange={(e) => setFieldValue(field, e.target.checked)} style={{ width: 'auto' }} />
                       Var
                     </label>
+                  ) : field.type === 'select' ? (
+                    <select value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)}>
+                      <option value="">Seçiniz</option>
+                      {field.options.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
                   ) : (
                     <input type={field.type === 'number' ? 'number' : 'text'} value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)} placeholder={field.placeholder} />
                   )}
@@ -238,7 +246,32 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
               </div>
               <div className="form-field">
                 <label>Tapu Durumu *</label>
-                <input value={draft.deedStatus} onChange={(e) => update({ deedStatus: e.target.value })} placeholder="Örn: Kat Mülkiyeti" />
+                {(() => {
+                  const isKnown = DEED_STATUS_OPTIONS.includes(draft.deedStatus);
+                  const selectValue = isKnown ? draft.deedStatus : (draft.deedStatus ? 'Diğer' : '');
+                  return (
+                    <>
+                      <select
+                        value={selectValue}
+                        onChange={(e) => update({ deedStatus: e.target.value === 'Diğer' ? ' ' : e.target.value })}
+                      >
+                        <option value="">Seçiniz</option>
+                        {DEED_STATUS_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                        <option value="Diğer">Diğer (yazınız)</option>
+                      </select>
+                      {selectValue === 'Diğer' && (
+                        <input
+                          style={{ marginTop: 8 }}
+                          value={draft.deedStatus.trim() === '' ? '' : draft.deedStatus}
+                          onChange={(e) => update({ deedStatus: e.target.value })}
+                          placeholder="Tapu durumunu yazınız"
+                        />
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <div className="form-field">
                 <label>Aidat (₺)</label>
