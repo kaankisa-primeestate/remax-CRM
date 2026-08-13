@@ -484,6 +484,14 @@ button {
     padding: 18px;
   }
   .folder-tabs {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .folder-tab {
+    padding: 8px 12px 7px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 }

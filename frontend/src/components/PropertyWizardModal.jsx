@@ -139,7 +139,7 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: 'min(640px, 92vw)' }} onClick={(e) => e.stopPropagation()}>
         {step === 0 && (
           <div>
             <h2>İlanınız ne için?</h2>
