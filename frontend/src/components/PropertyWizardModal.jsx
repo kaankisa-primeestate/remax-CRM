@@ -199,6 +199,8 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
                         <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
+                  ) : field.type === 'date' ? (
+                    <input type="date" value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)} />
                   ) : (
                     <input type={field.type === 'number' ? 'number' : 'text'} value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)} placeholder={field.placeholder} />
                   )}
@@ -322,6 +324,24 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
               <div className="dossier__field"><label>Konum</label><div>{draft.neighborhood}, {draft.district} / {draft.province}</div></div>
               <div className="dossier__field"><label>Metrekare</label><div>{draft.areaM2} m²</div></div>
               <div className="dossier__field"><label>Fiyat</label><div>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(Number(draft.price) || 0)}</div></div>
+              {draft.propertyType === 'land' && draft.extraAttributes.kaksEmsal && draft.areaM2 && (
+                <div className="dossier__field">
+                  <label>Tahmini Emsal İnşaat Alanı</label>
+                  <div>{new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(Number(draft.areaM2) * Number(draft.extraAttributes.kaksEmsal))} m²</div>
+                </div>
+              )}
+              {draft.propertyType === 'commercial' && Number(draft.price) > 0 && (draft.extraAttributes.yillikKiraGeliri || draft.extraAttributes.aylikKira) && (
+                <div className="dossier__field">
+                  <label>Tahmini Yıllık Kira Getiri Oranı</label>
+                  <div>
+                    {(() => {
+                      const yillikGelir = Number(draft.extraAttributes.yillikKiraGeliri) || (Number(draft.extraAttributes.aylikKira) * 12) || 0;
+                      const oran = (yillikGelir / Number(draft.price)) * 100;
+                      return `%${oran.toFixed(1)}`;
+                    })()}
+                  </div>
+                </div>
+              )}
               {fields.map((field) => {
                 const v = fieldValue(field);
                 if (v == null || v === '') return null;
