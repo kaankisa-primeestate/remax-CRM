@@ -19,23 +19,41 @@ import FinancePage from './pages/FinancePage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
+import ContractsPage from './pages/ContractsPage.jsx';
+import LegalPage from './pages/LegalPage.jsx';
+import ListingSyndicationPage from './pages/ListingSyndicationPage.jsx';
+import OfficeSettingsPage from './pages/OfficeSettingsPage.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
 
-// Broker ve Danışman icin gorunurluk kurallarina sahip sol menu ogeleri.
-// role: 'broker' | 'agent' | 'both'
-const NAV_ITEMS = [
-  { to: '/', label: 'Müşteriler', icon: '👥', role: 'both' },
-  { to: '/portfoyler', label: 'Portföyler', icon: '🏠', role: 'both' },
-  { to: '/talepler', label: 'Talepler', icon: '📋', role: 'both' },
-  { to: '/islemler', label: 'İşlemler', icon: '🔄', role: 'both' },
-  { to: '/komisyonlar', label: 'Komisyonlar', icon: '💰', role: 'both' },
-  { to: '/takvim', label: 'Takvim', icon: '📅', role: 'agent' },
-  { to: '/gorevler', label: 'Görevler', icon: '✅', role: 'agent' },
-  { to: '/panelim', label: 'Panelim', icon: '🏡', role: 'agent' },
-  { to: '/finans', label: 'Finans', icon: '💵', role: 'broker' },
-  { to: '/raporlar', label: 'Raporlar', icon: '📊', role: 'broker' },
-  { to: '/dashboard', label: 'Dashboard', icon: '📈', role: 'broker' },
-  { to: '/danismanlar', label: 'Danışmanlar', icon: '🧑\u200d💼', role: 'broker' },
+// Broker sol menusu -- mockup'taki "Merkez Ofis Yonetici Ekrani" sirasina
+// birebir uygun (Genel Bakis -> Danisman Yonetimi -> Musteri Havuzu ->
+// Portfoy Havuzu -> Ciro & Komisyon -> ... -> Ofis Ayarlari).
+const BROKER_NAV = [
+  { to: '/dashboard', label: 'Genel Bakış', icon: '📌' },
+  { to: '/danismanlar', label: 'Danışman Yönetimi', icon: '👥' },
+  { to: '/', label: 'Müşteri Havuzu', icon: '👤' },
+  { to: '/portfoyler', label: 'Portföy Havuzu', icon: '🏠' },
+  { to: '/komisyonlar', label: 'Ciro & Komisyon', icon: '📈' },
+  { to: '/talepler', label: 'Talepler', icon: '🗒️' },
+  { to: '/islemler', label: 'İşlemler', icon: '🔄' },
+  { to: '/finans', label: 'Finans', icon: '💵' },
+  { to: '/raporlar', label: 'Raporlar', icon: '📊' },
+  { to: '/sozlesmeler', label: 'Sözleşmeler & Tapu', icon: '📄' },
+  { to: '/hukuk', label: 'Hukuk / İhtarname', icon: '⚖️' },
+  { to: '/ilan-entegrasyon', label: 'İlan Entegrasyonu', icon: '📣' },
+  { to: '/ayarlar', label: 'Ofis Ayarları', icon: '⚙️' },
+];
+
+// Danışman sol menusu -- mevcut, onaylanmis yapi korunuyor.
+const AGENT_NAV = [
+  { to: '/panelim', label: 'Panelim', icon: '🏡' },
+  { to: '/', label: 'Müşteriler', icon: '👥' },
+  { to: '/portfoyler', label: 'Portföyler', icon: '🏠' },
+  { to: '/talepler', label: 'Talepler', icon: '📋' },
+  { to: '/islemler', label: 'İşlemler', icon: '🔄' },
+  { to: '/komisyonlar', label: 'Komisyonlar', icon: '💰' },
+  { to: '/takvim', label: 'Takvim', icon: '📅' },
+  { to: '/gorevler', label: 'Görevler', icon: '✅' },
 ];
 
 function Sidebar({ open, onClose }) {
@@ -49,16 +67,14 @@ function Sidebar({ open, onClose }) {
     onClose();
   }
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => item.role === 'both' || (item.role === 'broker' && isBroker) || (item.role === 'agent' && !isBroker),
-  );
+  const visibleItems = isBroker ? BROKER_NAV : AGENT_NAV;
 
   return (
     <>
       {open && <div className="sidebar__backdrop" onClick={onClose} />}
       <aside className={`sidebar${open ? ' is-open' : ''}`}>
         <div className="sidebar__brand">
-          <Link to="/" className="sidebar__brand-link" onClick={onClose}>
+          <Link to={isBroker ? '/dashboard' : '/panelim'} className="sidebar__brand-link" onClick={onClose}>
             <span className="sidebar__brand-title">PrimeCRM</span>
           </Link>
         </div>
@@ -304,6 +320,38 @@ export default function App() {
               element={
                 <ProtectedRoute brokerOnly>
                   <AgentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sozlesmeler"
+              element={
+                <ProtectedRoute brokerOnly>
+                  <ContractsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hukuk"
+              element={
+                <ProtectedRoute brokerOnly>
+                  <LegalPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ilan-entegrasyon"
+              element={
+                <ProtectedRoute brokerOnly>
+                  <ListingSyndicationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ayarlar"
+              element={
+                <ProtectedRoute brokerOnly>
+                  <OfficeSettingsPage />
                 </ProtectedRoute>
               }
             />

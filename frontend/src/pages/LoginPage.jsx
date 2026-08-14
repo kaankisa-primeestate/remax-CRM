@@ -18,7 +18,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const loggedInUser = await login(email, password);
-      const defaultLanding = loggedInUser.role === 'broker' ? '/' : '/panelim';
+      const defaultLanding = loggedInUser.role === 'broker' ? '/dashboard' : '/panelim';
       const redirectTo = location.state?.from ?? defaultLanding;
       navigate(redirectTo, { replace: true });
     } catch (err) {
