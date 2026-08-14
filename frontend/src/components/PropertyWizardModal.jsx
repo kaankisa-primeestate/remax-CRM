@@ -190,48 +190,6 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
 
         {step === 2 && (
           <div>
-            <h2>Temel Bilgiler</h2>
-            <div className="form-grid" style={{ marginTop: 16 }}>
-              <div className="form-field full">
-                <label>İlan Başlığı *</label>
-                <input value={draft.title} onChange={(e) => update({ title: e.target.value })} placeholder="Örn: Kadıköy 3+1 Deniz Manzaralı" />
-              </div>
-              <div className="form-field">
-                <label>Metrekare *</label>
-                <input type="number" value={draft.areaM2} onChange={(e) => update({ areaM2: e.target.value })} />
-              </div>
-              {fields.map((field) => (
-                <div className="form-field" key={field.key}>
-                  <label>{field.label}</label>
-                  {field.type === 'boolean' ? (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)', fontSize: 14, textTransform: 'none' }}>
-                      <input type="checkbox" checked={!!fieldValue(field)} onChange={(e) => setFieldValue(field, e.target.checked)} style={{ width: 'auto' }} />
-                      Var
-                    </label>
-                  ) : field.type === 'select' ? (
-                    <select value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)}>
-                      <option value="">Seçiniz</option>
-                      {field.options.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  ) : field.type === 'date' ? (
-                    <input type="date" value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)} />
-                  ) : (
-                    <input type={field.type === 'number' ? 'number' : 'text'} value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)} placeholder={field.placeholder} />
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>Geri</button>
-              <button type="button" className="btn btn-primary" disabled={!draft.title || !draft.areaM2} onClick={() => setStep(3)}>Devam Et</button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div>
             <h2>Konum</h2>
             <div className="form-grid" style={{ marginTop: 16 }}>
               <div className="form-field">
@@ -248,8 +206,58 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
               </div>
             </div>
             <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>Geri</button>
+              <button type="button" className="btn btn-primary" disabled={!draft.province || !draft.district || !draft.neighborhood} onClick={() => setStep(3)}>Devam Et</button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div>
+            <h2>Temel Bilgiler</h2>
+            <div className="form-grid" style={{ marginTop: 16 }}>
+              <div className="form-field full">
+                <label>İlan Başlığı *</label>
+                <input value={draft.title} onChange={(e) => update({ title: e.target.value })} placeholder="Örn: Kadıköy 3+1 Deniz Manzaralı" />
+              </div>
+              <div className="form-field">
+                <label>Metrekare *</label>
+                <input type="number" value={draft.areaM2} onChange={(e) => update({ areaM2: e.target.value })} />
+              </div>
+              {fields.filter((field) => field.type !== 'boolean').map((field) => (
+                <div className="form-field" key={field.key}>
+                  <label>{field.label}</label>
+                  {field.type === 'select' ? (
+                    <select value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)}>
+                      <option value="">Seçiniz</option>
+                      {field.options.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : field.type === 'date' ? (
+                    <input type="date" value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)} />
+                  ) : (
+                    <input type={field.type === 'number' ? 'number' : 'text'} value={fieldValue(field) ?? ''} onChange={(e) => setFieldValue(field, e.target.value)} placeholder={field.placeholder} />
+                  )}
+                </div>
+              ))}
+            </div>
+            {fields.some((field) => field.type === 'boolean') && (
+              <>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, marginTop: 24, marginBottom: 4 }}>Öne Çıkan Özellikler</h3>
+                <div className="feature-grid">
+                  {fields.filter((field) => field.type === 'boolean').map((field) => (
+                    <label key={field.key} className="feature-checkbox">
+                      <input type="checkbox" checked={!!fieldValue(field)} onChange={(e) => setFieldValue(field, e.target.checked)} />
+                      {field.label}
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="modal-actions">
               <button type="button" className="btn btn-secondary" onClick={() => setStep(2)}>Geri</button>
-              <button type="button" className="btn btn-primary" disabled={!draft.province || !draft.district || !draft.neighborhood} onClick={() => setStep(4)}>Devam Et</button>
+              <button type="button" className="btn btn-primary" disabled={!draft.title || !draft.areaM2} onClick={() => setStep(4)}>Devam Et</button>
             </div>
           </div>
         )}

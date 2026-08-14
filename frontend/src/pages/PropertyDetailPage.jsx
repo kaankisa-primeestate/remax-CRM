@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
+import { CATEGORY_FIELDS } from '../data/categoryFields';
 import { ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
 import PropertyShareModal from '../components/PropertyShareModal.jsx';
@@ -54,13 +55,19 @@ export default function PropertyDetailPage() {
     currency: property.priceCurrency || 'TRY',
     maximumFractionDigits: 0,
   }).format(property.price);
-  const isResidential = property.propertyType === 'apartment' || property.propertyType === 'timeshare';
-  const extras = [
-    property.hasPool && 'Havuz',
-    property.hasGym && 'Spor Salonu',
-    property.hasSecurity && 'Güvenlik',
-    property.hasParking && 'Otopark',
-  ].filter(Boolean);
+
+  // Kategoriye ozel alanlari (CATEGORY_FIELDS) kullanarak detaylari ve
+  // one cikan ozellikleri dinamik olarak hesapla -- wizard'da toplanan
+  // TUM bilgiler burada gorunsun diye (10 kategorinin hepsi icin gecerli)
+  const categoryFieldDefs = CATEGORY_FIELDS[property.propertyType] || [];
+  function fieldRawValue(field) {
+    return field.extra ? property.extraAttributes?.[field.key] : property[field.key];
+  }
+  const detailFields = categoryFieldDefs.filter((f) => {
+    const v = fieldRawValue(f);
+    return f.type !== 'boolean' && v !== undefined && v !== null && v !== '';
+  });
+  const activeFeatures = categoryFieldDefs.filter((f) => f.type === 'boolean' && !!fieldRawValue(f));
 
   return (
     <div>
@@ -109,46 +116,32 @@ export default function PropertyDetailPage() {
             <div>{property.mortgageEligible ? 'Uygun' : 'Uygun Değil'}</div>
           </div>
 
-          {isResidential && (
-            <>
-              <div className="dossier__field">
-                <label>Oda Sayısı</label>
-                <div>{property.rooms || '—'}</div>
+          {detailFields.map((field) => {
+            const v = fieldRawValue(field);
+            const displayValue = field.type === 'date'
+              ? new Date(v).toLocaleDateString('tr-TR')
+              : (typeof v === 'number' ? new Intl.NumberFormat('tr-TR').format(v) : v);
+            return (
+              <div className="dossier__field" key={field.key}>
+                <label>{field.label}</label>
+                <div>{displayValue}</div>
               </div>
-              <div className="dossier__field">
-                <label>Banyo Sayısı</label>
-                <div>{property.bathrooms ?? '—'}</div>
-              </div>
-              <div className="dossier__field">
-                <label>Bulunduğu Kat</label>
-                <div>{property.floor || '—'}</div>
-              </div>
-              <div className="dossier__field">
-                <label>Isıtma Tipi</label>
-                <div>{property.heatingType || '—'}</div>
-              </div>
-              <div className="dossier__field">
-                <label>Aidat</label>
-                <div>{property.dues ? `₺${property.dues}` : '—'}</div>
-              </div>
-              <div className="dossier__field">
-                <label>Yapı Yaşı</label>
-                <div>{property.buildingAge ?? '—'}</div>
-              </div>
-            </>
-          )}
+            );
+          })}
 
-          <div className="dossier__field">
-            <label>Manzara</label>
-            <div>{property.view || '—'}</div>
-          </div>
-          <div className="dossier__field">
-            <label>Cephe</label>
-            <div>{property.facade || '—'}</div>
-          </div>
           <div className="dossier__field" style={{ gridColumn: '1 / -1' }}>
-            <label>Ek Özellikler</label>
-            <div>{extras.length ? extras.join(', ') : '—'}</div>
+            <label>Öne Çıkan Özellikler</label>
+            <div>
+              {activeFeatures.length ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                  {activeFeatures.map((f) => (
+                    <span key={f.key} className="status-badge" style={{ background: '#eef4ea', color: 'var(--success)' }}>
+                      ✓ {f.label}
+                    </span>
+                  ))}
+                </div>
+              ) : '—'}
+            </div>
           </div>
           {property.notes && (
             <div className="dossier__field" style={{ gridColumn: '1 / -1' }}>
