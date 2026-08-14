@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { dashboardApi } from '../api/dashboard';
 import { propertiesApi } from '../api/properties';
 
@@ -152,21 +153,21 @@ export default function DashboardPage() {
             <div className="panel">
               <h3 className="panel__title">Akıllı Aksiyon & Onay Merkezi</h3>
               {(data.expiringContracts || []).map((c) => (
-                <div className="action-item" key={c.propertyId}>
+                <Link to={`/portfoyler/${c.propertyId}`} className="action-item action-item--clickable" key={c.propertyId}>
                   <span className="action-item__dot">🟡</span>
                   <div className="action-item__body">
                     <div className="action-item__title">Sözleşme Bitimi: {c.title}</div>
                     <div className="action-item__meta">
-                      {c.agentName} · {c.daysLeft <= 0 ? 'Bugün' : `${c.daysLeft} gün kaldı`} ({new Date(c.contractEndDate).toLocaleDateString('tr-TR')})
+                      {c.agentName} · {c.daysLeft <= 0 ? 'Bugün' : `${c.daysLeft} gün kaldı`} ({new Date(c.contractEndDate).toLocaleDateString('tr-TR')}) · Güncellemek için tıklayın →
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
               {PLACEHOLDER_ACTIONS.map((a, i) => (
                 <div className="action-item" key={i}>
                   <span className="action-item__dot">{a.dot}</span>
                   <div className="action-item__body">
-                    <div className="action-item__title">{a.title}</div>
+                    <div className="action-item__title">{a.title} <span className="soon-badge">Yakında</span></div>
                     <div className="action-item__meta">{a.meta}</div>
                   </div>
                 </div>

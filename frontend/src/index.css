@@ -1153,6 +1153,17 @@ button {
   border-bottom: 1px solid var(--paper-line);
 }
 .action-item:last-child { border-bottom: none; }
+.action-item--clickable {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 0 -8px;
+  padding: 10px 8px;
+}
+.action-item--clickable:hover {
+  background: var(--paper);
+}
 .action-item__dot { font-size: 12px; margin-top: 3px; }
 .action-item__body { flex: 1; min-width: 0; }
 .action-item__title { font-size: 13px; font-weight: 600; color: var(--slate); }
