@@ -16,11 +16,28 @@ const emptyForm = {
   requirements: '',
   notes: '',
   agentId: '',
+  propertyInterest: '',
+  preferredDistrictsText: '',
+  purchaseTimeline: '',
 };
+
+const TIMELINE_OPTIONS = [
+  { value: '', label: 'Belirtilmedi' },
+  { value: 'immediate', label: 'Hemen' },
+  { value: '1_3_months', label: '1–3 ay içinde' },
+  { value: '3_6_months', label: '3–6 ay içinde' },
+  { value: 'later', label: 'Daha sonra' },
+];
 
 export default function CustomerFormModal({ initialValues, onSubmit, onClose }) {
   const { isBroker } = useAuth();
-  const [form, setForm] = useState({ ...emptyForm, ...initialValues, agentId: initialValues?.agentId || '' });
+  const [form, setForm] = useState({
+    ...emptyForm,
+    ...initialValues,
+    agentId: initialValues?.agentId || '',
+    preferredDistrictsText: (initialValues?.preferredDistricts || []).join(', '),
+    purchaseTimeline: initialValues?.purchaseTimeline || '',
+  });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [agents, setAgents] = useState([]);
@@ -45,14 +62,26 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
     setError(null);
     setSaving(true);
     try {
+      // DIKKAT: initialValues (API'den gelen tam musteri objesi) id,
+      // createdAt, updatedAt, interactions gibi alanlar icerir. Bunlari
+      // ASLA backend'e geri gondermiyoruz -- sadece DTO'nun tanidigi
+      // alanlari acikca seciyoruz (whitelist).
       const payload = {
-        ...form,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phone: form.phone,
+        type: form.type,
         budget: form.budget === '' ? undefined : Number(form.budget),
         email: form.email || undefined,
         address: form.address || undefined,
         requirements: form.requirements || undefined,
         notes: form.notes || undefined,
         agentId: form.agentId || undefined,
+        propertyInterest: form.propertyInterest || undefined,
+        preferredDistricts: form.preferredDistrictsText
+          ? form.preferredDistrictsText.split(',').map((s) => s.trim()).filter(Boolean)
+          : undefined,
+        purchaseTimeline: form.purchaseTimeline || undefined,
       };
       await onSubmit(payload);
     } catch (err) {
@@ -120,6 +149,22 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
                 </select>
               </div>
             )}
+            <div className="form-field">
+              <label>Ne Arıyor</label>
+              <input name="propertyInterest" value={form.propertyInterest} onChange={handleChange} placeholder="Örn: Daire, Villa, Arsa" />
+            </div>
+            <div className="form-field">
+              <label>Bölge Tercihi</label>
+              <input name="preferredDistrictsText" value={form.preferredDistrictsText} onChange={handleChange} placeholder="Örn: Kadıköy, Ataşehir" />
+            </div>
+            <div className="form-field">
+              <label>Zaman Çizelgesi</label>
+              <select name="purchaseTimeline" value={form.purchaseTimeline} onChange={handleChange}>
+                {TIMELINE_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
             <div className="form-field full">
               <label>Adres</label>
               <input name="address" value={form.address} onChange={handleChange} />
