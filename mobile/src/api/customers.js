@@ -18,4 +18,5 @@ export const CUSTOMER_TYPES = {
   seller: 'Satıcı',
   tenant: 'Kiracı',
   landlord: 'Ev Sahibi',
+  investor: 'Yatırımcı',
 };

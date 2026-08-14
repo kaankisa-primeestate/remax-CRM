@@ -10,6 +10,7 @@ import LoginScreen from '../screens/LoginScreen';
 import CustomerListScreen from '../screens/CustomerListScreen';
 import CustomerDetailScreen from '../screens/CustomerDetailScreen';
 import CustomerFormScreen from '../screens/CustomerFormScreen';
+import QuickAddCustomerScreen from '../screens/QuickAddCustomerScreen';
 import PropertyListScreen from '../screens/PropertyListScreen';
 import PropertyDetailScreen from '../screens/PropertyDetailScreen';
 import PropertyFormScreen from '../screens/PropertyFormScreen';
@@ -96,7 +97,7 @@ function CustomersStack() {
         options={({ navigation }) => ({
           title: 'Müşteriler',
           headerRight: () => (
-            <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('CustomerForm')} />
+            <HeaderRightWithPassword navigation={navigation} onAdd={() => navigation.navigate('QuickAddCustomer')} />
           ),
         })}
       />
@@ -107,9 +108,14 @@ function CustomersStack() {
         options={{ title: 'Müşteri Detayı' }}
       />
       <Stack.Screen
+        name="QuickAddCustomer"
+        component={QuickAddCustomerScreen}
+        options={{ title: 'Hızlı Müşteri Kaydı' }}
+      />
+      <Stack.Screen
         name="CustomerForm"
         component={CustomerFormScreen}
-        options={{ title: 'Yeni Müşteri' }}
+        options={{ title: 'Detaylı Müşteri Kaydı' }}
       />
     </Stack.Navigator>
   );

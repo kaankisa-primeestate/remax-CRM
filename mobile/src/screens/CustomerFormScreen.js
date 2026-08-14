@@ -20,6 +20,7 @@ const CUSTOMER_TYPE_OPTIONS = [
   { value: 'seller', label: 'Satıcı' },
   { value: 'tenant', label: 'Kiracı' },
   { value: 'landlord', label: 'Ev Sahibi' },
+  { value: 'investor', label: 'Yatırımcı' },
 ];
 
 export default function CustomerFormScreen({ navigation }) {

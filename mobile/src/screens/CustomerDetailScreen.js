@@ -53,6 +53,28 @@ export default function CustomerDetailScreen({ route }) {
     ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: customer.budgetCurrency || 'TRY', maximumFractionDigits: 0 }).format(customer.budget)
     : null;
 
+  // "Talep tamamlanma orani" -- Hizli Kayit'tan gelen musterilerde eksik
+  // kalabilecek alanlari danismana hatirlatir (web ile ayni mantik)
+  const completionChecklist = [
+    { label: 'Bütçe', filled: !!customer.budget },
+    { label: 'Ne aradığı', filled: !!customer.propertyInterest },
+    { label: 'Bölge tercihi', filled: !!(customer.preferredDistricts && customer.preferredDistricts.length) },
+    { label: 'Zaman çizelgesi', filled: !!customer.purchaseTimeline },
+    { label: 'E-posta', filled: !!customer.email },
+    { label: 'Adres', filled: !!customer.address },
+    { label: 'Detaylı aradığı özellikler', filled: !!customer.requirements },
+  ];
+  const filledCount = completionChecklist.filter((c) => c.filled).length;
+  const completionPct = Math.round((filledCount / completionChecklist.length) * 100);
+  const missingFields = completionChecklist.filter((c) => !c.filled);
+
+  const timelineLabels = {
+    immediate: 'Hemen',
+    '1_3_months': '1–3 ay içinde',
+    '3_6_months': '3–6 ay içinde',
+    later: 'Daha sonra',
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
       <OfflineBanner cachedAt={offlineCachedAt} />
@@ -86,10 +108,31 @@ export default function CustomerDetailScreen({ route }) {
         ) : null}
       </View>
 
+      {completionPct < 100 && (
+        <View style={styles.completionBox}>
+          <View style={styles.completionRow}>
+            <Text style={styles.completionLabel}>Talep %{completionPct} tamamlandı</Text>
+          </View>
+          <View style={styles.completionTrack}>
+            <View style={[styles.completionFill, { width: `${completionPct}%` }]} />
+          </View>
+          <View style={styles.completionMissingWrap}>
+            {missingFields.map((f) => (
+              <View key={f.label} style={styles.completionChip}>
+                <Text style={styles.completionChipText}>+ {f.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
       <View style={styles.card}>
         <Field label="E-posta" value={customer.email} />
         <Field label="Adres" value={customer.address} />
         <Field label="Bütçe" value={budgetLabel} />
+        <Field label="Ne Arıyor" value={customer.propertyInterest} />
+        <Field label="Bölge Tercihi" value={customer.preferredDistricts && customer.preferredDistricts.join(', ')} />
+        <Field label="Zaman Çizelgesi" value={customer.purchaseTimeline ? timelineLabels[customer.purchaseTimeline] : null} />
         <Field label="Aradığı Özellikler" value={customer.requirements} />
         <Field label="Notlar" value={customer.notes} />
       </View>
@@ -157,6 +200,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.paperLine,
   },
+  completionBox: {
+    backgroundColor: '#fbf7ec',
+    borderWidth: 1,
+    borderColor: colors.brassLight,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
+  },
+  completionRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  completionLabel: { fontSize: 12, fontWeight: '700', color: colors.inkNavy },
+  completionTrack: { height: 6, backgroundColor: colors.paperLine, borderRadius: 3, overflow: 'hidden' },
+  completionFill: { height: 6, backgroundColor: colors.brass },
+  completionMissingWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  completionChip: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.paperLine,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  completionChipText: { fontSize: 11, color: colors.inkNavy },
   field: { marginBottom: 12 },
   fieldLabel: { fontSize: 11, textTransform: 'uppercase', color: colors.muted, marginBottom: 2 },
   fieldValue: { fontSize: 15, color: colors.slate },
