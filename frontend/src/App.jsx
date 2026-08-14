@@ -27,7 +27,6 @@ const NAV_ITEMS = [
   { to: '/', label: 'Müşteriler', icon: '👥', role: 'both' },
   { to: '/portfoyler', label: 'Portföyler', icon: '🏠', role: 'both' },
   { to: '/talepler', label: 'Talepler', icon: '📋', role: 'both' },
-  { to: '/eslesmeler', label: 'Eşleşmeler', icon: '🔗', role: 'both', disabled: true },
   { to: '/islemler', label: 'İşlemler', icon: '🔄', role: 'both' },
   { to: '/komisyonlar', label: 'Komisyonlar', icon: '💰', role: 'both' },
   { to: '/takvim', label: 'Takvim', icon: '📅', role: 'agent' },
@@ -99,7 +98,28 @@ function Sidebar({ open, onClose }) {
   );
 }
 
+function QuickAddMenu() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="quickadd-menu">
+      <button type="button" className="quickadd-menu__button" onClick={() => setOpen((v) => !v)}>
+        + Hızlı Ekle <span style={{ fontSize: 10 }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div className="quickadd-menu__backdrop" onClick={() => setOpen(false)} />
+          <div className="quickadd-menu__panel">
+            <Link to="/" className="quickadd-menu__item" onClick={() => setOpen(false)}>👤 Yeni Müşteri</Link>
+            <Link to="/portfoyler" className="quickadd-menu__item" onClick={() => setOpen(false)}>🏠 Yeni Portföy</Link>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function TopBar({ onToggleSidebar }) {
+  const { user, isBroker } = useAuth();
   return (
     <header className="app-topbar">
       <button
@@ -112,8 +132,22 @@ function TopBar({ onToggleSidebar }) {
         <span></span>
         <span></span>
       </button>
+      <div className="app-topbar__search">
+        <span className="app-topbar__search-icon">🔍</span>
+        <input
+          type="text"
+          placeholder="İlan, danışman, müşteri ara…"
+          disabled
+          title="Genel arama yakında aktif olacak"
+        />
+      </div>
       <div className="app-topbar__spacer" />
+      <QuickAddMenu />
       <NotificationBell />
+      <Link to="/sifre-degistir" className="app-topbar__profile">
+        <span className="app-topbar__profile-name">{user?.name}</span>
+        <span className="app-topbar__profile-role">{isBroker ? 'Broker' : 'Danışman'}</span>
+      </Link>
     </header>
   );
 }

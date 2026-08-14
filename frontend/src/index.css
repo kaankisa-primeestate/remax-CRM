@@ -1237,3 +1237,108 @@ button {
   padding: 2px 6px;
   margin-left: 6px;
 }
+
+/* --- Üst Bar: Arama, Hızlı Ekle, Profil --- */
+.app-topbar__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  padding: 7px 12px;
+  max-width: 360px;
+  width: 100%;
+  margin-left: 12px;
+}
+.app-topbar__search-icon {
+  font-size: 13px;
+  opacity: 0.6;
+}
+.app-topbar__search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  width: 100%;
+  color: var(--slate);
+}
+.app-topbar__search input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+@media (max-width: 900px) {
+  .app-topbar__search { display: none; }
+}
+
+.quickadd-menu {
+  position: relative;
+  margin-right: 8px;
+}
+.quickadd-menu__button {
+  background: var(--ink-navy);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.quickadd-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+.quickadd-menu__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  min-width: 170px;
+  z-index: 61;
+  overflow: hidden;
+}
+.quickadd-menu__item {
+  display: block;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--slate);
+  text-decoration: none;
+}
+.quickadd-menu__item:hover {
+  background: var(--paper);
+}
+
+.app-topbar__profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-decoration: none;
+  padding-left: 12px;
+  border-left: 1px solid var(--paper-line);
+  margin-left: 4px;
+}
+.app-topbar__profile-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-navy);
+}
+.app-topbar__profile-role {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+@media (max-width: 480px) {
+  .app-topbar__profile-name { display: none; }
+}
