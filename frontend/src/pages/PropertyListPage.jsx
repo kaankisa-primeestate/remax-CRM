@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -45,6 +45,15 @@ export default function PropertyListPage() {
   const [search, setSearch] = useState('');
   const [activeType, setActiveType] = useState('all');
   const [showForm, setShowForm] = useState(false);
+  const location = useLocation();
+
+  // "+ Hizli Ekle" (ust bar) uzerinden "Yeni Portfoy" secildiginde,
+  // bu sayfaya gelir gelmez wizard'i otomatik acar -- ekstra tiklama gerekmez.
+  useEffect(() => {
+    if (location.state?.openPropertyWizard) {
+      setShowForm(true);
+    }
+  }, [location.state]);
   const [showFilters, setShowFilters] = useState(false);
   const [agents, setAgents] = useState([]);
 
@@ -183,9 +192,6 @@ export default function PropertyListPage() {
           <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)}>
             Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? '▲' : '▼'}
           </button>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Yeni Portföy
-          </button>
         </div>
 
         {showFilters && (
@@ -288,7 +294,7 @@ export default function PropertyListPage() {
           <div className="empty-state">Yükleniyor…</div>
         ) : properties.length === 0 ? (
           <div className="empty-state">
-            Kayıt bulunamadı. "Yeni Portföy" ile ilk kaydı oluşturun.
+            Kayıt bulunamadı. Üst menüdeki "+ Hızlı Ekle" ile ilk kaydı oluşturun.
           </div>
         ) : (
           <div>

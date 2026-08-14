@@ -125,8 +125,8 @@ function QuickAddMenu() {
         <>
           <div className="quickadd-menu__backdrop" onClick={() => setOpen(false)} />
           <div className="quickadd-menu__panel">
-            <Link to="/" className="quickadd-menu__item" onClick={() => setOpen(false)}>👤 Yeni Müşteri</Link>
-            <Link to="/portfoyler" className="quickadd-menu__item" onClick={() => setOpen(false)}>🏠 Yeni Portföy</Link>
+            <Link to="/" state={{ openQuickAdd: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}>👤 Yeni Müşteri</Link>
+            <Link to="/portfoyler" state={{ openPropertyWizard: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}>🏠 Yeni Portföy</Link>
           </div>
         </>
       )}

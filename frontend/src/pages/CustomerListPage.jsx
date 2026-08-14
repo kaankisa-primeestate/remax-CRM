@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -45,6 +45,15 @@ export default function CustomerListPage() {
   const [activeType, setActiveType] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const location = useLocation();
+
+  // "+ Hizli Ekle" (ust bar) uzerinden "Yeni Musteri" secildiginde,
+  // bu sayfaya gelir gelmez formu otomatik acar -- ekstra tiklama gerekmez.
+  useEffect(() => {
+    if (location.state?.openQuickAdd) {
+      setShowQuickAdd(true);
+    }
+  }, [location.state]);
   const [showFilters, setShowFilters] = useState(false);
   const [agents, setAgents] = useState([]);
 
@@ -135,9 +144,6 @@ export default function CustomerListPage() {
           <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)}>
             Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? '▲' : '▼'}
           </button>
-          <button className="btn btn-primary" onClick={() => setShowQuickAdd(true)}>
-            ⚡ Yeni Müşteri
-          </button>
         </div>
 
         {showFilters && (
@@ -191,7 +197,7 @@ export default function CustomerListPage() {
           <div className="empty-state">Yükleniyor…</div>
         ) : customers.length === 0 ? (
           <div className="empty-state">
-            Kayıt bulunamadı. "Yeni Müşteri" ile ilk kaydı oluşturun.
+            Kayıt bulunamadı. Üst menüdeki "+ Hızlı Ekle" ile ilk kaydı oluşturun.
           </div>
         ) : (
           <div>
