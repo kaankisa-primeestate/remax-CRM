@@ -1072,3 +1072,168 @@ button {
     display: flex;
   }
 }
+
+/* ================================================================
+   Dashboard (Broker & Danışman): metrik kartları, panel ızgarası, kanban
+   ================================================================ */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) {
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.metric-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.metric-card__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.metric-card__value {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink-navy);
+  line-height: 1.1;
+}
+.metric-card__delta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.metric-card__delta.is-up { color: var(--success); }
+.metric-card__delta.is-muted { color: var(--muted); }
+
+.panel-grid-2 {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .panel-grid-2 { grid-template-columns: 1fr; }
+}
+.panel {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+  padding: 18px;
+}
+.panel__title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-navy);
+  margin: 0 0 14px;
+}
+.panel__empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+/* --- Onay / Aksiyon merkezi öğeleri --- */
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--paper-line);
+}
+.action-item:last-child { border-bottom: none; }
+.action-item__dot { font-size: 12px; margin-top: 3px; }
+.action-item__body { flex: 1; min-width: 0; }
+.action-item__title { font-size: 13px; font-weight: 600; color: var(--slate); }
+.action-item__meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.action-item__buttons { display: flex; gap: 6px; margin-top: 8px; }
+.action-item__buttons .btn { padding: 4px 10px; font-size: 12px; }
+
+/* --- Eşleştirme kartı --- */
+.match-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--paper-line);
+}
+.match-card:last-child { border-bottom: none; }
+.match-card__pct {
+  background: #eef4ea;
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+.match-card__body { flex: 1; min-width: 0; font-size: 13px; }
+.match-card__title { font-weight: 600; color: var(--slate); }
+.match-card__meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* --- Kanban panosu --- */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+}
+.kanban-column {
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 100px;
+}
+.kanban-column__title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.kanban-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.kanban-empty {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* --- "Yakında" placeholder rozeti --- */
+.soon-badge {
+  display: inline-block;
+  background: var(--paper-line);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-left: 6px;
+}

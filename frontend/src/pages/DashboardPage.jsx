@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { dashboardApi } from '../api/dashboard';
+import { propertiesApi } from '../api/properties';
 
 function toISO(date) {
   const yyyy = date.getFullYear();
@@ -46,18 +47,36 @@ const money = (n) =>
 const dateTime = (d) =>
   new Date(d).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
+// Bu bolumlerin gercek verisi henuz backend'de yok (ornegin ilan onay
+// akisi, sozlesme bitis takibi). "Yakinda" placeholder ile gosterilir --
+// bkz. gelistirme notebook'u.
+const PLACEHOLDER_ACTIONS = [
+  { dot: '🔴', title: 'Yeni İlan Onayı', meta: 'Onay akışı eklendiğinde burada görünecek' },
+  { dot: '🟡', title: 'Sözleşme / Vekaletname Uyarısı', meta: 'Sözleşme takibi eklendiğinde burada görünecek' },
+];
+
 export default function DashboardPage() {
-  const [period, setPeriod] = useState('week');
-  const [customFrom, setCustomFrom] = useState(rangeForPeriod('week').from);
-  const [customTo, setCustomTo] = useState(rangeForPeriod('week').to);
+  const [period, setPeriod] = useState('month');
+  const [customFrom, setCustomFrom] = useState(rangeForPeriod('month').from);
+  const [customTo, setCustomTo] = useState(rangeForPeriod('month').to);
   const [data, setData] = useState(null);
+  const [propertyStats, setPropertyStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { from, to } = period === 'custom' ? { from: customFrom, to: customTo } : rangeForPeriod(period);
-    const result = await dashboardApi.summary({ from, to });
-    setData(result);
+    const [summary, properties] = await Promise.all([
+      dashboardApi.summary({ from, to }),
+      propertiesApi.list({}),
+    ]);
+    setData(summary);
+    const active = properties.filter((p) => p.status === 'active');
+    setPropertyStats({
+      total: properties.length,
+      activeSale: active.filter((p) => p.listingType === 'sale').length,
+      activeRent: active.filter((p) => p.listingType === 'rent').length,
+    });
     setLoading(false);
   }, [period, customFrom, customTo]);
 
@@ -65,11 +84,15 @@ export default function DashboardPage() {
     load();
   }, [load]);
 
+  const periodLabel = PERIOD_OPTIONS.find((p) => p.value === period)?.label || '';
+  const totalRevenue = data ? data.leaderboard.reduce((sum, r) => sum + r.salesValue, 0) : 0;
+  const topAgent = data?.leaderboard?.[0];
+
   return (
     <div>
-      <div className="folder-panel" style={{ marginBottom: 24 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Broker Dashboard</h2>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: customFrom ? 12 : 0 }}>
+      <div className="folder-panel" style={{ marginBottom: 20 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Genel Bakış</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: period === 'custom' ? 12 : 0 }}>
           {PERIOD_OPTIONS.map((opt) => (
             <button key={opt.value} className={period === opt.value ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setPeriod(opt.value)} style={{ fontSize: 13, padding: '6px 14px' }}>
               {opt.label}
@@ -90,13 +113,61 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {loading || !data ? (
+      {loading || !data || !propertyStats ? (
         <div className="empty-state">Yükleniyor…</div>
       ) : (
         <>
+          {/* --- Metrik Kartları --- */}
+          <div className="metric-grid">
+            <div className="metric-card">
+              <div className="metric-card__label">Toplam Portföy</div>
+              <div className="metric-card__value">{propertyStats.total} İlan</div>
+              <div className="metric-card__delta is-muted">Tüm zamanlar</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Toplam Ciro ({periodLabel})</div>
+              <div className="metric-card__value">{money(totalRevenue)}</div>
+              <div className="metric-card__delta is-muted">{data.leaderboard.length} danışman katkısı</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Aktif Satış / Kira</div>
+              <div className="metric-card__value">{propertyStats.activeSale + propertyStats.activeRent} İşlem</div>
+              <div className="metric-card__delta is-muted">{propertyStats.activeSale} Satılık / {propertyStats.activeRent} Kiralık</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Danışman Performansı</div>
+              <div className="metric-card__value" style={{ fontSize: 16 }}>{topAgent ? topAgent.agentName : '—'}</div>
+              <div className="metric-card__delta is-up">{topAgent ? `Lider · ${money(topAgent.salesValue)}` : 'Veri yok'}</div>
+            </div>
+          </div>
+
+          {/* --- Ciro Grafiği + Akıllı Aksiyon Merkezi --- */}
+          <div className="panel-grid-2">
+            <div className="panel">
+              <h3 className="panel__title">Ofis Ciro ve Hedef Grafiği</h3>
+              <div className="panel__empty">
+                Aylık ciro trend grafiği, geçmiş dönem verisi biriktikçe burada görünecek.
+                <span className="soon-badge">Yakında</span>
+              </div>
+            </div>
+            <div className="panel">
+              <h3 className="panel__title">Akıllı Aksiyon & Onay Merkezi</h3>
+              {PLACEHOLDER_ACTIONS.map((a, i) => (
+                <div className="action-item" key={i}>
+                  <span className="action-item__dot">{a.dot}</span>
+                  <div className="action-item__body">
+                    <div className="action-item__title">{a.title}</div>
+                    <div className="action-item__meta">{a.meta}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* --- Rozetler (gercek veri) --- */}
           {data.badges.length > 0 && (
-            <div className="folder-panel" style={{ marginBottom: 24 }}>
-              <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Rozetler</h2>
+            <div className="folder-panel" style={{ marginBottom: 20 }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Rozetler</h2>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {data.badges.map((b, i) => (
                   <div key={i} style={{ background: 'var(--paper-raised)', border: '1px solid var(--paper-line)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -111,10 +182,11 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="folder-panel" style={{ marginBottom: 24 }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Sıralama</h2>
+          {/* --- Danışman Liderlik Tablosu (gercek veri) --- */}
+          <div className="panel" style={{ marginBottom: 20 }}>
+            <h3 className="panel__title">Danışman Liderlik Tablosu</h3>
             {data.leaderboard.length === 0 ? (
-              <div className="empty-state">Bu aralıkta veri yok.</div>
+              <div className="panel__empty">Bu aralıkta veri yok.</div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
@@ -145,10 +217,11 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="folder-panel">
-            <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Canlı Aktivite</h2>
+          {/* --- Canlı Aktivite (gercek veri) --- */}
+          <div className="panel">
+            <h3 className="panel__title">Canlı Aktivite</h3>
             {data.activity.length === 0 ? (
-              <div className="empty-state">Bu aralıkta aktivite yok.</div>
+              <div className="panel__empty">Bu aralıkta aktivite yok.</div>
             ) : (
               data.activity.map((item, i) => (
                 <div className="record-row" key={i}>
