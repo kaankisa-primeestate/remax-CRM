@@ -15,6 +15,7 @@ export enum CustomerType {
   SELLER = 'seller', // satıcı
   TENANT = 'tenant', // kiracı
   LANDLORD = 'landlord', // ev sahibi
+  INVESTOR = 'investor', // yatırımcı
 }
 
 @Entity('customers')
@@ -69,6 +70,19 @@ export class Customer {
 
   @Column({ type: 'boolean', nullable: true })
   wantsNearMetro: boolean | null;
+
+  // --- Hızlı Kayıt akışı için yapılandırılmış alanlar ---
+  // "Ne arıyor?" -- Daire / Villa / Arsa / İş Yeri / Diğer
+  @Column({ type: 'varchar', nullable: true })
+  propertyInterest: string | null;
+
+  // "Nerede?" -- birden fazla bölge secilebilir (chip'ler)
+  @Column({ type: 'simple-array', nullable: true })
+  preferredDistricts: string[] | null;
+
+  // "Ne zaman alacak?" -- immediate | 1_3_months | 3_6_months | later
+  @Column({ type: 'varchar', nullable: true })
+  purchaseTimeline: string | null;
 
   // Mahremiyet Duvarı (brief 1.1): bu müşteri hangi danışmana ait.
   // null ise "atanmamış" demektir (bkz. customers.service.ts).

@@ -8,6 +8,13 @@ import InteractionTimeline from '../components/InteractionTimeline.jsx';
 import AddInteractionForm from '../components/AddInteractionForm.jsx';
 import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact.js';
 
+const TIMELINE_LABELS = {
+  immediate: 'Hemen',
+  '1_3_months': '1–3 ay içinde',
+  '3_6_months': '3–6 ay içinde',
+  later: 'Daha sonra',
+};
+
 export default function CustomerDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -57,6 +64,21 @@ export default function CustomerDetailPage() {
         }).format(customer.budget)
       : '—';
 
+  // "Talep tamamlanma orani" -- Hizli Kayit'tan gelen musterilerde eksik
+  // kalabilecek alanlari danismana hatirlatir, ama zorunlu kilmaz.
+  const COMPLETION_CHECKLIST = [
+    { label: 'Bütçe', filled: !!customer.budget },
+    { label: 'Ne aradığı', filled: !!customer.propertyInterest },
+    { label: 'Bölge tercihi', filled: !!(customer.preferredDistricts && customer.preferredDistricts.length) },
+    { label: 'Zaman çizelgesi', filled: !!customer.purchaseTimeline },
+    { label: 'E-posta', filled: !!customer.email },
+    { label: 'Adres', filled: !!customer.address },
+    { label: 'Detaylı aradığı özellikler', filled: !!customer.requirements },
+  ];
+  const filledCount = COMPLETION_CHECKLIST.filter((c) => c.filled).length;
+  const completionPct = Math.round((filledCount / COMPLETION_CHECKLIST.length) * 100);
+  const missingFields = COMPLETION_CHECKLIST.filter((c) => !c.filled);
+
   return (
     <div>
       <Link to="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
@@ -89,6 +111,25 @@ export default function CustomerDetailPage() {
           </div>
         </div>
 
+        {completionPct < 100 && (
+          <div className="completion-box">
+            <div className="completion-box__row">
+              <span className="completion-box__label">Talep %{completionPct} tamamlandı</span>
+              <div className="completion-box__track">
+                <div className="completion-box__fill" style={{ width: `${completionPct}%` }} />
+              </div>
+            </div>
+            <div className="completion-box__missing">
+              Eksik bilgiler:{' '}
+              {missingFields.map((f) => (
+                <button key={f.label} type="button" className="completion-box__chip" onClick={() => setShowEdit(true)}>
+                  + {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="dossier__field-grid">
           <div className="dossier__field">
             <label>Telefon</label>
@@ -106,6 +147,24 @@ export default function CustomerDetailPage() {
             <label>Bütçe</label>
             <div style={{ fontFamily: 'var(--font-mono)' }}>{budgetLabel}</div>
           </div>
+          {customer.propertyInterest && (
+            <div className="dossier__field">
+              <label>Ne Arıyor</label>
+              <div>{customer.propertyInterest}</div>
+            </div>
+          )}
+          {customer.preferredDistricts && customer.preferredDistricts.length > 0 && (
+            <div className="dossier__field">
+              <label>Bölge Tercihi</label>
+              <div>{customer.preferredDistricts.join(', ')}</div>
+            </div>
+          )}
+          {customer.purchaseTimeline && (
+            <div className="dossier__field">
+              <label>Zaman Çizelgesi</label>
+              <div>{TIMELINE_LABELS[customer.purchaseTimeline] || customer.purchaseTimeline}</div>
+            </div>
+          )}
           <div className="dossier__field" style={{ gridColumn: '1 / -1' }}>
             <label>Aradığı Özellikler</label>
             <div>{customer.requirements || '—'}</div>

@@ -3,7 +3,8 @@ export declare enum CustomerType {
     BUYER = "buyer",
     SELLER = "seller",
     TENANT = "tenant",
-    LANDLORD = "landlord"
+    LANDLORD = "landlord",
+    INVESTOR = "investor"
 }
 export declare class Customer {
     id: string;
@@ -21,6 +22,9 @@ export declare class Customer {
     preferredRooms: string[] | null;
     wantsSeaView: boolean | null;
     wantsNearMetro: boolean | null;
+    propertyInterest: string | null;
+    preferredDistricts: string[] | null;
+    purchaseTimeline: string | null;
     agentId: string | null;
     interactions: Interaction[];
     createdAt: Date;

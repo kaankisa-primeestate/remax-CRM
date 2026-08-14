@@ -15,4 +15,7 @@ export declare class CreateCustomerDto {
     preferredRooms?: string[];
     wantsSeaView?: boolean;
     wantsNearMetro?: boolean;
+    propertyInterest?: string;
+    preferredDistricts?: string[];
+    purchaseTimeline?: string;
 }

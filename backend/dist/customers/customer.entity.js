@@ -18,6 +18,7 @@ var CustomerType;
     CustomerType["SELLER"] = "seller";
     CustomerType["TENANT"] = "tenant";
     CustomerType["LANDLORD"] = "landlord";
+    CustomerType["INVESTOR"] = "investor";
 })(CustomerType || (exports.CustomerType = CustomerType = {}));
 let Customer = class Customer {
 };
@@ -83,6 +84,18 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
     __metadata("design:type", Object)
 ], Customer.prototype, "wantsNearMetro", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], Customer.prototype, "propertyInterest", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'simple-array', nullable: true }),
+    __metadata("design:type", Object)
+], Customer.prototype, "preferredDistricts", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], Customer.prototype, "purchaseTimeline", void 0);
 __decorate([
     (0, typeorm_1.Index)(),
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),

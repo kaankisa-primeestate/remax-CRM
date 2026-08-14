@@ -5,6 +5,7 @@ import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import CustomerFormModal from '../components/CustomerFormModal.jsx';
+import QuickAddCustomerModal from '../components/QuickAddCustomerModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 
 const filterCardStyle = {
@@ -43,6 +44,7 @@ export default function CustomerListPage() {
   const [search, setSearch] = useState('');
   const [activeType, setActiveType] = useState('all');
   const [showForm, setShowForm] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [agents, setAgents] = useState([]);
 
@@ -85,6 +87,7 @@ export default function CustomerListPage() {
   async function handleCreate(payload) {
     await customersApi.create(payload);
     setShowForm(false);
+    setShowQuickAdd(false);
     load();
   }
 
@@ -132,8 +135,8 @@ export default function CustomerListPage() {
           <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)}>
             Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? '▲' : '▼'}
           </button>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Yeni Müşteri
+          <button className="btn btn-primary" onClick={() => setShowQuickAdd(true)}>
+            ⚡ Yeni Müşteri
           </button>
         </div>
 
@@ -205,6 +208,13 @@ export default function CustomerListPage() {
           </div>
         )}
       </div>
+      {showQuickAdd && (
+        <QuickAddCustomerModal
+          onSubmit={handleCreate}
+          onClose={() => setShowQuickAdd(false)}
+          onSwitchToDetailed={() => { setShowQuickAdd(false); setShowForm(true); }}
+        />
+      )}
       {showForm && (
         <CustomerFormModal onSubmit={handleCreate} onClose={() => setShowForm(false)} />
       )}

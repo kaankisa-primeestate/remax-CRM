@@ -68,4 +68,14 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsBoolean()
   wantsNearMetro?: boolean;
+  @IsOptional()
+  @IsString()
+  propertyInterest?: string;
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredDistricts?: string[];
+  @IsOptional()
+  @IsString()
+  purchaseTimeline?: string;
 }

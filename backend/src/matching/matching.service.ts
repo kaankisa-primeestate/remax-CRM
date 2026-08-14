@@ -115,10 +115,11 @@ export class MatchingService {
   async findMatchingPropertiesForCustomer(customerId: string, currentUser: CurrentUserPayload) {
     const customer = await this.customersService.findOne(customerId, currentUser);
 
-    if (customer.type !== CustomerType.BUYER && customer.type !== CustomerType.TENANT) {
+    const isBuyerSide = customer.type === CustomerType.BUYER || customer.type === CustomerType.INVESTOR;
+    if (!isBuyerSide && customer.type !== CustomerType.TENANT) {
       return [];
     }
-    const listingType = customer.type === CustomerType.BUYER ? ListingType.SALE : ListingType.RENT;
+    const listingType = isBuyerSide ? ListingType.SALE : ListingType.RENT;
 
     const qb = this.propertyRepo
       .createQueryBuilder('property')
@@ -146,12 +147,14 @@ export class MatchingService {
   async findMatchingCustomersForProperty(propertyId: string, currentUser: CurrentUserPayload) {
     const property = await this.portfoliosService.findOne(propertyId, currentUser);
 
-    const wantedType =
-      property.listingType === ListingType.SALE ? CustomerType.BUYER : CustomerType.TENANT;
+    const wantedTypes =
+      property.listingType === ListingType.SALE
+        ? [CustomerType.BUYER, CustomerType.INVESTOR]
+        : [CustomerType.TENANT];
 
     const qb = this.customerRepo
       .createQueryBuilder('customer')
-      .where('customer.type = :type', { type: wantedType });
+      .where('customer.type IN (:...wantedTypes)', { wantedTypes });
     if (currentUser.role === 'agent') {
       qb.andWhere('customer.agentId = :agentId', { agentId: currentUser.userId });
     }

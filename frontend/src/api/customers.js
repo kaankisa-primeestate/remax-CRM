@@ -26,6 +26,7 @@ export const CUSTOMER_TYPES = [
   { value: 'seller', label: 'Satıcı' },
   { value: 'tenant', label: 'Kiracı' },
   { value: 'landlord', label: 'Ev Sahibi' },
+  { value: 'investor', label: 'Yatırımcı' },
 ];
 
 // interaction.entity.ts ile birebir eşleşir
