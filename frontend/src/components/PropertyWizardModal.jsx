@@ -5,14 +5,30 @@ import MoneyInput from './MoneyInput.jsx';
 
 const CATEGORIES = [
   { value: 'apartment', label: 'Konut', icon: '🏠' },
+  { value: 'villa', label: 'Villa', icon: '🏡' },
   { value: 'land', label: 'Arsa', icon: '🌳' },
   { value: 'field', label: 'Tarla', icon: '🌾' },
   { value: 'commercial', label: 'İşyeri', icon: '🏢' },
+  { value: 'office', label: 'Plaza / Ofis', icon: '🏨' },
+  { value: 'building', label: 'Komple Bina', icon: '🏙️' },
+  { value: 'project', label: 'Yeni Konut Projesi', icon: '🏗️' },
   { value: 'timeshare', label: 'Devre Mülk', icon: '🔑' },
+  { value: 'hotel', label: 'Otel / Turizm Tesisi', icon: '🏝️' },
 ];
 
 const LISTING_LABELS = { sale: 'Satılık', rent: 'Kiralık' };
-const CATEGORY_LABELS = { apartment: 'Konut', land: 'Arsa', field: 'Tarla', commercial: 'İşyeri', timeshare: 'Devre Mülk' };
+const CATEGORY_LABELS = {
+  apartment: 'Konut',
+  land: 'Arsa',
+  field: 'Tarla',
+  commercial: 'İşyeri',
+  timeshare: 'Devre Mülk',
+  villa: 'Villa',
+  office: 'Plaza / Ofis',
+  building: 'Komple Bina',
+  project: 'Yeni Konut Projesi',
+  hotel: 'Otel / Turizm Tesisi',
+};
 const DEED_STATUS_OPTIONS = ['Kat Mülkiyeti', 'Kat İrtifakı', 'Hisseli Tapu', 'Müstakil Tapu', 'Arsa Tapusu'];
 
 const emptyDraft = {
@@ -158,7 +174,7 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
         {step === 1 && (
           <div>
             <h2>Ne satıyor/kiralıyorsunuz?</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 20 }}>
               {CATEGORIES.map((cat) => (
                 <button key={cat.value} type="button" className="btn btn-secondary" style={{ padding: '24px 0', fontSize: 16 }} onClick={() => { update({ propertyType: cat.value }); setStep(2); }}>
                   <div style={{ fontSize: 28, marginBottom: 6 }}>{cat.icon}</div>

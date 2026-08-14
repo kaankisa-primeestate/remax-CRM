@@ -12,6 +12,11 @@ const PROPERTY_TYPE_LABELS = {
   field: 'Tarla',
   commercial: 'İşyeri',
   timeshare: 'Devre Mülk',
+  villa: 'Villa',
+  office: 'Plaza / Ofis',
+  building: 'Komple Bina',
+  project: 'Yeni Konut Projesi',
+  hotel: 'Otel / Turizm Tesisi',
 };
 
 export default function PublicPropertyPage() {

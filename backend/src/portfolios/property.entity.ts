@@ -15,6 +15,11 @@ export enum PropertyType {
   FIELD = 'field', // Tarla
   COMMERCIAL = 'commercial', // İşyeri
   TIMESHARE = 'timeshare', // Devre Mülk
+  VILLA = 'villa', // Villa
+  OFFICE = 'office', // Plaza / Ofis
+  BUILDING = 'building', // Komple Bina / Apartman
+  PROJECT = 'project', // Yeni Konut Projesi
+  HOTEL = 'hotel', // Otel / Turizm Tesisi
 }
 
 export enum ListingType {

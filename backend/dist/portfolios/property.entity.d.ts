@@ -3,7 +3,12 @@ export declare enum PropertyType {
     LAND = "land",
     FIELD = "field",
     COMMERCIAL = "commercial",
-    TIMESHARE = "timeshare"
+    TIMESHARE = "timeshare",
+    VILLA = "villa",
+    OFFICE = "office",
+    BUILDING = "building",
+    PROJECT = "project",
+    HOTEL = "hotel"
 }
 export declare enum ListingType {
     SALE = "sale",

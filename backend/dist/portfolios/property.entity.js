@@ -18,6 +18,11 @@ var PropertyType;
     PropertyType["FIELD"] = "field";
     PropertyType["COMMERCIAL"] = "commercial";
     PropertyType["TIMESHARE"] = "timeshare";
+    PropertyType["VILLA"] = "villa";
+    PropertyType["OFFICE"] = "office";
+    PropertyType["BUILDING"] = "building";
+    PropertyType["PROJECT"] = "project";
+    PropertyType["HOTEL"] = "hotel";
 })(PropertyType || (exports.PropertyType = PropertyType = {}));
 var ListingType;
 (function (ListingType) {

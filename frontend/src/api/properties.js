@@ -18,6 +18,11 @@ export const PROPERTY_TYPES = [
   { value: 'field', label: 'Tarla' },
   { value: 'commercial', label: 'İşyeri' },
   { value: 'timeshare', label: 'Devre Mülk' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'office', label: 'Plaza / Ofis' },
+  { value: 'building', label: 'Komple Bina' },
+  { value: 'project', label: 'Yeni Konut Projesi' },
+  { value: 'hotel', label: 'Otel / Turizm Tesisi' },
 ];
 
 export const LISTING_TYPES = [
