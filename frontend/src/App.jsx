@@ -12,6 +12,13 @@ import CommissionsPage from './pages/CommissionsPage.jsx';
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx';
 import PublicPropertyPage from './pages/PublicPropertyPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import AgentDashboardPage from './pages/AgentDashboardPage.jsx';
+import RequestsPage from './pages/RequestsPage.jsx';
+import TransactionsPage from './pages/TransactionsPage.jsx';
+import FinancePage from './pages/FinancePage.jsx';
+import ReportsPage from './pages/ReportsPage.jsx';
+import CalendarPage from './pages/CalendarPage.jsx';
+import TasksPage from './pages/TasksPage.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
 
 const navLinkStyle = {
@@ -58,6 +65,13 @@ function Header() {
             <Link to="/" style={navLinkStyle} onClick={closeMenu}>Müşteriler</Link>
             <Link to="/portfoyler" style={navLinkStyle} onClick={closeMenu}>Portföyler</Link>
             <Link to="/komisyonlar" style={navLinkStyle} onClick={closeMenu}>Komisyonlar</Link>
+            <Link to="/talepler" style={navLinkStyle} onClick={closeMenu}>Talepler</Link>
+            <Link to="/islemler" style={navLinkStyle} onClick={closeMenu}>İşlemler</Link>
+            {!isBroker && <Link to="/takvim" style={navLinkStyle} onClick={closeMenu}>Takvim</Link>}
+            {!isBroker && <Link to="/gorevler" style={navLinkStyle} onClick={closeMenu}>Görevler</Link>}
+            {!isBroker && <Link to="/panelim" style={navLinkStyle} onClick={closeMenu}>Panelim</Link>}
+            {isBroker && <Link to="/finans" style={navLinkStyle} onClick={closeMenu}>Finans</Link>}
+            {isBroker && <Link to="/raporlar" style={navLinkStyle} onClick={closeMenu}>Raporlar</Link>}
             {isBroker && <Link to="/dashboard" style={navLinkStyle} onClick={closeMenu}>Dashboard</Link>}
             {isBroker && <Link to="/danismanlar" style={navLinkStyle} onClick={closeMenu}>Danışmanlar</Link>}
           </div>
@@ -138,6 +152,62 @@ export default function App() {
             element={
               <ProtectedRoute brokerOnly>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/panelim"
+            element={
+              <ProtectedRoute>
+                <AgentDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/talepler"
+            element={
+              <ProtectedRoute>
+                <RequestsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/islemler"
+            element={
+              <ProtectedRoute>
+                <TransactionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/finans"
+            element={
+              <ProtectedRoute brokerOnly>
+                <FinancePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/raporlar"
+            element={
+              <ProtectedRoute brokerOnly>
+                <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/takvim"
+            element={
+              <ProtectedRoute>
+                <CalendarPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gorevler"
+            element={
+              <ProtectedRoute>
+                <TasksPage />
               </ProtectedRoute>
             }
           />
