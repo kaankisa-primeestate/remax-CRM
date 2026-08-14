@@ -17,6 +17,7 @@ const emptyForm = {
   priceCurrency: 'TRY',
   deedStatus: '',
   mortgageEligible: false,
+  contractEndDate: '',
   rooms: '',
   bathrooms: '',
   floor: '',
@@ -132,6 +133,7 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
         rooms: form.rooms || undefined,
         floor: form.floor || undefined,
         heatingType: form.heatingType || undefined,
+        contractEndDate: form.contractEndDate || undefined,
         view: form.view || undefined,
         facade: form.facade || undefined,
         notes: form.notes || undefined,
@@ -235,6 +237,12 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
                 Krediye uygun
               </label>
             </div>
+            {form.listingType === 'rent' && (
+              <div className="form-field">
+                <label>Sözleşme Bitiş Tarihi</label>
+                <input type="date" name="contractEndDate" value={form.contractEndDate || ''} onChange={handleChange} />
+              </div>
+            )}
 
             {isResidential && (
               <>

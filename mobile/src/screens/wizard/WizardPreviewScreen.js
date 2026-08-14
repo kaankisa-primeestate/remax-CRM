@@ -46,6 +46,7 @@ export default function WizardPreviewScreen({ navigation }) {
         priceCurrency: draft.priceCurrency,
         deedStatus: draft.deedStatus,
         mortgageEligible: draft.mortgageEligible,
+        contractEndDate: draft.contractEndDate || undefined,
         rooms: draft.rooms || undefined,
         bathrooms: draft.bathrooms ? Number(draft.bathrooms) : undefined,
         floor: draft.floor || undefined,

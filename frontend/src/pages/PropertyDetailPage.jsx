@@ -115,6 +115,12 @@ export default function PropertyDetailPage() {
             <label>Krediye Uygunluk</label>
             <div>{property.mortgageEligible ? 'Uygun' : 'Uygun Değil'}</div>
           </div>
+          {property.contractEndDate && (
+            <div className="dossier__field">
+              <label>Sözleşme Bitiş Tarihi</label>
+              <div>{new Date(property.contractEndDate).toLocaleDateString('tr-TR')}</div>
+            </div>
+          )}
 
           {detailFields.map((field) => {
             const v = fieldRawValue(field);

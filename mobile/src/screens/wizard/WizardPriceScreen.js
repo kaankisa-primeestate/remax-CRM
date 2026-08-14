@@ -10,9 +10,10 @@ export default function WizardPriceScreen({ navigation }) {
   const [deedStatus, setDeedStatus] = useState(draft.deedStatus);
   const [mortgageEligible, setMortgageEligible] = useState(draft.mortgageEligible);
   const [dues, setDues] = useState(draft.dues);
+  const [contractEndDate, setContractEndDate] = useState(draft.contractEndDate || '');
 
   function handleNext() {
-    updateDraft({ price, deedStatus, mortgageEligible, dues });
+    updateDraft({ price, deedStatus, mortgageEligible, dues, contractEndDate });
     navigation.navigate('WizardPhotos');
   }
 
@@ -29,6 +30,19 @@ export default function WizardPriceScreen({ navigation }) {
 
         <Text style={styles.label}>Aidat (₺)</Text>
         <MoneyInput style={styles.input} value={dues} onChangeText={setDues} />
+
+        {draft.listingType === 'rent' && (
+          <>
+            <Text style={styles.label}>Sözleşme Bitiş Tarihi</Text>
+            <TextInput
+              style={styles.input}
+              value={contractEndDate}
+              onChangeText={setContractEndDate}
+              placeholder="YYYY-AA-GG (örn: 2026-12-31)"
+              keyboardType="numbers-and-punctuation"
+            />
+          </>
+        )}
 
         <View style={styles.switchField}>
           <Text style={styles.label}>Krediye Uygun</Text>

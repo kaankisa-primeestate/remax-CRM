@@ -99,6 +99,9 @@ export default function PropertyDetailScreen({ route, navigation }) {
         <Field label="Metrekare" value={`${property.areaM2} m²`} />
         <Field label="Tapu Durumu" value={property.deedStatus} />
         <Field label="Krediye Uygunluk" value={property.mortgageEligible ? 'Uygun' : 'Uygun Değil'} />
+        {property.contractEndDate && (
+          <Field label="Sözleşme Bitiş Tarihi" value={new Date(property.contractEndDate).toLocaleDateString('tr-TR')} />
+        )}
         {isResidential && (
           <>
             <Field label="Oda Sayısı" value={property.rooms} />

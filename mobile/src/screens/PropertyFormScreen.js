@@ -46,6 +46,7 @@ function toFormState(property) {
       price: '',
       deedStatus: '',
       mortgageEligible: false,
+      contractEndDate: '',
       rooms: '',
       bathrooms: '',
       floor: '',
@@ -65,6 +66,7 @@ function toFormState(property) {
     price: property.price != null ? String(property.price) : '',
     deedStatus: property.deedStatus || '',
     mortgageEligible: Boolean(property.mortgageEligible),
+    contractEndDate: property.contractEndDate || '',
     rooms: property.rooms || '',
     bathrooms: property.bathrooms != null ? String(property.bathrooms) : '',
     floor: property.floor || '',
@@ -181,6 +183,7 @@ export default function PropertyFormScreen({ navigation, route }) {
         rooms: form.rooms || undefined,
         floor: form.floor || undefined,
         heatingType: form.heatingType || undefined,
+        contractEndDate: form.contractEndDate || undefined,
         notes: form.notes || undefined,
         photoUrls,
       };
@@ -248,6 +251,19 @@ export default function PropertyFormScreen({ navigation, route }) {
           onChangeText={(v) => set('deedStatus', v)}
           placeholder="Örn: Kat Mülkiyeti"
         />
+
+        {form.listingType === 'rent' && (
+          <>
+            <Text style={styles.label}>Sözleşme Bitiş Tarihi</Text>
+            <TextInput
+              style={styles.input}
+              value={form.contractEndDate}
+              onChangeText={(v) => set('contractEndDate', v)}
+              placeholder="YYYY-AA-GG (örn: 2026-12-31)"
+              keyboardType="numbers-and-punctuation"
+            />
+          </>
+        )}
 
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Krediye Uygun</Text>

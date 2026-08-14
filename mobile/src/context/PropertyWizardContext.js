@@ -14,6 +14,7 @@ const emptyDraft = {
   priceCurrency: 'TRY',
   deedStatus: '',
   mortgageEligible: false,
+  contractEndDate: '',
   rooms: '',
   bathrooms: '',
   floor: '',
