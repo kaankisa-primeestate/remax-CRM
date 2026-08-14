@@ -11,6 +11,7 @@ export declare class CreatePropertyDto {
     priceCurrency?: string;
     deedStatus: string;
     mortgageEligible?: boolean;
+    contractEndDate?: string;
     rooms?: string;
     bathrooms?: number;
     floor?: string;

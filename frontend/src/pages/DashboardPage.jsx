@@ -47,12 +47,11 @@ const money = (n) =>
 const dateTime = (d) =>
   new Date(d).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-// Bu bolumlerin gercek verisi henuz backend'de yok (ornegin ilan onay
-// akisi, sozlesme bitis takibi). "Yakinda" placeholder ile gosterilir --
-// bkz. gelistirme notebook'u.
+// Ilan onay akisi henuz backend'de yok, placeholder olarak kalmaya devam
+// ediyor -- bkz. gelistirme notebook'u. Sozlesme bitis uyarilari ise
+// artik GERCEK veri (property.contractEndDate) ile besleniyor.
 const PLACEHOLDER_ACTIONS = [
   { dot: '🔴', title: 'Yeni İlan Onayı', meta: 'Onay akışı eklendiğinde burada görünecek' },
-  { dot: '🟡', title: 'Sözleşme / Vekaletname Uyarısı', meta: 'Sözleşme takibi eklendiğinde burada görünecek' },
 ];
 
 export default function DashboardPage() {
@@ -152,6 +151,17 @@ export default function DashboardPage() {
             </div>
             <div className="panel">
               <h3 className="panel__title">Akıllı Aksiyon & Onay Merkezi</h3>
+              {(data.expiringContracts || []).map((c) => (
+                <div className="action-item" key={c.propertyId}>
+                  <span className="action-item__dot">🟡</span>
+                  <div className="action-item__body">
+                    <div className="action-item__title">Sözleşme Bitimi: {c.title}</div>
+                    <div className="action-item__meta">
+                      {c.agentName} · {c.daysLeft <= 0 ? 'Bugün' : `${c.daysLeft} gün kaldı`} ({new Date(c.contractEndDate).toLocaleDateString('tr-TR')})
+                    </div>
+                  </div>
+                </div>
+              ))}
               {PLACEHOLDER_ACTIONS.map((a, i) => (
                 <div className="action-item" key={i}>
                   <span className="action-item__dot">{a.dot}</span>
@@ -161,6 +171,9 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+              {(data.expiringContracts || []).length === 0 && PLACEHOLDER_ACTIONS.length === 0 && (
+                <div className="panel__empty">Aksiyon bekleyen bir öğe yok.</div>
+              )}
             </div>
           </div>
 

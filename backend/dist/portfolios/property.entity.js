@@ -90,6 +90,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Property.prototype, "mortgageEligible", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], Property.prototype, "contractEndDate", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", Object)
 ], Property.prototype, "rooms", void 0);

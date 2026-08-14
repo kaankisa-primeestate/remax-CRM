@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, IsNull, Not, Repository } from 'typeorm';
 import { Property } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
@@ -127,6 +127,43 @@ export class DashboardService {
       }
     }
 
-    return { leaderboard, activity, badges };
+    return { leaderboard, activity, badges, expiringContracts: await this.getExpiringContracts() };
+  }
+
+  // Onumuzdeki 30 gun icinde sozlesme/vekaletname suresi dolacak
+  // portfoyleri dondurur -- Broker Dashboard'daki "Akilli Aksiyon &
+  // Onay Merkezi" panelinde kullanilir. Donem (period) secimden
+  // bagimsizdir, her zaman "bugunden itibaren 30 gun" ile calisir.
+  private async getExpiringContracts() {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const in30Days = new Date(today);
+    in30Days.setDate(in30Days.getDate() + 30);
+    const in30DaysStr = in30Days.toISOString().slice(0, 10);
+
+    const agents = await this.userRepo.find();
+    const agentNameById = new Map(agents.map((a) => [a.id, a.name]));
+
+    const properties = await this.propertyRepo.find({
+      where: {
+        contractEndDate: Not(IsNull()) as any,
+      },
+    });
+
+    return properties
+      .filter((p) => p.contractEndDate && p.contractEndDate >= todayStr && p.contractEndDate <= in30DaysStr)
+      .map((p) => {
+        const daysLeft = Math.ceil(
+          (new Date(p.contractEndDate as string).getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        return {
+          propertyId: p.id,
+          title: p.title,
+          contractEndDate: p.contractEndDate,
+          daysLeft,
+          agentName: p.agentId ? agentNameById.get(p.agentId) || 'Bilinmeyen' : 'Atanmamış',
+        };
+      })
+      .sort((a, b) => a.daysLeft - b.daysLeft);
   }
 }

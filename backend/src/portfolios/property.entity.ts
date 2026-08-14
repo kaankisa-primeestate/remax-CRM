@@ -77,6 +77,12 @@ export class Property {
   @Column({ default: false })
   mortgageEligible: boolean; // Krediye uygunluk
 
+  // Sozlesme bitis tarihi (kiralik mulklerde kira sozlesmesi, vekaletname
+  // suresi vb. icin) -- Broker Dashboard'da yaklasan bitisler uyari olarak
+  // gosterilir.
+  @Column({ type: 'date', nullable: true })
+  contractEndDate: string | null;
+
   // --- Konut tipi ilanlar için anlamlı, arsa/tarla için boş kalabilir ---
   @Column({ type: 'varchar', nullable: true })
   rooms: string | null; // Oda sayısı, örn. "3+1"

@@ -43,6 +43,7 @@ const emptyDraft = {
   priceCurrency: 'TRY',
   deedStatus: '',
   mortgageEligible: false,
+  contractEndDate: '',
   rooms: '',
   bathrooms: '',
   floor: '',
@@ -119,6 +120,7 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
         priceCurrency: draft.priceCurrency,
         deedStatus: draft.deedStatus,
         mortgageEligible: draft.mortgageEligible,
+        contractEndDate: draft.contractEndDate || undefined,
         rooms: draft.rooms || undefined,
         bathrooms: draft.bathrooms === '' ? undefined : Number(draft.bathrooms),
         floor: draft.floor || undefined,
@@ -303,6 +305,12 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
                 <label>Aidat (₺)</label>
                 <MoneyInput value={draft.dues} onChange={(v) => update({ dues: v })} />
               </div>
+              {draft.listingType === 'rent' && (
+                <div className="form-field">
+                  <label>Sözleşme Bitiş Tarihi</label>
+                  <input type="date" value={draft.contractEndDate || ''} onChange={(e) => update({ contractEndDate: e.target.value })} />
+                </div>
+              )}
               <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <input type="checkbox" checked={draft.mortgageEligible} onChange={(e) => update({ mortgageEligible: e.target.checked })} style={{ width: 'auto' }} />
                 <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 14 }}>Krediye uygun</label>

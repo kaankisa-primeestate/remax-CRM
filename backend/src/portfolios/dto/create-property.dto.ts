@@ -56,6 +56,10 @@ export class CreatePropertyDto {
   @IsBoolean()
   mortgageEligible?: boolean;
 
+  @IsOptional()
+  @IsString()
+  contractEndDate?: string;
+
   // --- Konut tipi alanlar (opsiyonel — arsa/tarla için boş kalabilir) ---
   @IsOptional()
   @IsString()
