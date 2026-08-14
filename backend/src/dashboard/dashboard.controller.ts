@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../users/user.entity';
+import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -25,5 +26,11 @@ export class DashboardController {
     fromDate.setHours(0, 0, 0, 0);
 
     return this.dashboardService.getSummary(fromDate, toDate);
+  }
+
+  // GET /api/dashboard/my-target — Danismanin kendi "Bu Ayki Hedefim" karti icin
+  @Get('my-target')
+  getMyTargetProgress(@CurrentUser() user: CurrentUserPayload) {
+    return this.dashboardService.getAgentMonthlyProgress(user.userId);
   }
 }

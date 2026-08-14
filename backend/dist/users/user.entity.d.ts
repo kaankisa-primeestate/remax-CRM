@@ -9,5 +9,6 @@ export declare class User {
     passwordHash: string;
     role: UserRole;
     lastNotificationsSeenAt: Date | null;
+    monthlyTarget: number | null;
     createdAt: Date;
 }

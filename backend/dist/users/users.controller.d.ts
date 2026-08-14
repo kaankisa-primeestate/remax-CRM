@@ -7,6 +7,7 @@ export declare class UsersController {
     constructor(usersService: UsersService);
     findAllAgents(): Promise<Omit<import("./user.entity").User, "passwordHash">[]>;
     createAgent(dto: CreateAgentDto): Promise<Omit<import("./user.entity").User, "passwordHash">>;
+    setMonthlyTarget(id: string, monthlyTarget: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     changePassword(dto: ChangePasswordDto, user: CurrentUserPayload): Promise<{
         success: boolean;
     }>;

@@ -130,6 +130,26 @@ export class DashboardService {
     return { leaderboard, activity, badges, expiringContracts: await this.getExpiringContracts() };
   }
 
+  // Danismanin kendi "Bu Ayki Hedefim" karti icin: hedef vs bu ayin
+  // gerceklesen ciro tutari (komisyon kayitlarindan).
+  async getAgentMonthlyProgress(agentId: string) {
+    const agent = await this.userRepo.findOne({ where: { id: agentId } });
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const commissions = await this.commissionRepo.find({
+      where: { agentId, createdAt: Between(monthStart, monthEnd) },
+    });
+    const currentMonthSales = commissions.reduce((sum, c) => sum + Number(c.netPayable), 0);
+    const monthlyTarget = agent?.monthlyTarget != null ? Number(agent.monthlyTarget) : null;
+    const percentage = monthlyTarget && monthlyTarget > 0
+      ? Math.min(100, Math.round((currentMonthSales / monthlyTarget) * 100))
+      : null;
+
+    return { monthlyTarget, currentMonthSales, percentage };
+  }
+
   // Onumuzdeki 30 gun icinde sozlesme/vekaletname suresi dolacak
   // portfoyleri dondurur -- Broker Dashboard'daki "Akilli Aksiyon &
   // Onay Merkezi" panelinde kullanilir. Donem (period) secimden

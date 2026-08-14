@@ -33,6 +33,11 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   lastNotificationsSeenAt: Date | null;
 
+  // Danismanin aylik satis/ciro hedefi (Broker tarafindan belirlenir).
+  // Sadece role=agent icin anlamlidir.
+  @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
+  monthlyTarget: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

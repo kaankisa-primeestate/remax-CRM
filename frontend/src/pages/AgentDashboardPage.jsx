@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { propertiesApi } from '../api/properties';
 import { customersApi } from '../api/customers';
+import { dashboardApi } from '../api/dashboard';
 
 const money = (n) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n || 0);
@@ -24,17 +25,20 @@ export default function AgentDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activePropertiesCount, setActivePropertiesCount] = useState(0);
   const [matches, setMatches] = useState([]);
+  const [myTarget, setMyTarget] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [properties, customers] = await Promise.all([
+      const [properties, customers, targetProgress] = await Promise.all([
         propertiesApi.list({ status: 'active' }),
         customersApi.list({}),
+        dashboardApi.myTarget().catch(() => null),
       ]);
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
+      setMyTarget(targetProgress);
 
       // Akilli Eslestirme: kendi musterilerinden (alici/kiraci/yatirimci)
       // birkacini tarayip en iyi eslesen portfoyleri topluyoruz. Bu, zaten
@@ -84,8 +88,24 @@ export default function AgentDashboardPage() {
           <div className="metric-card__delta is-muted">Şu an yayında</div>
         </div>
         <div className="metric-card">
-          <div className="metric-card__label">Bu Ayki Hedefim<span className="soon-badge">Yakında</span></div>
-          <div className="metric-card__value" style={{ color: 'var(--muted)', fontSize: 16 }}>Hedef belirlenmedi</div>
+          <div className="metric-card__label">Bu Ayki Hedefim</div>
+          {myTarget?.monthlyTarget ? (
+            <>
+              <div className="metric-card__value">
+                %{myTarget.percentage} <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}>
+                  ({money(myTarget.currentMonthSales)} / {money(myTarget.monthlyTarget)})
+                </span>
+              </div>
+              <div className="metric-card__delta is-up">
+                {myTarget.percentage >= 100 ? 'Hedef tamamlandı! 🎉' : `Hedefe ${100 - myTarget.percentage}% kaldı`}
+              </div>
+              <div style={{ height: 4, background: 'var(--paper-line)', borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${myTarget.percentage}%`, background: 'var(--brass)' }} />
+              </div>
+            </>
+          ) : (
+            <div className="metric-card__value" style={{ color: 'var(--muted)', fontSize: 16 }}>Hedef belirlenmedi</div>
+          )}
         </div>
         <div className="metric-card">
           <div className="metric-card__label">Sıcak Fırsatlar<span className="soon-badge">Yakında</span></div>

@@ -101,4 +101,16 @@ export class UsersService implements OnModuleInit {
     });
     return agents.map(({ passwordHash, ...rest }) => rest);
   }
+
+  // Broker, bir danismanin aylik hedefini belirler/gunceller.
+  async setMonthlyTarget(agentId: string, monthlyTarget: number): Promise<Omit<User, 'passwordHash'>> {
+    const agent = await this.userRepo.findOne({ where: { id: agentId, role: UserRole.AGENT } });
+    if (!agent) {
+      throw new NotFoundException('Danışman bulunamadı');
+    }
+    agent.monthlyTarget = monthlyTarget;
+    const saved = await this.userRepo.save(agent);
+    const { passwordHash, ...rest } = saved;
+    return rest;
+  }
 }

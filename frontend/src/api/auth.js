@@ -11,4 +11,6 @@ export const usersApi = {
     apiClient.post('/users/agents', payload).then((r) => r.data),
   changePassword: (payload) =>
     apiClient.patch('/users/change-password', payload).then((r) => r.data),
+  setMonthlyTarget: (agentId, monthlyTarget) =>
+    apiClient.patch(`/users/agents/${agentId}/target`, { monthlyTarget }).then((r) => r.data),
 };

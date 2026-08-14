@@ -7,11 +7,16 @@ export default function AgentsPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [targetDrafts, setTargetDrafts] = useState({});
+  const [savingTargetId, setSavingTargetId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     const data = await usersApi.listAgents();
     setAgents(data);
+    setTargetDrafts(
+      Object.fromEntries(data.map((a) => [a.id, a.monthlyTarget != null ? String(a.monthlyTarget) : ''])),
+    );
     setLoading(false);
   }, []);
 
@@ -32,6 +37,20 @@ export default function AgentsPage() {
       setError(Array.isArray(message) ? message.join(', ') : message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveTarget(agentId) {
+    setSavingTargetId(agentId);
+    try {
+      const raw = targetDrafts[agentId];
+      const value = raw === '' ? 0 : Number(raw);
+      await usersApi.setMonthlyTarget(agentId, value);
+      setAgents((prev) => prev.map((a) => (a.id === agentId ? { ...a, monthlyTarget: value } : a)));
+    } catch (err) {
+      alert('Hedef kaydedilemedi, tekrar deneyin.');
+    } finally {
+      setSavingTargetId(null);
     }
   }
 
@@ -86,11 +105,32 @@ export default function AgentsPage() {
           <div className="empty-state">Henüz danışman eklenmemiş.</div>
         ) : (
           agents.map((agent) => (
-            <div className="record-row" key={agent.id}>
+            <div className="record-row" key={agent.id} style={{ flexWrap: 'wrap' }}>
               <span className="record-row__name">{agent.name}</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)' }}>
                 {agent.email}
               </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                  Aylık Hedef (₺)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={targetDrafts[agent.id] ?? ''}
+                  onChange={(e) => setTargetDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
+                  style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 10px', fontSize: 12 }}
+                  disabled={savingTargetId === agent.id}
+                  onClick={() => handleSaveTarget(agent.id)}
+                >
+                  {savingTargetId === agent.id ? '…' : 'Kaydet'}
+                </button>
+              </div>
             </div>
           ))
         )}

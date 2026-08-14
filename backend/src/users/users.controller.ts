@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
@@ -25,6 +25,13 @@ export class UsersController {
   @Roles(UserRole.BROKER)
   createAgent(@Body() dto: CreateAgentDto) {
     return this.usersService.createAgent(dto);
+  }
+
+  // PATCH /api/users/agents/:id/target — Broker bir danismanin aylik hedefini belirler
+  @Patch('agents/:id/target')
+  @Roles(UserRole.BROKER)
+  setMonthlyTarget(@Param('id') id: string, @Body('monthlyTarget') monthlyTarget: number) {
+    return this.usersService.setMonthlyTarget(id, monthlyTarget);
   }
 
   // PATCH /api/users/change-password — Broker veya Danisman kendi sifresini degistirir

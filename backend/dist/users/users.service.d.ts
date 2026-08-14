@@ -12,4 +12,5 @@ export declare class UsersService implements OnModuleInit {
     changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
     createAgent(dto: CreateAgentDto): Promise<Omit<User, 'passwordHash'>>;
     findAllAgents(): Promise<Omit<User, 'passwordHash'>[]>;
+    setMonthlyTarget(agentId: string, monthlyTarget: number): Promise<Omit<User, 'passwordHash'>>;
 }
