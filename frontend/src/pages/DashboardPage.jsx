@@ -48,12 +48,8 @@ const money = (n) =>
 const dateTime = (d) =>
   new Date(d).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-// Ilan onay akisi henuz backend'de yok, placeholder olarak kalmaya devam
-// ediyor -- bkz. gelistirme notebook'u. Sozlesme bitis uyarilari ise
-// artik GERCEK veri (property.contractEndDate) ile besleniyor.
-const PLACEHOLDER_ACTIONS = [
-  { dot: '🔴', title: 'Yeni İlan Onayı', meta: 'Onay akışı eklendiğinde burada görünecek' },
-];
+// Ilan onay akisi artik GERCEK veri (property.status = pending_approval/
+// needs_revision) ile besleniyor -- bkz. asagidaki data.pendingApprovals.
 
 function RevenueTrendChart({ months }) {
   const maxValue = Math.max(1, ...months.map((m) => m.total));
@@ -124,6 +120,28 @@ export default function DashboardPage() {
     load();
   }, [load]);
 
+  async function handleApprove(propertyId) {
+    try {
+      await propertiesApi.update(propertyId, { status: 'active' });
+      load();
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Onaylanamadı.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
+    }
+  }
+
+  async function handleRequestRevision(propertyId) {
+    const note = window.prompt('Danışmana iletilecek revizyon notu (örn: "Fiyatı kontrol et", "Fotoğraf eksik"):');
+    if (note === null) return; // vazgecildi
+    try {
+      await propertiesApi.update(propertyId, { status: 'needs_revision', revisionNote: note || undefined });
+      load();
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Revizyon isteği gönderilemedi.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
+    }
+  }
+
   const periodLabel = PERIOD_OPTIONS.find((p) => p.value === period)?.label || '';
   const totalRevenue = data ? data.leaderboard.reduce((sum, r) => sum + r.salesValue, 0) : 0;
   const topAgent = data?.leaderboard?.[0];
@@ -189,6 +207,33 @@ export default function DashboardPage() {
             </div>
             <div className="panel">
               <h3 className="panel__title">Akıllı Aksiyon & Onay Merkezi</h3>
+              {(data.pendingApprovals || []).map((p) => (
+                <div className="action-item" key={p.propertyId}>
+                  <span className="action-item__dot">{p.status === 'needs_revision' ? '🟠' : '🔴'}</span>
+                  <div className="action-item__body">
+                    <div className="action-item__title">
+                      {p.status === 'needs_revision' ? 'Revizyon Bekliyor' : 'Onay Bekleyen İlan'}: {p.title}
+                    </div>
+                    <div className="action-item__meta">
+                      {p.agentName}
+                      {p.status === 'needs_revision' && p.revisionNote && (
+                        <> · Not: "{p.revisionNote}"</>
+                      )}
+                    </div>
+                    <div className="action-item__buttons">
+                      <button type="button" className="btn btn-primary" onClick={() => handleApprove(p.propertyId)}>
+                        Onayla
+                      </button>
+                      <button type="button" className="btn btn-secondary" onClick={() => handleRequestRevision(p.propertyId)}>
+                        Revize İste
+                      </button>
+                      <Link to={`/portfoyler/${p.propertyId}`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                        Detay
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
               {(data.expiringContracts || []).map((c) => (
                 <Link to={`/portfoyler/${c.propertyId}`} className="action-item action-item--clickable" key={c.propertyId}>
                   <span className="action-item__dot">🟡</span>
@@ -200,16 +245,7 @@ export default function DashboardPage() {
                   </div>
                 </Link>
               ))}
-              {PLACEHOLDER_ACTIONS.map((a, i) => (
-                <div className="action-item" key={i}>
-                  <span className="action-item__dot">{a.dot}</span>
-                  <div className="action-item__body">
-                    <div className="action-item__title">{a.title} <span className="soon-badge">Yakında</span></div>
-                    <div className="action-item__meta">{a.meta}</div>
-                  </div>
-                </div>
-              ))}
-              {(data.expiringContracts || []).length === 0 && PLACEHOLDER_ACTIONS.length === 0 && (
+              {(data.pendingApprovals || []).length === 0 && (data.expiringContracts || []).length === 0 && (
                 <div className="panel__empty">Aksiyon bekleyen bir öğe yok.</div>
               )}
             </div>

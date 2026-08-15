@@ -23,7 +23,11 @@ let PortfoliosService = class PortfoliosService {
     }
     async create(dto, currentUser) {
         const agentId = currentUser.role === 'agent' ? currentUser.userId : dto.agentId ?? null;
-        const property = this.propertyRepo.create({ ...dto, agentId });
+        const property = this.propertyRepo.create({
+            ...dto,
+            agentId,
+            status: property_entity_1.PropertyStatus.PENDING_APPROVAL,
+        });
         return this.propertyRepo.save(property);
     }
     async findAll(query, currentUser) {
@@ -107,9 +111,19 @@ let PortfoliosService = class PortfoliosService {
         const property = await this.findOne(id, currentUser);
         const safeDto = currentUser.role === 'agent' ? { ...dto, agentId: undefined } : dto;
         const statusChanging = safeDto.status !== undefined && safeDto.status !== property.status;
+        if (statusChanging && safeDto.status === property_entity_1.PropertyStatus.ACTIVE) {
+            const wasAwaitingApproval = property.status === property_entity_1.PropertyStatus.PENDING_APPROVAL ||
+                property.status === property_entity_1.PropertyStatus.NEEDS_REVISION;
+            if (wasAwaitingApproval && currentUser.role !== 'broker') {
+                throw new common_1.ForbiddenException('Bu ilanı sadece Broker onaylayabilir');
+            }
+        }
         Object.assign(property, safeDto);
         if (statusChanging) {
             property.statusChangedAt = new Date();
+            if (safeDto.status === property_entity_1.PropertyStatus.PENDING_APPROVAL) {
+                property.revisionNote = null;
+            }
         }
         return this.propertyRepo.save(property);
     }

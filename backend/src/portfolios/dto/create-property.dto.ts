@@ -60,6 +60,10 @@ export class CreatePropertyDto {
   @IsString()
   contractEndDate?: string;
 
+  @IsOptional()
+  @IsString()
+  revisionNote?: string;
+
   // --- Konut tipi alanlar (opsiyonel — arsa/tarla için boş kalabilir) ---
   @IsOptional()
   @IsString()

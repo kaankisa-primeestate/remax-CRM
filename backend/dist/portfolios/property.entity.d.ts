@@ -15,6 +15,8 @@ export declare enum ListingType {
     RENT = "rent"
 }
 export declare enum PropertyStatus {
+    PENDING_APPROVAL = "pending_approval",
+    NEEDS_REVISION = "needs_revision",
     ACTIVE = "active",
     PASSIVE = "passive",
     SOLD = "sold",
@@ -34,6 +36,7 @@ export declare class Property {
     deedStatus: string;
     mortgageEligible: boolean;
     contractEndDate: string | null;
+    revisionNote: string | null;
     rooms: string | null;
     bathrooms: number | null;
     floor: string | null;

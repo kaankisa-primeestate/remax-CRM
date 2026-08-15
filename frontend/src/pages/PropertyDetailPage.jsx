@@ -43,8 +43,13 @@ export default function PropertyDetailPage() {
   }
 
   async function handleStatusChange(newStatus) {
-    await propertiesApi.update(id, { status: newStatus });
-    setProperty((prev) => ({ ...prev, status: newStatus }));
+    try {
+      await propertiesApi.update(id, { status: newStatus });
+      setProperty((prev) => ({ ...prev, status: newStatus }));
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Durum güncellenemedi.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
+    }
   }
 
   if (!property) return <div className="empty-state">Yükleniyor…</div>;
@@ -105,6 +110,12 @@ export default function PropertyDetailPage() {
             <button className="btn btn-danger" onClick={handleDelete}>Sil</button>
           </div>
         </div>
+
+        {property.status === 'needs_revision' && property.revisionNote && (
+          <div className="revision-banner">
+            <strong>Broker revizyon istedi:</strong> {property.revisionNote}
+          </div>
+        )}
 
         <div className="dossier__field-grid">
           <div className="dossier__field">

@@ -31,6 +31,8 @@ export const LISTING_TYPES = [
 ];
 
 export const PROPERTY_STATUSES = [
+  { value: 'pending_approval', label: 'Onay Bekliyor' },
+  { value: 'needs_revision', label: 'Revizyon Gerekli' },
   { value: 'active', label: 'Aktif' },
   { value: 'passive', label: 'Pasif' },
   { value: 'sold', label: 'Satıldı' },

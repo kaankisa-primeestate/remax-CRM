@@ -29,6 +29,8 @@ export enum ListingType {
 
 // Brief 3.2: İlan durumu (Aktif/Pasif/Satıldı/Kiralandı)
 export enum PropertyStatus {
+  PENDING_APPROVAL = 'pending_approval', // Onay bekliyor (yeni ilan, henuz Broker onaylamadi)
+  NEEDS_REVISION = 'needs_revision', // Broker revizyon istedi
   ACTIVE = 'active',
   PASSIVE = 'passive',
   SOLD = 'sold',
@@ -82,6 +84,11 @@ export class Property {
   // gosterilir.
   @Column({ type: 'date', nullable: true })
   contractEndDate: string | null;
+
+  // Broker "Revize Iste" dedigi zaman ekledigi not -- danisman kendi
+  // portfoy listesinde/detayinda bu notu gorur.
+  @Column({ type: 'text', nullable: true })
+  revisionNote: string | null;
 
   // --- Konut tipi ilanlar için anlamlı, arsa/tarla için boş kalabilir ---
   @Column({ type: 'varchar', nullable: true })

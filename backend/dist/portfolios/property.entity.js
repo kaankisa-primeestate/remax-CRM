@@ -31,6 +31,8 @@ var ListingType;
 })(ListingType || (exports.ListingType = ListingType = {}));
 var PropertyStatus;
 (function (PropertyStatus) {
+    PropertyStatus["PENDING_APPROVAL"] = "pending_approval";
+    PropertyStatus["NEEDS_REVISION"] = "needs_revision";
     PropertyStatus["ACTIVE"] = "active";
     PropertyStatus["PASSIVE"] = "passive";
     PropertyStatus["SOLD"] = "sold";
@@ -93,6 +95,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'date', nullable: true }),
     __metadata("design:type", Object)
 ], Property.prototype, "contractEndDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], Property.prototype, "revisionNote", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", Object)

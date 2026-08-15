@@ -127,8 +127,13 @@ export default function PropertyListPage() {
   }
 
   async function handleStatusChange(propertyId, newStatus) {
-    await propertiesApi.update(propertyId, { status: newStatus });
-    setProperties((prev) => prev.map((p) => (p.id === propertyId ? { ...p, status: newStatus } : p)));
+    try {
+      await propertiesApi.update(propertyId, { status: newStatus });
+      setProperties((prev) => prev.map((p) => (p.id === propertyId ? { ...p, status: newStatus } : p)));
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Durum güncellenemedi.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
+    }
   }
 
   const activeFilterCount = [

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, IsNull, MoreThanOrEqual, Not, Repository } from 'typeorm';
-import { Property } from '../portfolios/property.entity';
+import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
 import { Commission } from '../commissions/commission.entity';
@@ -133,6 +133,7 @@ export class DashboardService {
       badges,
       expiringContracts: await this.getExpiringContracts(),
       revenueTrend: await this.getRevenueTrend(),
+      pendingApprovals: await this.getPendingApprovals(),
     };
   }
 
@@ -223,5 +224,30 @@ export class DashboardService {
     }
 
     return months;
+  }
+
+  // Onay bekleyen (veya revizyon gerektiren) tum ilanlari dondurur --
+  // Broker Dashboard'daki "Akilli Aksiyon & Onay Merkezi" panelinde
+  // kullanilir. Donem (period) secimden bagimsizdir.
+  private async getPendingApprovals() {
+    const agents = await this.userRepo.find();
+    const agentNameById = new Map(agents.map((a) => [a.id, a.name]));
+
+    const properties = await this.propertyRepo.find({
+      where: [
+        { status: PropertyStatus.PENDING_APPROVAL },
+        { status: PropertyStatus.NEEDS_REVISION },
+      ],
+      order: { statusChangedAt: 'ASC', createdAt: 'ASC' },
+    });
+
+    return properties.map((p) => ({
+      propertyId: p.id,
+      title: p.title,
+      status: p.status,
+      agentName: p.agentId ? agentNameById.get(p.agentId) || 'Bilinmeyen' : 'Atanmamış',
+      revisionNote: p.revisionNote,
+      createdAt: p.createdAt,
+    }));
   }
 }

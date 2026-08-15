@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Property } from './property.entity';
+import { Property, PropertyStatus } from './property.entity';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
@@ -40,7 +40,14 @@ export class PortfoliosService {
     // Mahremiyet Duvarı: bir Danışman oluşturduğu portföy otomatik olarak
     // kendisine atanır; Broker isterse belirli bir danışmana atayabilir.
     const agentId = currentUser.role === 'agent' ? currentUser.userId : dto.agentId ?? null;
-    const property = this.propertyRepo.create({ ...dto, agentId });
+    // Onay Akisi: Broker dahil HERKESIN yeni ilani "Onay Bekliyor" ile
+    // baslar -- kimse status alaniyla bunu atlatamaz, dto'daki status
+    // ne olursa olsun yok sayilir.
+    const property = this.propertyRepo.create({
+      ...dto,
+      agentId,
+      status: PropertyStatus.PENDING_APPROVAL,
+    });
     return this.propertyRepo.save(property);
   }
 
@@ -140,9 +147,27 @@ export class PortfoliosService {
     const property = await this.findOne(id, currentUser);
     const safeDto = currentUser.role === 'agent' ? { ...dto, agentId: undefined } : dto;
     const statusChanging = safeDto.status !== undefined && safeDto.status !== property.status;
+
+    // Onay Akisi: "Onay Bekliyor" veya "Revizyon Gerekli" durumundan
+    // "Aktif"e gecis SADECE Broker tarafindan yapilabilir -- bir Danisman
+    // kendi ilanini kendi kendine onaylayamaz.
+    if (statusChanging && safeDto.status === PropertyStatus.ACTIVE) {
+      const wasAwaitingApproval =
+        property.status === PropertyStatus.PENDING_APPROVAL ||
+        property.status === PropertyStatus.NEEDS_REVISION;
+      if (wasAwaitingApproval && currentUser.role !== 'broker') {
+        throw new ForbiddenException('Bu ilanı sadece Broker onaylayabilir');
+      }
+    }
+
     Object.assign(property, safeDto);
     if (statusChanging) {
       property.statusChangedAt = new Date();
+      // Ilan tekrar onaya gonderildiginde (Danisman revizyon sonrasi
+      // tekrar duzenleyip kaydettiginde) eski revizyon notu temizlenir.
+      if (safeDto.status === PropertyStatus.PENDING_APPROVAL) {
+        property.revisionNote = null;
+      }
     }
     return this.propertyRepo.save(property);
   }
