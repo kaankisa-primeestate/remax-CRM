@@ -50,6 +50,11 @@ export default function CalendarPage() {
   const [propertyId, setPropertyId] = useState('');
   const [disclosureAccepted, setDisclosureAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: '', date: '', time: '', type: 'meeting', customerId: '', propertyId: '', disclosureAccepted: false, notes: '',
+  });
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,6 +120,47 @@ export default function CalendarPage() {
     } catch {
       alert('Randevu silinemedi, sayfa yenileniyor.');
       load();
+    }
+  }
+
+  function startEdit(appt) {
+    setEditingId(appt.id);
+    setEditForm({
+      title: appt.title,
+      date: appt.date,
+      time: appt.time || '',
+      type: appt.type,
+      customerId: appt.customerId || '',
+      propertyId: appt.propertyId || '',
+      disclosureAccepted: !!appt.disclosureAccepted,
+      notes: appt.notes || '',
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(apptId) {
+    if (!editForm.title.trim() || !editForm.date) return;
+    setEditSaving(true);
+    try {
+      await appointmentsApi.update(apptId, {
+        title: editForm.title.trim(),
+        date: editForm.date,
+        time: editForm.time || undefined,
+        type: editForm.type,
+        customerId: editForm.customerId || undefined,
+        propertyId: editForm.propertyId || undefined,
+        disclosureAccepted: editForm.type === 'showing' ? editForm.disclosureAccepted : undefined,
+        notes: editForm.notes || undefined,
+      });
+      setEditingId(null);
+      load();
+    } catch {
+      alert('Randevu güncellenemedi, tekrar deneyin.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -259,37 +305,111 @@ export default function CalendarPage() {
                 const property = properties.find((p) => p.id === appt.propertyId);
                 return (
                   <div key={appt.id} className="task-row">
-                    <label className="task-row__checkbox">
-                      <input type="checkbox" checked={appt.completed} onChange={() => handleToggleComplete(appt)} />
-                    </label>
-                    <div className="task-row__body">
-                      <div className={`task-row__title${appt.completed ? ' is-completed' : ''}`}>
-                        {typeInfo?.icon} {appt.title}
-                      </div>
-                      <div className="task-row__due">
-                        {appt.time ? `🕒 ${appt.time}` : 'Saat belirtilmedi'} · {typeInfo?.label}
-                        {isShowing && customer && ` · ${customer.firstName} ${customer.lastName}`}
-                        {isShowing && property && ` · ${property.title}`}
-                        {isShowing && (
-                          <span className={appt.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'}>
-                            {appt.disclosureAccepted ? '✓ Beyan alındı' : '⚠️ Beyan bekleniyor'}
-                          </span>
+                    {editingId === appt.id ? (
+                      <div className="task-row__edit-form">
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>Başlık</label>
+                          <input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} />
+                        </div>
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>Tarih</label>
+                          <input type="date" value={editForm.date} onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))} />
+                        </div>
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>Saat</label>
+                          <input type="time" value={editForm.time} onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))} />
+                        </div>
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>Tür</label>
+                          <select value={editForm.type} onChange={(e) => setEditForm((f) => ({ ...f, type: e.target.value }))}>
+                            {APPOINTMENT_TYPES.map((t) => (
+                              <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {editForm.type === 'showing' && (
+                          <>
+                            <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                              <label>Müşteri</label>
+                              <select value={editForm.customerId} onChange={(e) => setEditForm((f) => ({ ...f, customerId: e.target.value }))}>
+                                <option value="">Seçiniz</option>
+                                {customers.map((c) => (
+                                  <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                              <label>Portföy</label>
+                              <select value={editForm.propertyId} onChange={(e) => setEditForm((f) => ({ ...f, propertyId: e.target.value }))}>
+                                <option value="">Seçiniz</option>
+                                {properties.map((p) => (
+                                  <option key={p.id} value={p.id}>{p.title}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
+                              <input
+                                type="checkbox"
+                                checked={editForm.disclosureAccepted}
+                                onChange={(e) => setEditForm((f) => ({ ...f, disclosureAccepted: e.target.checked }))}
+                                style={{ width: 'auto' }}
+                              />
+                              <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>
+                                Yer gösterme beyanı alındı
+                              </label>
+                            </div>
+                          </>
                         )}
+                        <div className="form-field full" style={{ margin: 0 }}>
+                          <label>Not</label>
+                          <textarea rows={2} value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" className="btn btn-primary" disabled={editSaving || !editForm.title.trim() || !editForm.date} onClick={() => saveEdit(appt.id)}>
+                            {editSaving ? 'Kaydediliyor…' : 'Kaydet'}
+                          </button>
+                          <button type="button" className="btn btn-secondary" onClick={cancelEdit}>Vazgeç</button>
+                        </div>
                       </div>
-                      {isShowing && customer && (
-                        <button
-                          type="button"
-                          className="task-row__link"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          onClick={() => handleShareDisclosure(appt)}
-                        >
-                          📲 WhatsApp ile Yer Gösterme Kaydını Gönder
+                    ) : (
+                      <>
+                        <label className="task-row__checkbox">
+                          <input type="checkbox" checked={appt.completed} onChange={() => handleToggleComplete(appt)} />
+                        </label>
+                        <div className="task-row__body">
+                          <div className={`task-row__title${appt.completed ? ' is-completed' : ''}`}>
+                            {typeInfo?.icon} {appt.title}
+                          </div>
+                          <div className="task-row__due">
+                            {appt.time ? `🕒 ${appt.time}` : 'Saat belirtilmedi'} · {typeInfo?.label}
+                            {isShowing && customer && ` · ${customer.firstName} ${customer.lastName}`}
+                            {isShowing && property && ` · ${property.title}`}
+                            {isShowing && (
+                              <span className={appt.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'}>
+                                {appt.disclosureAccepted ? '✓ Beyan alındı' : '⚠️ Beyan bekleniyor'}
+                              </span>
+                            )}
+                          </div>
+                          {appt.notes && <div className="task-row__notes">{appt.notes}</div>}
+                          {isShowing && customer && (
+                            <button
+                              type="button"
+                              className="task-row__link"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                              onClick={() => handleShareDisclosure(appt)}
+                            >
+                              📲 WhatsApp ile Yer Gösterme Kaydını Gönder
+                            </button>
+                          )}
+                        </div>
+                        <button type="button" className="task-row__edit" onClick={() => startEdit(appt)} title="Düzenle">
+                          ✎
                         </button>
-                      )}
-                    </div>
-                    <button type="button" className="task-row__delete" onClick={() => handleDelete(appt.id)} title="Sil">
-                      ✕
-                    </button>
+                        <button type="button" className="task-row__delete" onClick={() => handleDelete(appt.id)} title="Sil">
+                          ✕
+                        </button>
+                      </>
+                    )}
                   </div>
                 );
               })}

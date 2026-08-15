@@ -1529,6 +1529,35 @@ button {
   margin-top: 3px;
   text-decoration: underline;
 }
+.task-row__notes {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+.task-row__edit {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.task-row__edit:hover {
+  color: var(--brass);
+}
+.task-row__edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  width: 100%;
+  padding: 6px 0;
+}
+.task-row__edit-form .form-field {
+  flex: 1;
+  min-width: 140px;
+}
 .task-row__delete {
   background: transparent;
   border: none;

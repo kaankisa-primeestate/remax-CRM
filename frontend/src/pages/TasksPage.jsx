@@ -27,6 +27,9 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', dueDate: '', notes: '' });
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +75,33 @@ export default function TasksPage() {
     } catch {
       alert('Görev silinemedi, sayfa yenileniyor.');
       load();
+    }
+  }
+
+  function startEdit(task) {
+    setEditingId(task.id);
+    setEditForm({ title: task.title, dueDate: task.dueDate || '', notes: task.notes || '' });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(taskId) {
+    if (!editForm.title.trim()) return;
+    setEditSaving(true);
+    try {
+      await tasksApi.update(taskId, {
+        title: editForm.title.trim(),
+        dueDate: editForm.dueDate || undefined,
+        notes: editForm.notes || undefined,
+      });
+      setEditingId(null);
+      load();
+    } catch {
+      alert('Görev güncellenemedi, tekrar deneyin.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -137,23 +167,52 @@ export default function TasksPage() {
         ) : (
           visibleTasks.map((task) => (
             <div key={task.id} className="task-row">
-              <label className="task-row__checkbox">
-                <input type="checkbox" checked={task.completed} onChange={() => handleToggleComplete(task)} />
-              </label>
-              <div className="task-row__body">
-                <div className={`task-row__title${task.completed ? ' is-completed' : ''}`}>{task.title}</div>
-                {task.dueDate && (
-                  <div className={`task-row__due${isOverdue(task) ? ' is-overdue' : ''}${isToday(task) ? ' is-today' : ''}`}>
-                    {isOverdue(task) ? '⚠️ Gecikti' : isToday(task) ? '📅 Bugün' : `📅 ${formatDueDate(task.dueDate)}`}
+              {editingId === task.id ? (
+                <div className="task-row__edit-form">
+                  <div className="form-field" style={{ margin: 0 }}>
+                    <label>Başlık</label>
+                    <input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} />
                   </div>
-                )}
-                {task.customerId && (
-                  <Link to={`/musteriler/${task.customerId}`} className="task-row__link">Müşteriye git →</Link>
-                )}
-              </div>
-              <button type="button" className="task-row__delete" onClick={() => handleDelete(task.id)} title="Sil">
-                ✕
-              </button>
+                  <div className="form-field" style={{ margin: 0 }}>
+                    <label>Son Tarih</label>
+                    <input type="date" value={editForm.dueDate} onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))} />
+                  </div>
+                  <div className="form-field full" style={{ margin: 0 }}>
+                    <label>Not</label>
+                    <textarea rows={2} value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="btn btn-primary" disabled={editSaving || !editForm.title.trim()} onClick={() => saveEdit(task.id)}>
+                      {editSaving ? 'Kaydediliyor…' : 'Kaydet'}
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={cancelEdit}>Vazgeç</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <label className="task-row__checkbox">
+                    <input type="checkbox" checked={task.completed} onChange={() => handleToggleComplete(task)} />
+                  </label>
+                  <div className="task-row__body">
+                    <div className={`task-row__title${task.completed ? ' is-completed' : ''}`}>{task.title}</div>
+                    {task.dueDate && (
+                      <div className={`task-row__due${isOverdue(task) ? ' is-overdue' : ''}${isToday(task) ? ' is-today' : ''}`}>
+                        {isOverdue(task) ? '⚠️ Gecikti' : isToday(task) ? '📅 Bugün' : `📅 ${formatDueDate(task.dueDate)}`}
+                      </div>
+                    )}
+                    {task.notes && <div className="task-row__notes">{task.notes}</div>}
+                    {task.customerId && (
+                      <Link to={`/musteriler/${task.customerId}`} className="task-row__link">Müşteriye git →</Link>
+                    )}
+                  </div>
+                  <button type="button" className="task-row__edit" onClick={() => startEdit(task)} title="Düzenle">
+                    ✎
+                  </button>
+                  <button type="button" className="task-row__delete" onClick={() => handleDelete(task.id)} title="Sil">
+                    ✕
+                  </button>
+                </>
+              )}
             </div>
           ))
         )}
