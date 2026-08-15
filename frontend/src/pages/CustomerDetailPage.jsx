@@ -93,9 +93,21 @@ export default function CustomerDetailPage() {
 
   return (
     <div>
-      <Link to="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
-        ← Kayıt Defterine Dön
-      </Link>
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 12,
+          color: 'var(--muted)',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+        }}
+      >
+        ← Geri Dön
+      </button>
 
       <div className="dossier" style={{ marginTop: 16 }}>
         <div className="dossier__header">
