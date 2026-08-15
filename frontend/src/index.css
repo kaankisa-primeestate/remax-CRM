@@ -1353,3 +1353,47 @@ button {
 @media (max-width: 480px) {
   .app-topbar__profile-name { display: none; }
 }
+
+/* --- Ofis Ciro Grafiği (bağımsız, kütüphanesiz çubuk grafik) --- */
+.revenue-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 160px;
+  padding-top: 8px;
+}
+.revenue-chart__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+.revenue-chart__bar-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.revenue-chart__bar {
+  width: 60%;
+  min-width: 18px;
+  background: var(--brass);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+}
+.revenue-chart__value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-navy);
+  font-weight: 700;
+  margin-top: 6px;
+}
+.revenue-chart__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}

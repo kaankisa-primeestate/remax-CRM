@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, IsNull, Not, Repository } from 'typeorm';
+import { Between, IsNull, MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { Property } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
@@ -127,7 +127,13 @@ export class DashboardService {
       }
     }
 
-    return { leaderboard, activity, badges, expiringContracts: await this.getExpiringContracts() };
+    return {
+      leaderboard,
+      activity,
+      badges,
+      expiringContracts: await this.getExpiringContracts(),
+      revenueTrend: await this.getRevenueTrend(),
+    };
   }
 
   // Danismanin kendi "Bu Ayki Hedefim" karti icin: hedef vs bu ayin
@@ -185,5 +191,37 @@ export class DashboardService {
         };
       })
       .sort((a, b) => a.daysLeft - b.daysLeft);
+  }
+
+  // Son 6 ayin (bu ay dahil) aylik ciro toplamini dondurur -- Broker
+  // Dashboard'daki "Ofis Ciro ve Hedef Grafigi" panelinde kullanilir.
+  // Donem (period) secimden bagimsizdir, her zaman sabit son 6 ay ile calisir.
+  private async getRevenueTrend() {
+    const now = new Date();
+    const monthsAgo6 = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    const commissions = await this.commissionRepo.find({
+      where: { createdAt: MoreThanOrEqual(monthsAgo6) },
+    });
+
+    const months: { key: string; label: string; total: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('tr-TR', { month: 'short' });
+      months.push({ key, label, total: 0 });
+    }
+    const monthByKey = new Map(months.map((m) => [m.key, m]));
+
+    for (const c of commissions) {
+      const d = new Date(c.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = monthByKey.get(key);
+      if (bucket) {
+        bucket.total += Number(c.netPayable);
+      }
+    }
+
+    return months;
   }
 }

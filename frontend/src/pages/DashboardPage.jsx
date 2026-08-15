@@ -55,6 +55,46 @@ const PLACEHOLDER_ACTIONS = [
   { dot: '🔴', title: 'Yeni İlan Onayı', meta: 'Onay akışı eklendiğinde burada görünecek' },
 ];
 
+function RevenueTrendChart({ months }) {
+  const maxValue = Math.max(1, ...months.map((m) => m.total));
+  const hasAnyData = months.some((m) => m.total > 0);
+
+  if (!hasAnyData) {
+    return (
+      <div className="panel__empty">
+        Henüz komisyon kaydı yok. İlk kayıtlar girildikçe bu grafik otomatik dolacak.
+      </div>
+    );
+  }
+
+  return (
+    <div className="revenue-chart">
+      {months.map((m) => {
+        const heightPct = Math.max(4, Math.round((m.total / maxValue) * 100));
+        return (
+          <div className="revenue-chart__col" key={m.key}>
+            <div className="revenue-chart__bar-track">
+              <div
+                className="revenue-chart__bar"
+                style={{ height: `${heightPct}%` }}
+                title={money(m.total)}
+              />
+            </div>
+            <div className="revenue-chart__value">{m.total > 0 ? formatMoneyShort(m.total) : '—'}</div>
+            <div className="revenue-chart__label">{m.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function formatMoneyShort(n) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+}
+
 export default function DashboardPage() {
   const [period, setPeriod] = useState('month');
   const [customFrom, setCustomFrom] = useState(rangeForPeriod('month').from);
@@ -144,11 +184,8 @@ export default function DashboardPage() {
           {/* --- Ciro Grafiği + Akıllı Aksiyon Merkezi --- */}
           <div className="panel-grid-2">
             <div className="panel">
-              <h3 className="panel__title">Ofis Ciro ve Hedef Grafiği</h3>
-              <div className="panel__empty">
-                Aylık ciro trend grafiği, geçmiş dönem verisi biriktikçe burada görünecek.
-                <span className="soon-badge">Yakında</span>
-              </div>
+              <h3 className="panel__title">Ofis Ciro Grafiği (Son 6 Ay)</h3>
+              <RevenueTrendChart months={data.revenueTrend || []} />
             </div>
             <div className="panel">
               <h3 className="panel__title">Akıllı Aksiyon & Onay Merkezi</h3>
