@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { propertiesApi } from '../api/properties';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { dashboardApi } from '../api/dashboard';
+import { tasksApi } from '../api/tasks';
 import { PIPELINE_STAGES } from '../constants/pipeline.js';
 
 const money = (n) =>
@@ -22,20 +23,30 @@ export default function AgentDashboardPage() {
   const [matches, setMatches] = useState([]);
   const [myTarget, setMyTarget] = useState(null);
   const [allCustomers, setAllCustomers] = useState([]);
+  const [todayTasks, setTodayTasks] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [properties, customers, targetProgress] = await Promise.all([
+      const [properties, customers, targetProgress, tasks] = await Promise.all([
         propertiesApi.list({ status: 'active' }),
         customersApi.list({}),
         dashboardApi.myTarget().catch(() => null),
+        tasksApi.list().catch(() => []),
       ]);
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
       setMyTarget(targetProgress);
       setAllCustomers(customers);
+
+      // Bugunun Is Plani: gecikmis (dueDate < bugun) veya bugune ait
+      // (dueDate === bugun), henuz tamamlanmamis gorevler.
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const relevant = tasks
+        .filter((t) => !t.completed && t.dueDate && t.dueDate <= todayStr)
+        .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
+      setTodayTasks(relevant);
 
       // Akilli Eslestirme: kendi musterilerinden (alici/kiraci/yatirimci)
       // birkacini tarayip en iyi eslesen portfoyleri topluyoruz. Bu, zaten
@@ -117,10 +128,28 @@ export default function AgentDashboardPage() {
       {/* --- Bugünün İş Planı + Akıllı Eşleştirmeler --- */}
       <div className="panel-grid-2">
         <div className="panel">
-          <h3 className="panel__title">Bugünün İş Planı ve Randevuları</h3>
-          <div className="panel__empty">
-            Takvim özelliği eklendiğinde günlük randevularınız burada akış halinde görünecek.
-            <span className="soon-badge">Yakında</span>
+          <h3 className="panel__title">Bugünün İş Planı</h3>
+          {loading ? (
+            <div className="panel__empty">Yükleniyor…</div>
+          ) : todayTasks.length === 0 ? (
+            <div className="panel__empty">Bugün için bekleyen göreviniz yok. 🎉</div>
+          ) : (
+            todayTasks.map((task) => (
+              <div className="action-item" key={task.id}>
+                <span className="action-item__dot">{task.dueDate < new Date().toISOString().slice(0, 10) ? '🔴' : '🟡'}</span>
+                <div className="action-item__body">
+                  <div className="action-item__title">{task.title}</div>
+                  <div className="action-item__meta">
+                    {task.dueDate < new Date().toISOString().slice(0, 10) ? 'Gecikti' : 'Bugün'}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--paper-line)' }}>
+            <Link to="/gorevler" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-navy)' }}>
+              Tüm görevleri gör →
+            </Link>
           </div>
         </div>
         <div className="panel">
