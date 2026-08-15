@@ -11,6 +11,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { MatchingModule } from './matching/matching.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TasksModule } from './tasks/tasks.module';
+import { AppointmentsModule } from './appointments/appointments.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { TasksModule } from './tasks/tasks.module';
     MatchingModule,
     NotificationsModule,
     TasksModule,
+    AppointmentsModule,
   ],
 })
 export class AppModule {}

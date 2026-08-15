@@ -5,6 +5,7 @@ import { propertiesApi } from '../api/properties';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { dashboardApi } from '../api/dashboard';
 import { tasksApi } from '../api/tasks';
+import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
 import { PIPELINE_STAGES } from '../constants/pipeline.js';
 
 const money = (n) =>
@@ -24,16 +25,18 @@ export default function AgentDashboardPage() {
   const [myTarget, setMyTarget] = useState(null);
   const [allCustomers, setAllCustomers] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
+  const [todayAppointments, setTodayAppointments] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [properties, customers, targetProgress, tasks] = await Promise.all([
+      const [properties, customers, targetProgress, tasks, appointments] = await Promise.all([
         propertiesApi.list({ status: 'active' }),
         customersApi.list({}),
         dashboardApi.myTarget().catch(() => null),
         tasksApi.list().catch(() => []),
+        appointmentsApi.list().catch(() => []),
       ]);
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
@@ -47,6 +50,12 @@ export default function AgentDashboardPage() {
         .filter((t) => !t.completed && t.dueDate && t.dueDate <= todayStr)
         .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
       setTodayTasks(relevant);
+
+      // Bugunun randevulari (tamamlanmamis, sadece bugune ait, saate gore sirali)
+      const todaysAppts = appointments
+        .filter((a) => !a.completed && a.date === todayStr)
+        .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+      setTodayAppointments(todaysAppts);
 
       // Akilli Eslestirme: kendi musterilerinden (alici/kiraci/yatirimci)
       // birkacini tarayip en iyi eslesen portfoyleri topluyoruz. Bu, zaten
@@ -131,22 +140,41 @@ export default function AgentDashboardPage() {
           <h3 className="panel__title">Bugünün İş Planı</h3>
           {loading ? (
             <div className="panel__empty">Yükleniyor…</div>
-          ) : todayTasks.length === 0 ? (
-            <div className="panel__empty">Bugün için bekleyen göreviniz yok. 🎉</div>
+          ) : todayAppointments.length === 0 && todayTasks.length === 0 ? (
+            <div className="panel__empty">Bugün için planlanmış bir şey yok. 🎉</div>
           ) : (
-            todayTasks.map((task) => (
-              <div className="action-item" key={task.id}>
-                <span className="action-item__dot">{task.dueDate < new Date().toISOString().slice(0, 10) ? '🔴' : '🟡'}</span>
-                <div className="action-item__body">
-                  <div className="action-item__title">{task.title}</div>
-                  <div className="action-item__meta">
-                    {task.dueDate < new Date().toISOString().slice(0, 10) ? 'Gecikti' : 'Bugün'}
+            <>
+              {todayAppointments.map((appt) => {
+                const typeInfo = APPOINTMENT_TYPES.find((t) => t.value === appt.type);
+                return (
+                  <div className="action-item" key={`appt-${appt.id}`}>
+                    <span className="action-item__dot">{typeInfo?.icon || '📌'}</span>
+                    <div className="action-item__body">
+                      <div className="action-item__title">{appt.title}</div>
+                      <div className="action-item__meta">
+                        {appt.time ? `🕒 ${appt.time}` : 'Saat belirtilmedi'} · {typeInfo?.label}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {todayTasks.map((task) => (
+                <div className="action-item" key={`task-${task.id}`}>
+                  <span className="action-item__dot">{task.dueDate < new Date().toISOString().slice(0, 10) ? '🔴' : '🟡'}</span>
+                  <div className="action-item__body">
+                    <div className="action-item__title">{task.title}</div>
+                    <div className="action-item__meta">
+                      {task.dueDate < new Date().toISOString().slice(0, 10) ? 'Gecikti (görev)' : 'Bugün (görev)'}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </>
           )}
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--paper-line)' }}>
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--paper-line)', display: 'flex', gap: 14 }}>
+            <Link to="/takvim" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-navy)' }}>
+              Takvimi gör →
+            </Link>
             <Link to="/gorevler" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-navy)' }}>
               Tüm görevleri gör →
             </Link>

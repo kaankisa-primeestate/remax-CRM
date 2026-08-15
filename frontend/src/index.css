@@ -1521,3 +1521,22 @@ button {
 .task-row__delete:hover {
   color: var(--danger);
 }
+
+/* --- Takvim: Ajanda grupları --- */
+.agenda-group {
+  margin-bottom: 18px;
+}
+.agenda-group:last-child {
+  margin-bottom: 0;
+}
+.agenda-group__date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brass);
+  font-weight: 700;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--paper-line);
+}

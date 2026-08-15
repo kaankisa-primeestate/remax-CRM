@@ -20,6 +20,7 @@ const dashboard_module_1 = require("./dashboard/dashboard.module");
 const matching_module_1 = require("./matching/matching.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const tasks_module_1 = require("./tasks/tasks.module");
+const appointments_module_1 = require("./appointments/appointments.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -59,6 +60,7 @@ exports.AppModule = AppModule = __decorate([
             matching_module_1.MatchingModule,
             notifications_module_1.NotificationsModule,
             tasks_module_1.TasksModule,
+            appointments_module_1.AppointmentsModule,
         ],
     })
 ], AppModule);
