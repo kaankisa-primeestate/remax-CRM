@@ -78,4 +78,7 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsString()
   purchaseTimeline?: string;
+  @IsOptional()
+  @IsString()
+  pipelineStage?: string;
 }

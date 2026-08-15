@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { propertiesApi } from '../api/properties';
-import { customersApi } from '../api/customers';
+import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { dashboardApi } from '../api/dashboard';
+import { PIPELINE_STAGES } from '../constants/pipeline.js';
 
 const money = (n) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n || 0);
@@ -10,13 +12,6 @@ const money = (n) =>
 const MATCHABLE_TYPES = ['buyer', 'tenant', 'investor'];
 const MAX_CUSTOMERS_TO_SCAN = 8; // performans icin taranacak musteri sayisi ust siniri
 const MAX_MATCHES_SHOWN = 4;
-
-const KANBAN_COLUMNS = [
-  { key: 'new', label: 'Yeni Talepler' },
-  { key: 'showing', label: 'Gösterim Yapılan' },
-  { key: 'offer', label: 'Teklif Aşaması' },
-  { key: 'closed', label: 'Tapu / Kapanan' },
-];
 
 export default function AgentDashboardPage() {
   const { user } = useAuth();
@@ -26,6 +21,7 @@ export default function AgentDashboardPage() {
   const [activePropertiesCount, setActivePropertiesCount] = useState(0);
   const [matches, setMatches] = useState([]);
   const [myTarget, setMyTarget] = useState(null);
+  const [allCustomers, setAllCustomers] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +35,7 @@ export default function AgentDashboardPage() {
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
       setMyTarget(targetProgress);
+      setAllCustomers(customers);
 
       // Akilli Eslestirme: kendi musterilerinden (alici/kiraci/yatirimci)
       // birkacini tarayip en iyi eslesen portfoyleri topluyoruz. Bu, zaten
@@ -150,16 +147,29 @@ export default function AgentDashboardPage() {
 
       {/* --- Müşteri Takip Kanban Panosu --- */}
       <div className="panel">
-        <h3 className="panel__title">
-          Müşteri Takip Panosu <span className="soon-badge">Yakında</span>
-        </h3>
+        <h3 className="panel__title">Müşteri Takip Panosu</h3>
         <div className="kanban-board">
-          {KANBAN_COLUMNS.map((col) => (
-            <div className="kanban-column" key={col.key}>
-              <div className="kanban-column__title">{col.label}</div>
-              <div className="kanban-empty">Aşama takibi eklendiğinde burada görünecek</div>
-            </div>
-          ))}
+          {PIPELINE_STAGES.map((stage) => {
+            const stageCustomers = allCustomers.filter((c) => (c.pipelineStage || 'new_contact') === stage.key);
+            return (
+              <div className="kanban-column" key={stage.key}>
+                <div className="kanban-column__title">{stage.label} ({stageCustomers.length})</div>
+                {stageCustomers.length === 0 ? (
+                  <div className="kanban-empty">Bu aşamada müşteri yok</div>
+                ) : (
+                  stageCustomers.map((c) => (
+                    <Link to={`/musteriler/${c.id}`} className="kanban-card kanban-card--clickable" key={c.id}>
+                      <div className="kanban-card__name">{c.firstName} {c.lastName}</div>
+                      <div className="kanban-card__meta">
+                        {CUSTOMER_TYPES.find((t) => t.value === c.type)?.label}
+                        {c.propertyInterest ? ` · ${c.propertyInterest}` : ''}
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

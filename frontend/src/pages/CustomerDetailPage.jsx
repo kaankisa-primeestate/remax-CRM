@@ -7,6 +7,7 @@ import CustomerFormModal from '../components/CustomerFormModal.jsx';
 import InteractionTimeline from '../components/InteractionTimeline.jsx';
 import AddInteractionForm from '../components/AddInteractionForm.jsx';
 import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact.js';
+import { PIPELINE_STAGES } from '../constants/pipeline.js';
 
 const TIMELINE_LABELS = {
   immediate: 'Hemen',
@@ -50,6 +51,17 @@ export default function CustomerDetailPage() {
   async function handleAddInteraction(payload) {
     await customersApi.addInteraction(id, payload);
     load();
+  }
+
+  async function handleStageChange(newStage) {
+    const previous = customer.pipelineStage;
+    setCustomer((c) => ({ ...c, pipelineStage: newStage })); // iyimser guncelleme
+    try {
+      await customersApi.update(id, { pipelineStage: newStage });
+    } catch (err) {
+      setCustomer((c) => ({ ...c, pipelineStage: previous })); // hata olursa geri al
+      alert('Aşama güncellenemedi, tekrar deneyin.');
+    }
   }
 
   if (!customer) return <div className="empty-state">Yükleniyor…</div>;
@@ -108,6 +120,22 @@ export default function CustomerDetailPage() {
             <button className="btn btn-danger" onClick={handleDelete}>
               Sil
             </button>
+          </div>
+        </div>
+
+        <div className="stage-picker">
+          <span className="stage-picker__label">Süreç Aşaması:</span>
+          <div className="stage-picker__options">
+            {PIPELINE_STAGES.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                className={`stage-picker__chip${customer.pipelineStage === s.key ? ' is-active' : ''}`}
+                onClick={() => handleStageChange(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
         </div>
 

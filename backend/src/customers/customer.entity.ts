@@ -84,6 +84,12 @@ export class Customer {
   @Column({ type: 'varchar', nullable: true })
   purchaseTimeline: string | null;
 
+  // Surec asamasi (Kanban panosu icin) -- new_contact | active | offer | completed
+  // Etiketler (gorunen isimler) sadece frontend'de tutulur, boylece
+  // ileride isim degisikligi veri migrasyonu gerektirmez.
+  @Column({ type: 'varchar', default: 'new_contact' })
+  pipelineStage: string;
+
   // Mahremiyet Duvarı (brief 1.1): bu müşteri hangi danışmana ait.
   // null ise "atanmamış" demektir (bkz. customers.service.ts).
   @Index()

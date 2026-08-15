@@ -25,6 +25,7 @@ export declare class Customer {
     propertyInterest: string | null;
     preferredDistricts: string[] | null;
     purchaseTimeline: string | null;
+    pipelineStage: string;
     agentId: string | null;
     interactions: Interaction[];
     createdAt: Date;

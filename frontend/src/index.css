@@ -1228,6 +1228,26 @@ button {
   margin-bottom: 8px;
   font-size: 12px;
 }
+.kanban-card--clickable {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.kanban-card--clickable:hover {
+  border-color: var(--brass);
+}
+.kanban-card__name {
+  font-weight: 700;
+  color: var(--ink-navy);
+  margin-bottom: 2px;
+}
+.kanban-card__meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
 .kanban-empty {
   color: var(--muted);
   font-size: 12px;
@@ -1396,4 +1416,43 @@ button {
   color: var(--muted);
   text-transform: uppercase;
   margin-top: 2px;
+}
+
+/* --- Müşteri detay: Süreç Aşaması seçici --- */
+.stage-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--paper-line);
+}
+.stage-picker__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.stage-picker__options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.stage-picker__chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--paper-line);
+  background: var(--paper-raised);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.stage-picker__chip.is-active {
+  background: var(--ink-navy);
+  border-color: var(--ink-navy);
+  color: white;
 }
