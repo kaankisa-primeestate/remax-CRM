@@ -7,7 +7,9 @@ import CustomerFormModal from '../components/CustomerFormModal.jsx';
 import InteractionTimeline from '../components/InteractionTimeline.jsx';
 import AddInteractionForm from '../components/AddInteractionForm.jsx';
 import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact.js';
+import { tasksApi } from '../api/tasks';
 import { PIPELINE_STAGES } from '../constants/pipeline.js';
+import { LEAD_SOURCES } from '../constants/leadSources.js';
 
 const TIMELINE_LABELS = {
   immediate: 'Hemen',
@@ -51,6 +53,28 @@ export default function CustomerDetailPage() {
   async function handleAddInteraction(payload) {
     await customersApi.addInteraction(id, payload);
     load();
+
+    // Otomatik Takip Hatirlaticisi: gorusme kaydedildikten sonra, "3 gun
+    // sonra tekrar ara" gibi bir gorev onerelim -- danisman isterse kabul
+    // eder, istemezse iptal eder. Musteriyi kaybetmemek icin kucuk ama
+    // degerli bir dokunus.
+    const wantsFollowUp = window.confirm(
+      `Görüşme kaydedildi. ${customer.firstName} ${customer.lastName} için 3 gün sonrasına bir "takip et" görevi oluşturulsun mu?`,
+    );
+    if (wantsFollowUp) {
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 3);
+      try {
+        await tasksApi.create({
+          title: `Takip: ${customer.firstName} ${customer.lastName}`,
+          dueDate: dueDate.toISOString().slice(0, 10),
+          customerId: customer.id,
+        });
+      } catch (err) {
+        // Sessizce yut -- gorev olusturma basarisiz olsa bile ana islem
+        // (gorusme kaydi) zaten tamamlandi, kullaniciyi bununla ugrastırma
+      }
+    }
   }
 
   async function handleStageChange(newStage) {
@@ -86,6 +110,7 @@ export default function CustomerDetailPage() {
     { label: 'E-posta', filled: !!customer.email },
     { label: 'Adres', filled: !!customer.address },
     { label: 'Detaylı aradığı özellikler', filled: !!customer.requirements },
+    { label: 'Nereden geldiği', filled: !!customer.leadSource },
   ];
   const filledCount = COMPLETION_CHECKLIST.filter((c) => c.filled).length;
   const completionPct = Math.round((filledCount / COMPLETION_CHECKLIST.length) * 100);
@@ -203,6 +228,12 @@ export default function CustomerDetailPage() {
             <div className="dossier__field">
               <label>Zaman Çizelgesi</label>
               <div>{TIMELINE_LABELS[customer.purchaseTimeline] || customer.purchaseTimeline}</div>
+            </div>
+          )}
+          {customer.leadSource && (
+            <div className="dossier__field">
+              <label>Nereden Geldi</label>
+              <div>{LEAD_SOURCES.find((s) => s.value === customer.leadSource)?.label || customer.leadSource}</div>
             </div>
           )}
           <div className="dossier__field" style={{ gridColumn: '1 / -1' }}>

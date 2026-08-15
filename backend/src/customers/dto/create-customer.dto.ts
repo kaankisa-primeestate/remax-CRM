@@ -81,4 +81,7 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsString()
   pipelineStage?: string;
+  @IsOptional()
+  @IsString()
+  leadSource?: string;
 }

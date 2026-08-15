@@ -19,4 +19,5 @@ export declare class CreateCustomerDto {
     preferredDistricts?: string[];
     purchaseTimeline?: string;
     pipelineStage?: string;
+    leadSource?: string;
 }

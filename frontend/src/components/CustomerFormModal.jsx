@@ -3,6 +3,7 @@ import { CUSTOMER_TYPES } from '../api/customers';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import MoneyInput from './MoneyInput.jsx';
+import { LEAD_SOURCES } from '../constants/leadSources.js';
 
 const emptyForm = {
   firstName: '',
@@ -19,6 +20,7 @@ const emptyForm = {
   propertyInterest: '',
   preferredDistrictsText: '',
   purchaseTimeline: '',
+  leadSource: '',
 };
 
 const TIMELINE_OPTIONS = [
@@ -82,6 +84,7 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
           ? form.preferredDistrictsText.split(',').map((s) => s.trim()).filter(Boolean)
           : undefined,
         purchaseTimeline: form.purchaseTimeline || undefined,
+        leadSource: form.leadSource || undefined,
       };
       await onSubmit(payload);
     } catch (err) {
@@ -162,6 +165,15 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
               <select name="purchaseTimeline" value={form.purchaseTimeline} onChange={handleChange}>
                 {TIMELINE_OPTIONS.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Nereden Geldi?</label>
+              <select name="leadSource" value={form.leadSource} onChange={handleChange}>
+                <option value="">Belirtilmedi</option>
+                {LEAD_SOURCES.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
             </div>

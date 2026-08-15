@@ -90,6 +90,11 @@ export class Customer {
   @Column({ type: 'varchar', default: 'new_contact' })
   pipelineStage: string;
 
+  // Bu musteri nereden geldi -- referral | social_media | website | signage | other
+  // (Etiketler frontend'de, ayni pipelineStage mantigiyla)
+  @Column({ type: 'varchar', nullable: true })
+  leadSource: string | null;
+
   // Mahremiyet Duvarı (brief 1.1): bu müşteri hangi danışmana ait.
   // null ise "atanmamış" demektir (bkz. customers.service.ts).
   @Index()

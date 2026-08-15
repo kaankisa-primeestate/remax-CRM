@@ -206,7 +206,7 @@ export default function AgentDashboardPage() {
             <div className="panel__empty">Şu an güçlü bir eşleşme bulunamadı.</div>
           ) : (
             matches.map((m) => (
-              <div className="match-card" key={`${m.customer.id}-${m.property.id}`}>
+              <Link to={`/portfoyler/${m.property.id}`} className="match-card match-card--clickable" key={`${m.customer.id}-${m.property.id}`}>
                 <span className="match-card__pct">%{m.score}</span>
                 <div className="match-card__body">
                   <div className="match-card__title">{m.property.title}</div>
@@ -214,7 +214,7 @@ export default function AgentDashboardPage() {
                     {m.customer.firstName} {m.customer.lastName} için · {m.property.district} · {money(m.property.price)}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))
           )}
         </div>

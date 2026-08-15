@@ -1187,6 +1187,17 @@ button {
   padding: 10px 0;
   border-bottom: 1px solid var(--paper-line);
 }
+.match-card--clickable {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 0 -8px;
+  padding: 10px 8px;
+}
+.match-card--clickable:hover {
+  background: var(--paper);
+}
 .match-card:last-child { border-bottom: none; }
 .match-card__pct {
   background: #eef4ea;
