@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../api/notifications';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -9,6 +10,8 @@ const TYPE_ICONS = {
   interaction: '📞',
   commission_added: '💰',
   commission_approved: '✅',
+  property_pending_approval: '⏳',
+  broker_message: '💬',
 };
 
 function timeAgo(dateStr) {
@@ -24,14 +27,15 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationBell() {
-  const { isBroker } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const wrapperRef = useRef(null);
 
   const load = useCallback(async () => {
-    if (!isBroker) return;
+    if (!user) return;
     try {
       const data = await notificationsApi.list();
       setItems(data.items);
@@ -39,14 +43,14 @@ export default function NotificationBell() {
     } catch (e) {
       // Bildirim zili kritik bir ozellik degil; sessizce yut, sayfayi bozma
     }
-  }, [isBroker]);
+  }, [user]);
 
   useEffect(() => {
-    if (!isBroker) return;
+    if (!user) return;
     load();
     const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
-  }, [isBroker, load]);
+  }, [user, load]);
 
   // Panel disina tiklaninca kapat
   useEffect(() => {
@@ -73,7 +77,14 @@ export default function NotificationBell() {
     }
   }
 
-  if (!isBroker) return null;
+  function handleItemClick(item) {
+    if (item.propertyId) {
+      setOpen(false);
+      navigate(`/portfoyler/${item.propertyId}`);
+    }
+  }
+
+  if (!user) return null;
 
   return (
     <div className="notif-bell" ref={wrapperRef}>
@@ -98,7 +109,8 @@ export default function NotificationBell() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className={`notif-bell__item${item.read ? '' : ' notif-bell__item--unread'}`}
+                  className={`notif-bell__item${item.read ? '' : ' notif-bell__item--unread'}${item.propertyId ? ' notif-bell__item--clickable' : ''}`}
+                  onClick={() => handleItemClick(item)}
                 >
                   <span className="notif-bell__icon" aria-hidden="true">{TYPE_ICONS[item.type] || '•'}</span>
                   <div className="notif-bell__content">

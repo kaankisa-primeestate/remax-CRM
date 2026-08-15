@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { dashboardApi } from '../api/dashboard';
 import { propertiesApi } from '../api/properties';
+import { propertyCommentsApi } from '../api/propertyComments';
 
 function toISO(date) {
   const yyyy = date.getFullYear();
@@ -135,6 +136,11 @@ export default function DashboardPage() {
     if (note === null) return; // vazgecildi
     try {
       await propertiesApi.update(propertyId, { status: 'needs_revision', revisionNote: note || undefined });
+      if (note && note.trim()) {
+        // Ayni notu yazisma thread'ine de ekliyoruz -- boylece Danisman
+        // konuyu tam olarak orada gorup cevap yazabilir.
+        await propertyCommentsApi.create(propertyId, note.trim()).catch(() => {});
+      }
       load();
     } catch (err) {
       const message = err?.response?.data?.message ?? 'Revizyon isteği gönderilemedi.';

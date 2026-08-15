@@ -1,17 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
-import { Property } from '../portfolios/property.entity';
+import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
 import { Commission } from '../commissions/commission.entity';
-import { User } from '../users/user.entity';
+import { User, UserRole } from '../users/user.entity';
+import { PropertyComment } from '../property-comments/property-comment.entity';
 
 const PROPERTY_STATUS_LABELS: Record<string, string> = {
   active: 'Aktif',
   passive: 'Pasif',
   sold: 'Satıldı',
   rented: 'Kiralandı',
+  pending_approval: 'Onay Bekliyor',
+  needs_revision: 'Revizyon Gerekli',
 };
 
 export type NotificationType =
@@ -20,7 +23,9 @@ export type NotificationType =
   | 'new_customer'
   | 'interaction'
   | 'commission_added'
-  | 'commission_approved';
+  | 'commission_approved'
+  | 'property_pending_approval'
+  | 'broker_message';
 
 export interface NotificationItem {
   id: string;
@@ -29,6 +34,7 @@ export interface NotificationItem {
   agentName: string;
   occurredAt: Date;
   read: boolean;
+  propertyId?: string;
 }
 
 // Her kaynaktan en fazla bu kadar kayit cekilir (performans icin)
@@ -44,12 +50,25 @@ export class NotificationsService {
     @InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
     @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(PropertyComment) private readonly commentRepo: Repository<PropertyComment>,
   ) {}
 
   async getRecentActivity(userId: string): Promise<{ items: NotificationItem[]; unreadCount: number }> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     const seenAt = user?.lastNotificationsSeenAt ?? null;
 
+    // Danisman ve Broker'in zili TAMAMEN FARKLI icerikler gosterir --
+    // Danisman kendi ilanlarina gelen Broker mesajlarini gorur, Broker
+    // ise genel ofis aktivitesi + onay bekleyen ilanlari gorur.
+    if (user?.role === UserRole.AGENT) {
+      return this.getAgentNotifications(userId, seenAt);
+    }
+    return this.getBrokerNotifications(seenAt);
+  }
+
+  private async getBrokerNotifications(
+    seenAt: Date | null,
+  ): Promise<{ items: NotificationItem[]; unreadCount: number }> {
     const allUsers = await this.userRepo.find();
     const nameById = new Map(allUsers.map((u) => [u.id, u.name]));
     const nameFor = (agentId: string | null): string => {
@@ -64,6 +83,7 @@ export class NotificationsService {
       interactions,
       newCommissions,
       approvedCommissions,
+      pendingApprovalProperties,
     ] = await Promise.all([
       this.propertyRepo.find({ order: { createdAt: 'DESC' }, take: LIMIT_PER_SOURCE }),
       this.propertyRepo.find({
@@ -83,6 +103,13 @@ export class NotificationsService {
         order: { statusChangedAt: 'DESC' },
         take: LIMIT_PER_SOURCE,
       }),
+      // Onay bekleyen (veya revizyon sonrasi tekrar gonderilen) ilanlar --
+      // Broker'in "acil onaylanmasi gereken" ilanlardan haberdar olmasi icin.
+      this.propertyRepo.find({
+        where: { status: PropertyStatus.PENDING_APPROVAL },
+        order: { statusChangedAt: 'DESC', createdAt: 'DESC' },
+        take: LIMIT_PER_SOURCE,
+      }),
     ]);
 
     const items: NotificationItem[] = [
@@ -93,6 +120,7 @@ export class NotificationsService {
         agentName: nameFor(p.agentId),
         occurredAt: p.createdAt,
         read: false,
+        propertyId: p.id,
       })),
       ...statusChangedProperties.map((p) => ({
         id: `property-status-${p.id}-${new Date(p.statusChangedAt as Date).getTime()}`,
@@ -101,6 +129,7 @@ export class NotificationsService {
         agentName: nameFor(p.agentId),
         occurredAt: p.statusChangedAt as Date,
         read: false,
+        propertyId: p.id,
       })),
       ...newCustomers.map((c) => ({
         id: `customer-new-${c.id}`,
@@ -134,8 +163,59 @@ export class NotificationsService {
         occurredAt: cm.statusChangedAt as Date,
         read: false,
       })),
+      ...pendingApprovalProperties.map((p) => ({
+        id: `property-pending-${p.id}-${new Date(p.statusChangedAt || p.createdAt).getTime()}`,
+        type: 'property_pending_approval' as const,
+        title: `Onay bekleyen ilan: ${p.title}`,
+        agentName: nameFor(p.agentId),
+        occurredAt: (p.statusChangedAt as Date) || p.createdAt,
+        read: false,
+        propertyId: p.id,
+      })),
     ]
       .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+      .slice(0, TOTAL_LIMIT)
+      .map((item) => ({
+        ...item,
+        read: seenAt ? new Date(item.occurredAt).getTime() <= new Date(seenAt).getTime() : false,
+      }));
+
+    const unreadCount = items.filter((i) => !i.read).length;
+
+    return { items, unreadCount };
+  }
+
+  // Danismanin zili: kendi portfoylerine gelen Broker mesajlarini gosterir
+  // (bkz. PropertyComments -- "Revize Iste" de dahil olmak uzere HER
+  // Broker mesaji burada bir bildirim olarak cikar).
+  private async getAgentNotifications(
+    agentId: string,
+    seenAt: Date | null,
+  ): Promise<{ items: NotificationItem[]; unreadCount: number }> {
+    const ownProperties = await this.propertyRepo.find({ where: { agentId } });
+    const propertyIds = ownProperties.length ? ownProperties.map((p) => p.id) : ['00000000-0000-0000-0000-000000000000'];
+    const titleById = new Map(ownProperties.map((p) => [p.id, p.title]));
+
+    const brokerComments = propertyIds.length
+      ? await this.commentRepo
+          .createQueryBuilder('comment')
+          .where('comment.propertyId IN (:...propertyIds)', { propertyIds })
+          .andWhere('comment.authorRole = :role', { role: 'broker' })
+          .orderBy('comment.createdAt', 'DESC')
+          .take(LIMIT_PER_SOURCE)
+          .getMany()
+      : [];
+
+    const items: NotificationItem[] = brokerComments
+      .map((c) => ({
+        id: `broker-message-${c.id}`,
+        type: 'broker_message' as const,
+        title: `Broker mesaj gönderdi: ${titleById.get(c.propertyId) || 'Portföy'}`,
+        agentName: c.authorName,
+        occurredAt: c.createdAt,
+        read: false,
+        propertyId: c.propertyId,
+      }))
       .slice(0, TOTAL_LIMIT)
       .map((item) => ({
         ...item,

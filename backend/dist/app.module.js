@@ -21,6 +21,7 @@ const matching_module_1 = require("./matching/matching.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const tasks_module_1 = require("./tasks/tasks.module");
 const appointments_module_1 = require("./appointments/appointments.module");
+const property_comments_module_1 = require("./property-comments/property-comments.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -61,6 +62,7 @@ exports.AppModule = AppModule = __decorate([
             notifications_module_1.NotificationsModule,
             tasks_module_1.TasksModule,
             appointments_module_1.AppointmentsModule,
+            property_comments_module_1.PropertyCommentsModule,
         ],
     })
 ], AppModule);

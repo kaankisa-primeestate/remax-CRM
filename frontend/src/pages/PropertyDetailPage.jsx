@@ -7,6 +7,7 @@ import PropertyFormModal from '../components/PropertyFormModal.jsx';
 import PropertyShareModal from '../components/PropertyShareModal.jsx';
 import PhotoLightbox from '../components/PhotoLightbox.jsx';
 import QuickStatusSelect from '../components/QuickStatusSelect.jsx';
+import PropertyComments from '../components/PropertyComments.jsx';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
@@ -224,6 +225,8 @@ export default function PropertyDetailPage() {
           </>
         )}
       </div>
+
+      <PropertyComments propertyId={property.id} />
 
       {showEdit && (
         <PropertyFormModal

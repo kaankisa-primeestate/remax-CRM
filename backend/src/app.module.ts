@@ -12,6 +12,7 @@ import { MatchingModule } from './matching/matching.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { PropertyCommentsModule } from './property-comments/property-comments.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { AppointmentsModule } from './appointments/appointments.module';
     NotificationsModule,
     TasksModule,
     AppointmentsModule,
+    PropertyCommentsModule,
   ],
 })
 export class AppModule {}

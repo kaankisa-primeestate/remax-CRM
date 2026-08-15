@@ -178,6 +178,12 @@ button {
   padding: 10px 14px;
   border-bottom: 1px solid var(--paper-line);
 }
+.notif-bell__item--clickable {
+  cursor: pointer;
+}
+.notif-bell__item--clickable:hover {
+  background: var(--paper);
+}
 .notif-bell__item:last-child {
   border-bottom: none;
 }
@@ -1552,4 +1558,86 @@ button {
   margin-top: 14px;
   font-size: 13px;
   color: var(--danger);
+}
+
+/* --- Panelim: Revizyon uyarı bandı (göze çarpan, en üstte) --- */
+.revision-alert {
+  background: #fbe0dc;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.revision-alert__title {
+  font-weight: 700;
+  color: var(--danger);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.revision-alert__item {
+  display: block;
+  text-decoration: none;
+  color: var(--slate);
+  font-size: 13px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(168, 65, 44, 0.2);
+}
+.revision-alert__item:first-of-type {
+  border-top: none;
+}
+.revision-alert__item strong {
+  color: var(--ink-navy);
+}
+.revision-alert__arrow {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* --- Broker/Danışman Yazışması (portföy detay sayfası) --- */
+.comment-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.comment-bubble {
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 85%;
+}
+.comment-bubble--broker {
+  background: #eef2f8;
+  align-self: flex-start;
+}
+.comment-bubble--agent {
+  background: #fbf3e6;
+  align-self: flex-end;
+}
+.comment-bubble__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.comment-bubble__author {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-navy);
+}
+.comment-bubble__role {
+  font-weight: 400;
+  color: var(--muted);
+}
+.comment-bubble__time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.comment-bubble__text {
+  font-size: 13px;
+  color: var(--slate);
+  white-space: pre-wrap;
+  word-break: break-word;
 }

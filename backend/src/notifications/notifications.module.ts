@@ -7,9 +7,10 @@ import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
 import { Commission } from '../commissions/commission.entity';
 import { User } from '../users/user.entity';
+import { PropertyComment } from '../property-comments/property-comment.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User])],
+  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, PropertyComment])],
   controllers: [NotificationsController],
   providers: [NotificationsService],
 })
