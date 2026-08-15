@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { tasksApi } from '../api/tasks';
 
 function isOverdue(task) {
@@ -20,6 +20,7 @@ function formatDueDate(dueDate) {
 }
 
 export default function TasksPage() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
@@ -78,6 +79,23 @@ export default function TasksPage() {
 
   return (
     <div>
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 12,
+          color: 'var(--muted)',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          marginBottom: 12,
+          cursor: 'pointer',
+          display: 'block',
+        }}
+      >
+        ← Geri Dön
+      </button>
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>Görevler</h2>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
