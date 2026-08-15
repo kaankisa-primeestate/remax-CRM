@@ -1652,3 +1652,104 @@ button {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* --- Talepler sayfası: istek kartları --- */
+.request-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+.request-card:hover {
+  border-color: var(--brass);
+}
+.request-card__main {
+  flex: 1;
+  min-width: 200px;
+}
+.request-card__name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.request-card__type {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--paper-line);
+  color: var(--muted);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.request-card__meta {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.request-card__side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.request-card__urgency {
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--paper-line);
+  color: var(--slate);
+}
+.request-card__urgency.is-urgent {
+  background: #fbe0dc;
+  color: var(--danger);
+  font-weight: 700;
+}
+.request-card__stage {
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+.request-card__matches {
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+.request-card__matches.has-matches {
+  color: var(--success);
+  font-weight: 700;
+}
+.request-card__updated {
+  font-family: var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* --- Takvim: Yer Gosterme beyan rozeti --- */
+.disclosure-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: #fdf1d6;
+  color: #8a5a00;
+}
+.disclosure-badge--ok {
+  background: #dfeee2;
+  color: var(--success);
+}

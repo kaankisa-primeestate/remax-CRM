@@ -33,4 +33,8 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsBoolean()
   completed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  disclosureAccepted?: boolean;
 }

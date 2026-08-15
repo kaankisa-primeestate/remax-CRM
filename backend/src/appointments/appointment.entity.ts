@@ -51,6 +51,12 @@ export class Appointment {
   @Column({ default: false })
   completed: boolean;
 
+  // Yer Gosterme Beyani: "Ilan Gosterimi" turundeki randevularda,
+  // musteriye gosterim yapildigina dair beyan/onay alindi mi -- hukuki
+  // koruma icin (danismanin komisyon hakkini kanitlayan kayit).
+  @Column({ default: false })
+  disclosureAccepted: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

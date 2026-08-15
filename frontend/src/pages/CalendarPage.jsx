@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
+import { customersApi } from '../api/customers';
+import { propertiesApi } from '../api/properties';
+import { buildWhatsappUrl } from '../utils/contact.js';
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -18,9 +21,24 @@ function formatDateLabel(dateStr) {
   return date.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
+// Yer Gosterme beyan metni -- WhatsApp uzerinden musteriye gonderilir,
+// e-imza yerine gecen pratik bir kanit/kayit olusturur.
+function buildDisclosureMessage({ agentName, customerName, propertyTitle, date, time }) {
+  const dateLabel = new Date(date).toLocaleDateString('tr-TR');
+  return (
+    `Sayın ${customerName},\n\n` +
+    `${dateLabel}${time ? ` saat ${time}` : ''} tarihinde "${propertyTitle}" mülkünü ` +
+    `tarafınıza gösterdiğimi/tanıttığımı beyan ederim. Bu mesaj, PrimeCRM üzerinden ` +
+    `kaydedilen yer gösterme kaydının onayı niteliğindedir.\n\n` +
+    `${agentName}`
+  );
+}
+
 export default function CalendarPage() {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPast, setShowPast] = useState(false);
 
@@ -28,12 +46,21 @@ export default function CalendarPage() {
   const [date, setDate] = useState(todayStr());
   const [time, setTime] = useState('');
   const [type, setType] = useState('meeting');
+  const [customerId, setCustomerId] = useState('');
+  const [propertyId, setPropertyId] = useState('');
+  const [disclosureAccepted, setDisclosureAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await appointmentsApi.list();
-    setAppointments(data);
+    const [appts, custs, props] = await Promise.all([
+      appointmentsApi.list(),
+      customersApi.list({}),
+      propertiesApi.list({}),
+    ]);
+    setAppointments(appts);
+    setCustomers(custs);
+    setProperties(props);
     setLoading(false);
   }, []);
 
@@ -41,14 +68,29 @@ export default function CalendarPage() {
     load();
   }, [load]);
 
+  function resetForm() {
+    setTitle('');
+    setTime('');
+    setCustomerId('');
+    setPropertyId('');
+    setDisclosureAccepted(false);
+  }
+
   async function handleAdd(e) {
     e.preventDefault();
     if (!title.trim() || !date) return;
     setSaving(true);
     try {
-      await appointmentsApi.create({ title: title.trim(), date, time: time || undefined, type });
-      setTitle('');
-      setTime('');
+      await appointmentsApi.create({
+        title: title.trim(),
+        date,
+        time: time || undefined,
+        type,
+        customerId: customerId || undefined,
+        propertyId: propertyId || undefined,
+        disclosureAccepted: type === 'showing' ? disclosureAccepted : undefined,
+      });
+      resetForm();
       load();
     } finally {
       setSaving(false);
@@ -74,6 +116,23 @@ export default function CalendarPage() {
       alert('Randevu silinemedi, sayfa yenileniyor.');
       load();
     }
+  }
+
+  function handleShareDisclosure(appt) {
+    const customer = customers.find((c) => c.id === appt.customerId);
+    const property = properties.find((p) => p.id === appt.propertyId);
+    if (!customer || !customer.phone) {
+      alert('Bu randevuya bağlı bir müşteri veya telefon numarası bulunamadı.');
+      return;
+    }
+    const message = buildDisclosureMessage({
+      agentName: 'Danışmanınız',
+      customerName: `${customer.firstName} ${customer.lastName}`,
+      propertyTitle: property?.title || appt.title,
+      date: appt.date,
+      time: appt.time,
+    });
+    window.open(buildWhatsappUrl(customer.phone, message), '_blank');
   }
 
   const today = todayStr();
@@ -133,9 +192,47 @@ export default function CalendarPage() {
               ))}
             </select>
           </div>
+
+          {type === 'showing' && (
+            <>
+              <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                <label>Müşteri</label>
+                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+                  <option value="">Seçiniz</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                <label>Portföy</label>
+                <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
+                  <option value="">Seçiniz</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
           <button type="submit" className="btn btn-primary" disabled={saving || !title.trim()}>
             {saving ? 'Ekleniyor…' : '+ Ekle'}
           </button>
+
+          {type === 'showing' && (
+            <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={disclosureAccepted}
+                onChange={(e) => setDisclosureAccepted(e.target.checked)}
+                style={{ width: 'auto' }}
+              />
+              <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>
+                Yer gösterme beyanı müşteriye iletildi / onaylandı
+              </label>
+            </div>
+          )}
         </form>
       </div>
 
@@ -157,6 +254,9 @@ export default function CalendarPage() {
               <div className="agenda-group__date">{formatDateLabel(group.date)}</div>
               {group.items.map((appt) => {
                 const typeInfo = APPOINTMENT_TYPES.find((t) => t.value === appt.type);
+                const isShowing = appt.type === 'showing';
+                const customer = customers.find((c) => c.id === appt.customerId);
+                const property = properties.find((p) => p.id === appt.propertyId);
                 return (
                   <div key={appt.id} className="task-row">
                     <label className="task-row__checkbox">
@@ -168,7 +268,24 @@ export default function CalendarPage() {
                       </div>
                       <div className="task-row__due">
                         {appt.time ? `🕒 ${appt.time}` : 'Saat belirtilmedi'} · {typeInfo?.label}
+                        {isShowing && customer && ` · ${customer.firstName} ${customer.lastName}`}
+                        {isShowing && property && ` · ${property.title}`}
+                        {isShowing && (
+                          <span className={appt.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'}>
+                            {appt.disclosureAccepted ? '✓ Beyan alındı' : '⚠️ Beyan bekleniyor'}
+                          </span>
+                        )}
                       </div>
+                      {isShowing && customer && (
+                        <button
+                          type="button"
+                          className="task-row__link"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          onClick={() => handleShareDisclosure(appt)}
+                        >
+                          📲 WhatsApp ile Yer Gösterme Kaydını Gönder
+                        </button>
+                      )}
                     </div>
                     <button type="button" className="task-row__delete" onClick={() => handleDelete(appt.id)} title="Sil">
                       ✕
