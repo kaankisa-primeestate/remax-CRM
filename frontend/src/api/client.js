@@ -25,7 +25,7 @@ export async function uploadFile(file) {
 
 // Her isteğe, giriş yapmışsa JWT token'ı otomatik olarak ekler
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('remax_crm_token');
+  const token = sessionStorage.getItem('remax_crm_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -37,8 +37,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('remax_crm_token');
-      localStorage.removeItem('remax_crm_user');
+      sessionStorage.removeItem('remax_crm_token');
+      sessionStorage.removeItem('remax_crm_user');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

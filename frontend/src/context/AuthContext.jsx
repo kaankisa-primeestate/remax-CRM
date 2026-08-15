@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 function loadStoredUser() {
   try {
-    const raw = localStorage.getItem('remax_crm_user');
+    const raw = sessionStorage.getItem('remax_crm_user');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -17,15 +17,15 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const { accessToken, user: loggedInUser } = await authApi.login(email, password);
-    localStorage.setItem('remax_crm_token', accessToken);
-    localStorage.setItem('remax_crm_user', JSON.stringify(loggedInUser));
+    sessionStorage.setItem('remax_crm_token', accessToken);
+    sessionStorage.setItem('remax_crm_user', JSON.stringify(loggedInUser));
     setUser(loggedInUser);
     return loggedInUser;
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('remax_crm_token');
-    localStorage.removeItem('remax_crm_user');
+    sessionStorage.removeItem('remax_crm_token');
+    sessionStorage.removeItem('remax_crm_user');
     setUser(null);
   }, []);
 
