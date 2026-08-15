@@ -26,22 +26,25 @@ export default function AgentDashboardPage() {
   const [allCustomers, setAllCustomers] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
+  const [needsRevisionProperties, setNeedsRevisionProperties] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [properties, customers, targetProgress, tasks, appointments] = await Promise.all([
+      const [properties, customers, targetProgress, tasks, appointments, revisionProperties] = await Promise.all([
         propertiesApi.list({ status: 'active' }),
         customersApi.list({}),
         dashboardApi.myTarget().catch(() => null),
         tasksApi.list().catch(() => []),
         appointmentsApi.list().catch(() => []),
+        propertiesApi.list({ status: 'needs_revision' }).catch(() => []),
       ]);
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
       setMyTarget(targetProgress);
       setAllCustomers(customers);
+      setNeedsRevisionProperties(revisionProperties);
 
       // Bugunun Is Plani: gecikmis (dueDate < bugun) veya bugune ait
       // (dueDate === bugun), henuz tamamlanmamis gorevler.
@@ -97,6 +100,21 @@ export default function AgentDashboardPage() {
         {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       </p>
 
+      {needsRevisionProperties.length > 0 && (
+        <div className="revision-alert">
+          <div className="revision-alert__title">
+            ⚠️ {needsRevisionProperties.length} ilanınız için Broker revizyon istedi
+          </div>
+          {needsRevisionProperties.map((p) => (
+            <Link to={`/portfoyler/${p.id}`} className="revision-alert__item" key={p.id}>
+              <strong>{p.title}</strong>
+              {p.revisionNote && <span> — "{p.revisionNote}"</span>}
+              <span className="revision-alert__arrow"> →</span>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* --- Metrik Kartları --- */}
       <div className="metric-grid">
         <div className="metric-card">
@@ -147,7 +165,7 @@ export default function AgentDashboardPage() {
               {todayAppointments.map((appt) => {
                 const typeInfo = APPOINTMENT_TYPES.find((t) => t.value === appt.type);
                 return (
-                  <div className="action-item" key={`appt-${appt.id}`}>
+                  <Link to="/takvim" className="action-item action-item--clickable" key={`appt-${appt.id}`}>
                     <span className="action-item__dot">{typeInfo?.icon || '📌'}</span>
                     <div className="action-item__body">
                       <div className="action-item__title">{appt.title}</div>
@@ -155,11 +173,11 @@ export default function AgentDashboardPage() {
                         {appt.time ? `🕒 ${appt.time}` : 'Saat belirtilmedi'} · {typeInfo?.label}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
               {todayTasks.map((task) => (
-                <div className="action-item" key={`task-${task.id}`}>
+                <Link to="/gorevler" className="action-item action-item--clickable" key={`task-${task.id}`}>
                   <span className="action-item__dot">{task.dueDate < new Date().toISOString().slice(0, 10) ? '🔴' : '🟡'}</span>
                   <div className="action-item__body">
                     <div className="action-item__title">{task.title}</div>
@@ -167,7 +185,7 @@ export default function AgentDashboardPage() {
                       {task.dueDate < new Date().toISOString().slice(0, 10) ? 'Gecikti (görev)' : 'Bugün (görev)'}
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </>
           )}
