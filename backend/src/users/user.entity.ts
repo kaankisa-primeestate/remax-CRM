@@ -38,6 +38,11 @@ export class User {
   @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
   monthlyTarget: number | null;
 
+  // Danismanin ofise odedigi aylik aidat tutari (Broker tarafindan
+  // belirlenir). Her ay icin AgentDue kaydi olustururken bu tutar kullanilir.
+  @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
+  monthlyDuesAmount: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

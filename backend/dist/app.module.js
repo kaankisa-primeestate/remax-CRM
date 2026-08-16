@@ -26,6 +26,7 @@ const announcements_module_1 = require("./announcements/announcements.module");
 const transactions_module_1 = require("./transactions/transactions.module");
 const bank_accounts_module_1 = require("./bank-accounts/bank-accounts.module");
 const expenses_module_1 = require("./expenses/expenses.module");
+const agent_dues_module_1 = require("./agent-dues/agent-dues.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -71,6 +72,7 @@ exports.AppModule = AppModule = __decorate([
             transactions_module_1.TransactionsModule,
             bank_accounts_module_1.BankAccountsModule,
             expenses_module_1.ExpensesModule,
+            agent_dues_module_1.AgentDuesModule,
         ],
     })
 ], AppModule);

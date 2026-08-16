@@ -17,6 +17,7 @@ import { AnnouncementsModule } from './announcements/announcements.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { AgentDuesModule } from './agent-dues/agent-dues.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { ExpensesModule } from './expenses/expenses.module';
     TransactionsModule,
     BankAccountsModule,
     ExpensesModule,
+    AgentDuesModule,
   ],
 })
 export class AppModule {}

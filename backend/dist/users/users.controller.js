@@ -35,6 +35,9 @@ let UsersController = class UsersController {
     setMonthlyTarget(id, monthlyTarget) {
         return this.usersService.setMonthlyTarget(id, monthlyTarget);
     }
+    setMonthlyDues(id, monthlyDuesAmount) {
+        return this.usersService.setMonthlyDues(id, monthlyDuesAmount);
+    }
     async changePassword(dto, user) {
         await this.usersService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
         return { success: true };
@@ -65,6 +68,15 @@ __decorate([
     __metadata("design:paramtypes", [String, Number]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "setMonthlyTarget", null);
+__decorate([
+    (0, common_1.Patch)('agents/:id/dues'),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('monthlyDuesAmount')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Number]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "setMonthlyDues", null);
 __decorate([
     (0, common_1.Patch)('change-password'),
     __param(0, (0, common_1.Body)()),

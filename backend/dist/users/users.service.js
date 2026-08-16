@@ -90,6 +90,16 @@ let UsersService = UsersService_1 = class UsersService {
         const { passwordHash, ...rest } = saved;
         return rest;
     }
+    async setMonthlyDues(agentId, monthlyDuesAmount) {
+        const agent = await this.userRepo.findOne({ where: { id: agentId, role: user_entity_1.UserRole.AGENT } });
+        if (!agent) {
+            throw new common_1.NotFoundException('Danışman bulunamadı');
+        }
+        agent.monthlyDuesAmount = monthlyDuesAmount;
+        const saved = await this.userRepo.save(agent);
+        const { passwordHash, ...rest } = saved;
+        return rest;
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = UsersService_1 = __decorate([

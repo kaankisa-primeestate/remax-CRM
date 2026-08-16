@@ -34,6 +34,13 @@ export class UsersController {
     return this.usersService.setMonthlyTarget(id, monthlyTarget);
   }
 
+  // PATCH /api/users/agents/:id/dues — Broker bir danismanin aylik aidat tutarini belirler
+  @Patch('agents/:id/dues')
+  @Roles(UserRole.BROKER)
+  setMonthlyDues(@Param('id') id: string, @Body('monthlyDuesAmount') monthlyDuesAmount: number) {
+    return this.usersService.setMonthlyDues(id, monthlyDuesAmount);
+  }
+
   // PATCH /api/users/change-password — Broker veya Danisman kendi sifresini degistirir
   @Patch('change-password')
   async changePassword(

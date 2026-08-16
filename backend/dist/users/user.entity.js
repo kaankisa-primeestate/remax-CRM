@@ -48,6 +48,10 @@ __decorate([
     __metadata("design:type", Object)
 ], User.prototype, "monthlyTarget", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'numeric', precision: 14, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "monthlyDuesAmount", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], User.prototype, "createdAt", void 0);

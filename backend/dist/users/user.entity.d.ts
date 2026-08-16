@@ -10,5 +10,6 @@ export declare class User {
     role: UserRole;
     lastNotificationsSeenAt: Date | null;
     monthlyTarget: number | null;
+    monthlyDuesAmount: number | null;
     createdAt: Date;
 }

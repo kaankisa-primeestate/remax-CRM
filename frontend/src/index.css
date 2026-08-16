@@ -2194,3 +2194,32 @@ button {
   font-size: 13px;
   line-height: 1.6;
 }
+
+/* --- Danışman Aidatları: uyarı bandı ve durum rozetleri --- */
+.dues-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fdf1d6;
+  border: 1px solid #e8c477;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.dues-warning-banner__icon {
+  font-size: 20px;
+}
+.dues-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.dues-status--paid {
+  background: #dfeee2;
+  color: var(--success);
+}
+.dues-status--unpaid {
+  background: #fbe0dc;
+  color: var(--danger);
+}

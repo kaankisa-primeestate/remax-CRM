@@ -113,4 +113,16 @@ export class UsersService implements OnModuleInit {
     const { passwordHash, ...rest } = saved;
     return rest;
   }
+
+  // Broker, bir danismanin aylik aidat tutarini belirler/gunceller.
+  async setMonthlyDues(agentId: string, monthlyDuesAmount: number): Promise<Omit<User, 'passwordHash'>> {
+    const agent = await this.userRepo.findOne({ where: { id: agentId, role: UserRole.AGENT } });
+    if (!agent) {
+      throw new NotFoundException('Danışman bulunamadı');
+    }
+    agent.monthlyDuesAmount = monthlyDuesAmount;
+    const saved = await this.userRepo.save(agent);
+    const { passwordHash, ...rest } = saved;
+    return rest;
+  }
 }

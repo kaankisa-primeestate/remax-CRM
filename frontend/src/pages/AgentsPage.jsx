@@ -10,6 +10,8 @@ export default function AgentsPage() {
   const [saving, setSaving] = useState(false);
   const [targetDrafts, setTargetDrafts] = useState({});
   const [savingTargetId, setSavingTargetId] = useState(null);
+  const [duesDrafts, setDuesDrafts] = useState({});
+  const [savingDuesId, setSavingDuesId] = useState(null);
 
   const [announceTitle, setAnnounceTitle] = useState('');
   const [announceMessage, setAnnounceMessage] = useState('');
@@ -28,6 +30,9 @@ export default function AgentsPage() {
     setAgents(data);
     setTargetDrafts(
       Object.fromEntries(data.map((a) => [a.id, a.monthlyTarget != null ? String(a.monthlyTarget) : ''])),
+    );
+    setDuesDrafts(
+      Object.fromEntries(data.map((a) => [a.id, a.monthlyDuesAmount != null ? String(a.monthlyDuesAmount) : ''])),
     );
     setRecentAnnouncements(announcements.slice(0, 20));
     setLoading(false);
@@ -107,6 +112,20 @@ export default function AgentsPage() {
       alert('Hedef kaydedilemedi, tekrar deneyin.');
     } finally {
       setSavingTargetId(null);
+    }
+  }
+
+  async function handleSaveDues(agentId) {
+    setSavingDuesId(agentId);
+    try {
+      const raw = duesDrafts[agentId];
+      const value = raw === '' ? 0 : Number(raw);
+      await usersApi.setMonthlyDues(agentId, value);
+      setAgents((prev) => prev.map((a) => (a.id === agentId ? { ...a, monthlyDuesAmount: value } : a)));
+    } catch (err) {
+      alert('Aidat tutarı kaydedilemedi, tekrar deneyin.');
+    } finally {
+      setSavingDuesId(null);
     }
   }
 
@@ -261,6 +280,27 @@ export default function AgentsPage() {
                   onClick={() => handleSaveTarget(agent.id)}
                 >
                   {savingTargetId === agent.id ? '…' : 'Kaydet'}
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                  Aylık Aidat (₺)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={duesDrafts[agent.id] ?? ''}
+                  onChange={(e) => setDuesDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
+                  style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 10px', fontSize: 12 }}
+                  disabled={savingDuesId === agent.id}
+                  onClick={() => handleSaveDues(agent.id)}
+                >
+                  {savingDuesId === agent.id ? '…' : 'Kaydet'}
                 </button>
               </div>
             </div>
