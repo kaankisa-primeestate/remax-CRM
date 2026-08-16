@@ -29,6 +29,7 @@ export default function AgentDashboardPage() {
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [needsRevisionProperties, setNeedsRevisionProperties] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [officeModalOpen, setOfficeModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +47,7 @@ export default function AgentDashboardPage() {
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
       setMyTarget(targetProgress);
-      setAnnouncements(announcementList.slice(0, 5));
+      setAnnouncements(announcementList.slice(0, 20));
       setAllCustomers(customers);
       setNeedsRevisionProperties(revisionProperties);
 
@@ -95,6 +96,18 @@ export default function AgentDashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
+  async function handleRespondAnnouncement(announcementId, status) {
+    // Iyimser guncelleme -- butona basar basmaz UI'da yaniti goster
+    setAnnouncements((prev) =>
+      prev.map((a) => (a.id === announcementId ? { ...a, myResponse: { status } } : a)),
+    );
+    try {
+      await announcementsApi.respond(announcementId, { status });
+    } catch (err) {
+      alert('Yanıt gönderilemedi, tekrar deneyin.');
+    }
+  }
+
   return (
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 4 }}>
@@ -104,16 +117,65 @@ export default function AgentDashboardPage() {
         {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       </p>
 
-      {announcements.length > 0 && (
-        <div className="announcement-feed">
-          <div className="announcement-feed__title">📢 Broker'dan Duyurular</div>
-          {announcements.map((a) => (
-            <div key={a.id} className="announcement-feed__item">
-              <div className="announcement-feed__item-title">{a.title}</div>
-              <div className="announcement-feed__item-message">{a.message}</div>
-              <div className="announcement-feed__item-date">{new Date(a.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</div>
+      {announcements.length > 0 && (() => {
+        const pendingCount = announcements.filter((a) => a.type !== 'celebration' && !a.myResponse).length;
+        const hasCelebration = announcements.some((a) => a.type === 'celebration');
+        return (
+          <button
+            type="button"
+            className={`office-trigger${hasCelebration ? ' office-trigger--celebration' : ''}`}
+            onClick={() => setOfficeModalOpen(true)}
+          >
+            <span className="office-trigger__icon">🏢</span>
+            <span className="office-trigger__label">Merkez Ofis</span>
+            <span className="office-trigger__hint">
+              {hasCelebration ? '🎉 Yeni kutlama mesajı var!' : `${announcements.length} duyuru`}
+            </span>
+            {pendingCount > 0 && <span className="office-trigger__badge">{pendingCount}</span>}
+          </button>
+        );
+      })()}
+
+      {officeModalOpen && (
+        <div className="modal-backdrop" onClick={() => setOfficeModalOpen(false)}>
+          <div className="modal office-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="office-modal__header">
+              <h2 style={{ margin: 0 }}>🏢 Merkez Ofis</h2>
+              <button type="button" className="office-modal__close" onClick={() => setOfficeModalOpen(false)}>✕</button>
             </div>
-          ))}
+            <div className="office-modal__scroll">
+              {announcements.map((a) => (
+                <div key={a.id} className={`announcement-feed__item${a.type === 'celebration' ? ' announcement-feed__item--celebration' : ''}`}>
+                  {a.type === 'celebration' && (
+                    <div className="confetti">
+                      <span>🎉</span><span>🎊</span><span>✨</span><span>🎉</span><span>🎊</span>
+                    </div>
+                  )}
+                  <div className="announcement-feed__item-title">{a.type === 'celebration' ? '🎉 ' : ''}{a.title}</div>
+                  <div className="announcement-feed__item-message">{a.message}</div>
+                  <div className="announcement-feed__item-date">{new Date(a.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</div>
+                  {a.type !== 'celebration' && (
+                    <div className="announcement-feed__response">
+                      {a.myResponse ? (
+                        <span className={`announcement-feed__response-badge announcement-feed__response-badge--${a.myResponse.status}`}>
+                          {a.myResponse.status === 'yes' ? '✓ Katılacağım olarak yanıtladınız' : '✕ Katılamayacağım olarak yanıtladınız'}
+                        </span>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => handleRespondAnnouncement(a.id, 'yes')}>
+                            ✓ Katılacağım
+                          </button>
+                          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => handleRespondAnnouncement(a.id, 'no')}>
+                            ✕ Katılamayacağım
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

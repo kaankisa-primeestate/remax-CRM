@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { RespondAnnouncementDto } from './dto/respond-announcement.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -19,10 +20,22 @@ export class AnnouncementsController {
     return this.announcementsService.create(dto, user);
   }
 
-  // GET /api/announcements -- Danisman kendine gelenleri, Broker tumunu gorur
+  // GET /api/announcements -- Danisman kendine gelenleri (+ kendi yaniti),
+  // Broker tumunu (+ herkesin yanit ozeti) gorur
   @Get()
   findAll(@CurrentUser() user: CurrentUserPayload) {
     return this.announcementsService.findAllForUser(user);
+  }
+
+  // POST /api/announcements/:id/respond -- Danismanin "katilacagim/
+  // katilamayacagim" gibi yanit vermesi (upsert)
+  @Post(':id/respond')
+  respond(
+    @Param('id') id: string,
+    @Body() dto: RespondAnnouncementDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.announcementsService.respond(id, dto, user);
   }
 
   // DELETE /api/announcements/:id -- Sadece Broker

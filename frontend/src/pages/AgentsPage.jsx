@@ -13,6 +13,7 @@ export default function AgentsPage() {
 
   const [announceTitle, setAnnounceTitle] = useState('');
   const [announceMessage, setAnnounceMessage] = useState('');
+  const [announceType, setAnnounceType] = useState('general');
   const [sendToAll, setSendToAll] = useState(true);
   const [selectedAgentIds, setSelectedAgentIds] = useState([]);
   const [announceSaving, setAnnounceSaving] = useState(false);
@@ -28,7 +29,7 @@ export default function AgentsPage() {
     setTargetDrafts(
       Object.fromEntries(data.map((a) => [a.id, a.monthlyTarget != null ? String(a.monthlyTarget) : ''])),
     );
-    setRecentAnnouncements(announcements.slice(0, 10));
+    setRecentAnnouncements(announcements.slice(0, 20));
     setLoading(false);
   }, []);
 
@@ -64,10 +65,12 @@ export default function AgentsPage() {
       await announcementsApi.create({
         title: announceTitle.trim(),
         message: announceMessage.trim(),
+        type: announceType,
         targetAgentIds: sendToAll ? undefined : selectedAgentIds,
       });
       setAnnounceTitle('');
       setAnnounceMessage('');
+      setAnnounceType('general');
       setSendToAll(true);
       setSelectedAgentIds([]);
       load();
@@ -121,6 +124,12 @@ export default function AgentsPage() {
             <textarea rows={3} value={announceMessage} onChange={(e) => setAnnounceMessage(e.target.value)} placeholder="Örn: 16'sında saat 10:00'da ofiste toplantımız var, lütfen katılın." />
           </div>
           <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={announceType === 'celebration'} onChange={(e) => setAnnounceType(e.target.checked ? 'celebration' : 'general')} style={{ width: 'auto' }} />
+            <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 14 }}>
+              🎉 Kutlama Mesajı (doğum günü, satış/kiralama tebriği vb. — özel görsel efektle gösterilir)
+            </label>
+          </div>
+          <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={sendToAll} onChange={(e) => setSendToAll(e.target.checked)} style={{ width: 'auto' }} />
             <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 14 }}>Tüm Danışmanlara Gönder</label>
           </div>
@@ -148,17 +157,33 @@ export default function AgentsPage() {
         {recentAnnouncements.length > 0 && (
           <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px dashed var(--paper-line)' }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 14, marginTop: 0 }}>Gönderilen Duyurular</h3>
-            {recentAnnouncements.map((a) => (
-              <div key={a.id} className="announce-sent-item">
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{a.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    {a.targetAgentIds?.length ? `${a.targetAgentIds.length} danışmana` : 'Tüm danışmanlara'} · {new Date(a.createdAt).toLocaleDateString('tr-TR')}
+            <div className="announce-sent-scroll">
+              {recentAnnouncements.map((a) => (
+                <div key={a.id} className="announce-sent-item-wrapper">
+                  <div className="announce-sent-item">
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{a.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        {a.targetAgentIds?.length ? `${a.targetAgentIds.length} danışmana` : 'Tüm danışmanlara'} · {new Date(a.createdAt).toLocaleDateString('tr-TR')}
+                        {a.responseCounts && (a.responseCounts.yes > 0 || a.responseCounts.no > 0) && (
+                          <> · <span style={{ color: 'var(--success)' }}>✓ {a.responseCounts.yes}</span> <span style={{ color: 'var(--danger)' }}>✕ {a.responseCounts.no}</span></>
+                        )}
+                      </div>
+                    </div>
+                    <button type="button" className="task-row__delete" onClick={() => handleDeleteAnnouncement(a.id)} title="Sil">✕</button>
                   </div>
+                  {a.responses?.length > 0 && (
+                    <div className="announce-response-list">
+                      {a.responses.map((r) => (
+                        <span key={r.agentId} className={`announce-response-chip announce-response-chip--${r.status}`}>
+                          {r.status === 'yes' ? '✓' : '✕'} {r.agentName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <button type="button" className="task-row__delete" onClick={() => handleDeleteAnnouncement(a.id)} title="Sil">✕</button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

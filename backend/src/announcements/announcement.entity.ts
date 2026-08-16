@@ -20,6 +20,11 @@ export class Announcement {
   @Column({ type: 'simple-array', nullable: true })
   targetAgentIds: string[] | null;
 
+  // general = normal duyuru, celebration = kutlama mesaji (dogum gunu,
+  // satis/kiralama tebrigi vb.) -- frontend'de ozel gorsel efekt icin.
+  @Column({ type: 'varchar', default: 'general' })
+  type: 'general' | 'celebration';
+
   @CreateDateColumn()
   createdAt: Date;
 }

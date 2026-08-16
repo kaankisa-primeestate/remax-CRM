@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateAnnouncementDto {
   @IsNotEmpty()
@@ -13,4 +13,8 @@ export class CreateAnnouncementDto {
   @IsArray()
   @IsUUID('4', { each: true })
   targetAgentIds?: string[];
+
+  @IsOptional()
+  @IsIn(['general', 'celebration'])
+  type?: 'general' | 'celebration';
 }
