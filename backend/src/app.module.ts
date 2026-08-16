@@ -16,6 +16,7 @@ import { PropertyCommentsModule } from './property-comments/property-comments.mo
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
+import { ExpensesModule } from './expenses/expenses.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
     AnnouncementsModule,
     TransactionsModule,
     BankAccountsModule,
+    ExpensesModule,
   ],
 })
 export class AppModule {}

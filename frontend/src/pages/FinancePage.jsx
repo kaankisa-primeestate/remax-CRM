@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { bankAccountsApi, CURRENCIES, formatMoney } from '../api/bankAccounts';
+import { expensesApi, EXPENSE_CATEGORIES } from '../api/expenses';
+import { usersApi } from '../api/auth';
 
 // Finans -- Asama 1: Banka Hesaplari. Diger asamalar (Danisman Cari
 // Hesabi, Ofis Giderleri, Ortaklar, ozet pano) ayni sayfaya sirayla
@@ -23,6 +25,20 @@ export default function FinancePage() {
   const [txReferenceNo, setTxReferenceNo] = useState('');
   const [txSaving, setTxSaving] = useState(false);
 
+  const [expenses, setExpenses] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [expLoading, setExpLoading] = useState(true);
+  const [expCategory, setExpCategory] = useState('rent');
+  const [expTitle, setExpTitle] = useState('');
+  const [expAmount, setExpAmount] = useState('');
+  const [expVatRate, setExpVatRate] = useState('');
+  const [expDate, setExpDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [expReferenceNo, setExpReferenceNo] = useState('');
+  const [expBankAccountId, setExpBankAccountId] = useState('');
+  const [expAgentId, setExpAgentId] = useState('');
+  const [expIsRecurring, setExpIsRecurring] = useState(false);
+  const [expSaving, setExpSaving] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     const data = await bankAccountsApi.list();
@@ -30,9 +46,71 @@ export default function FinancePage() {
     setLoading(false);
   }, []);
 
+  const loadExpenses = useCallback(async () => {
+    setExpLoading(true);
+    const [expData, agentData] = await Promise.all([
+      expensesApi.list(),
+      usersApi.listAgents().catch(() => []),
+    ]);
+    setExpenses(expData);
+    setAgents(agentData);
+    setExpLoading(false);
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadExpenses();
+  }, [load, loadExpenses]);
+
+  function resetExpenseForm() {
+    setExpCategory('rent');
+    setExpTitle('');
+    setExpAmount('');
+    setExpVatRate('');
+    setExpDate(new Date().toISOString().slice(0, 10));
+    setExpReferenceNo('');
+    setExpBankAccountId('');
+    setExpAgentId('');
+    setExpIsRecurring(false);
+  }
+
+  async function handleAddExpense(e) {
+    e.preventDefault();
+    if (!expTitle.trim() || !expAmount || Number(expAmount) <= 0) return;
+    setExpSaving(true);
+    try {
+      await expensesApi.create({
+        category: expCategory,
+        title: expTitle.trim(),
+        amount: Number(expAmount),
+        vatRate: expVatRate ? Number(expVatRate) : undefined,
+        date: expDate,
+        referenceNo: expReferenceNo.trim() || undefined,
+        bankAccountId: expBankAccountId || undefined,
+        agentId: expAgentId || undefined,
+        isRecurring: expIsRecurring,
+      });
+      resetExpenseForm();
+      loadExpenses();
+      load(); // banka hesabina baglandiysa bakiye guncellensin
+    } catch (err) {
+      alert('Gider eklenemedi, tekrar deneyin.');
+    } finally {
+      setExpSaving(false);
+    }
+  }
+
+  async function handleDeleteExpense(id) {
+    if (!confirm('Bu gider silinsin mi? (Bağlı banka hareketi varsa o da silinecek)')) return;
+    setExpenses((prev) => prev.filter((x) => x.id !== id));
+    try {
+      await expensesApi.remove(id);
+      load(); // banka bakiyesi guncellensin
+    } catch {
+      alert('Gider silinemedi, sayfa yenileniyor.');
+      loadExpenses();
+    }
+  }
 
   async function handleAddAccount(e) {
     e.preventDefault();
@@ -255,6 +333,115 @@ export default function FinancePage() {
           </div>
         ))
       )}
+
+      {/* --- Ofis Giderleri --- */}
+      <h2 className="dossier__name" style={{ marginTop: 32, marginBottom: 16 }}>Ofis Giderleri</h2>
+
+      <div className="folder-panel" style={{ marginBottom: 20 }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Gider Ekle</h3>
+        <form onSubmit={handleAddExpense} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="form-field" style={{ margin: 0 }}>
+            <label>Kategori</label>
+            <select value={expCategory} onChange={(e) => setExpCategory(e.target.value)}>
+              {EXPENSE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+            <label>Açıklama</label>
+            <input value={expTitle} onChange={(e) => setExpTitle(e.target.value)} placeholder="Örn: Ağustos Kirası" />
+          </div>
+          <div className="form-field" style={{ margin: 0 }}>
+            <label>Tutar (KDV dahil)</label>
+            <input type="number" min="0.01" step="0.01" value={expAmount} onChange={(e) => setExpAmount(e.target.value)} />
+          </div>
+          <div className="form-field" style={{ margin: 0, maxWidth: 100 }}>
+            <label>KDV % (opsiyonel)</label>
+            <input type="number" min="0" max="100" value={expVatRate} onChange={(e) => setExpVatRate(e.target.value)} placeholder="20" />
+          </div>
+          <div className="form-field" style={{ margin: 0 }}>
+            <label>Tarih</label>
+            <input type="date" value={expDate} onChange={(e) => setExpDate(e.target.value)} />
+          </div>
+          <div className="form-field" style={{ margin: 0, minWidth: 120 }}>
+            <label>Fiş/Fatura No</label>
+            <input value={expReferenceNo} onChange={(e) => setExpReferenceNo(e.target.value)} placeholder="Opsiyonel" />
+          </div>
+          <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+            <label>Banka Hesabı (opsiyonel)</label>
+            <select value={expBankAccountId} onChange={(e) => setExpBankAccountId(e.target.value)}>
+              <option value="">Seçilmedi</option>
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
+            <label>Danışman (opsiyonel)</label>
+            <select value={expAgentId} onChange={(e) => setExpAgentId(e.target.value)}>
+              <option value="">Seçilmedi</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
+            <input type="checkbox" checked={expIsRecurring} onChange={(e) => setExpIsRecurring(e.target.checked)} style={{ width: 'auto' }} />
+            <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>Sabit Gider (her ay tekrar eden)</label>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={expSaving || !expTitle.trim() || !expAmount}>
+            {expSaving ? 'Ekleniyor…' : '+ Gider Ekle'}
+          </button>
+        </form>
+      </div>
+
+      <div className="folder-panel">
+        {expLoading ? (
+          <div className="empty-state">Yükleniyor…</div>
+        ) : expenses.length === 0 ? (
+          <div className="empty-state">Henüz gider eklenmemiş.</div>
+        ) : (
+          <div className="table-scroll">
+            <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                  <th style={{ padding: '6px 8px' }}>Tarih</th>
+                  <th style={{ padding: '6px 8px' }}>Kategori</th>
+                  <th style={{ padding: '6px 8px' }}>Açıklama</th>
+                  <th style={{ padding: '6px 8px' }}>Tutar</th>
+                  <th style={{ padding: '6px 8px' }}>Danışman</th>
+                  <th style={{ padding: '6px 8px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((exp) => {
+                  const agent = agents.find((a) => a.id === exp.agentId);
+                  const catLabel = EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label;
+                  return (
+                    <tr key={exp.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                      <td style={{ padding: '8px' }}>{new Date(exp.date).toLocaleDateString('tr-TR')}</td>
+                      <td style={{ padding: '8px' }}>{catLabel}{exp.isRecurring && ' 🔁'}</td>
+                      <td style={{ padding: '8px' }}>
+                        {exp.title}
+                        {exp.referenceNo && <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11 }}> · {exp.referenceNo}</span>}
+                      </td>
+                      <td style={{ padding: '8px', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>
+                        {formatMoney(exp.amount)}
+                        {exp.vatRate != null && <span style={{ color: 'var(--muted)', fontSize: 11 }}> (KDV %{exp.vatRate})</span>}
+                      </td>
+                      <td style={{ padding: '8px' }}>{agent?.name || '—'}</td>
+                      <td style={{ padding: '8px' }}>
+                        <button type="button" className="task-row__delete" onClick={() => handleDeleteExpense(exp.id)} title="Sil">✕</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
