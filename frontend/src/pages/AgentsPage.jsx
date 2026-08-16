@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { usersApi } from '../api/auth';
+import { announcementsApi } from '../api/announcements';
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState([]);
@@ -10,13 +11,24 @@ export default function AgentsPage() {
   const [targetDrafts, setTargetDrafts] = useState({});
   const [savingTargetId, setSavingTargetId] = useState(null);
 
+  const [announceTitle, setAnnounceTitle] = useState('');
+  const [announceMessage, setAnnounceMessage] = useState('');
+  const [sendToAll, setSendToAll] = useState(true);
+  const [selectedAgentIds, setSelectedAgentIds] = useState([]);
+  const [announceSaving, setAnnounceSaving] = useState(false);
+  const [recentAnnouncements, setRecentAnnouncements] = useState([]);
+
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await usersApi.listAgents();
+    const [data, announcements] = await Promise.all([
+      usersApi.listAgents(),
+      announcementsApi.list().catch(() => []),
+    ]);
     setAgents(data);
     setTargetDrafts(
       Object.fromEntries(data.map((a) => [a.id, a.monthlyTarget != null ? String(a.monthlyTarget) : ''])),
     );
+    setRecentAnnouncements(announcements.slice(0, 10));
     setLoading(false);
   }, []);
 
@@ -40,6 +52,47 @@ export default function AgentsPage() {
     }
   }
 
+  async function handleSendAnnouncement(e) {
+    e.preventDefault();
+    if (!announceTitle.trim() || !announceMessage.trim()) return;
+    if (!sendToAll && selectedAgentIds.length === 0) {
+      alert('En az bir danışman seçin, ya da "Tüm Danışmanlara Gönder" seçeneğini işaretleyin.');
+      return;
+    }
+    setAnnounceSaving(true);
+    try {
+      await announcementsApi.create({
+        title: announceTitle.trim(),
+        message: announceMessage.trim(),
+        targetAgentIds: sendToAll ? undefined : selectedAgentIds,
+      });
+      setAnnounceTitle('');
+      setAnnounceMessage('');
+      setSendToAll(true);
+      setSelectedAgentIds([]);
+      load();
+    } catch (err) {
+      alert('Duyuru gönderilemedi, tekrar deneyin.');
+    } finally {
+      setAnnounceSaving(false);
+    }
+  }
+
+  function toggleSelectedAgent(agentId) {
+    setSelectedAgentIds((prev) => (prev.includes(agentId) ? prev.filter((id) => id !== agentId) : [...prev, agentId]));
+  }
+
+  async function handleDeleteAnnouncement(id) {
+    if (!confirm('Bu duyuru silinsin mi?')) return;
+    setRecentAnnouncements((prev) => prev.filter((a) => a.id !== id));
+    try {
+      await announcementsApi.remove(id);
+    } catch {
+      alert('Duyuru silinemedi, sayfa yenileniyor.');
+      load();
+    }
+  }
+
   async function handleSaveTarget(agentId) {
     setSavingTargetId(agentId);
     try {
@@ -56,6 +109,60 @@ export default function AgentsPage() {
 
   return (
     <div>
+      <div className="folder-panel" style={{ marginBottom: 24 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>📢 Danışmanlara Duyuru Gönder</h2>
+        <form onSubmit={handleSendAnnouncement}>
+          <div className="form-field">
+            <label>Başlık</label>
+            <input value={announceTitle} onChange={(e) => setAnnounceTitle(e.target.value)} placeholder="Örn: Pazartesi Toplantısı" />
+          </div>
+          <div className="form-field">
+            <label>Mesaj</label>
+            <textarea rows={3} value={announceMessage} onChange={(e) => setAnnounceMessage(e.target.value)} placeholder="Örn: 16'sında saat 10:00'da ofiste toplantımız var, lütfen katılın." />
+          </div>
+          <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={sendToAll} onChange={(e) => setSendToAll(e.target.checked)} style={{ width: 'auto' }} />
+            <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 14 }}>Tüm Danışmanlara Gönder</label>
+          </div>
+          {!sendToAll && (
+            <div className="announce-agent-picker">
+              {agents.map((agent) => (
+                <label key={agent.id} className="announce-agent-picker__item">
+                  <input
+                    type="checkbox"
+                    checked={selectedAgentIds.includes(agent.id)}
+                    onChange={() => toggleSelectedAgent(agent.id)}
+                  />
+                  {agent.name}
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: 14 }}>
+            <button type="submit" className="btn btn-primary" disabled={announceSaving || !announceTitle.trim() || !announceMessage.trim()}>
+              {announceSaving ? 'Gönderiliyor…' : 'Duyuruyu Gönder'}
+            </button>
+          </div>
+        </form>
+
+        {recentAnnouncements.length > 0 && (
+          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px dashed var(--paper-line)' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 14, marginTop: 0 }}>Gönderilen Duyurular</h3>
+            {recentAnnouncements.map((a) => (
+              <div key={a.id} className="announce-sent-item">
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{a.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    {a.targetAgentIds?.length ? `${a.targetAgentIds.length} danışmana` : 'Tüm danışmanlara'} · {new Date(a.createdAt).toLocaleDateString('tr-TR')}
+                  </div>
+                </div>
+                <button type="button" className="task-row__delete" onClick={() => handleDeleteAnnouncement(a.id)} title="Sil">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="folder-panel" style={{ marginBottom: 24 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Yeni Danışman Ekle</h2>
         <form onSubmit={handleSubmit}>

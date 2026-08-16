@@ -57,6 +57,13 @@ export class Appointment {
   @Column({ default: false })
   disclosureAccepted: boolean;
 
+  // Beyan TAM OLARAK ne zaman onaylandi -- Broker Sozlesmeler & Tapu
+  // sayfasinda siralama/bildirim icin kullanilir. updatedAt'tan FARKLI
+  // olarak, sadece disclosureAccepted false->true gectiginde guncellenir
+  // (baslik gibi ilgisiz bir alan degisince yanlislikla tetiklenmez).
+  @Column({ type: 'timestamp', nullable: true })
+  disclosureAcceptedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

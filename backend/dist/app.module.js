@@ -22,6 +22,7 @@ const notifications_module_1 = require("./notifications/notifications.module");
 const tasks_module_1 = require("./tasks/tasks.module");
 const appointments_module_1 = require("./appointments/appointments.module");
 const property_comments_module_1 = require("./property-comments/property-comments.module");
+const announcements_module_1 = require("./announcements/announcements.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -63,6 +64,7 @@ exports.AppModule = AppModule = __decorate([
             tasks_module_1.TasksModule,
             appointments_module_1.AppointmentsModule,
             property_comments_module_1.PropertyCommentsModule,
+            announcements_module_1.AnnouncementsModule,
         ],
     })
 ], AppModule);

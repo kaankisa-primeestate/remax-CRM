@@ -1782,3 +1782,105 @@ button {
   background: #dfeee2;
   color: var(--success);
 }
+
+/* --- Sözleşmeler & Tapu: Yer Gösterme kayıt satırı --- */
+.disclosure-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--paper-line);
+}
+.disclosure-row:last-child {
+  border-bottom: none;
+}
+.disclosure-row__body {
+  flex: 1;
+  min-width: 0;
+}
+.disclosure-row__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.disclosure-row__title a {
+  color: var(--ink-navy);
+  text-decoration: none;
+}
+.disclosure-row__title a:hover {
+  text-decoration: underline;
+}
+.disclosure-row__meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.disclosure-row__meta a {
+  color: var(--slate);
+}
+
+/* --- Duyuru gönderme paneli (Danışman Yönetimi) --- */
+.announce-agent-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background: var(--paper);
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+.announce-agent-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.announce-sent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--paper-line);
+}
+.announce-sent-item:last-child {
+  border-bottom: none;
+}
+
+/* --- Panelim: Broker'dan duyuru akışı --- */
+.announcement-feed {
+  background: #eef2f8;
+  border: 1px solid var(--ink-navy-light, #c7d2e0);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.announcement-feed__title {
+  font-weight: 700;
+  color: var(--ink-navy);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.announcement-feed__item {
+  padding: 8px 0;
+  border-top: 1px solid rgba(20, 40, 80, 0.12);
+}
+.announcement-feed__item:first-of-type {
+  border-top: none;
+}
+.announcement-feed__item-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink-navy);
+}
+.announcement-feed__item-message {
+  font-size: 13px;
+  color: var(--slate);
+  margin-top: 2px;
+  white-space: pre-wrap;
+}
+.announcement-feed__item-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}

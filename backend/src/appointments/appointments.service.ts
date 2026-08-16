@@ -15,7 +15,11 @@ export class AppointmentsService {
   // Randevular her zaman olusturan danismana aittir -- Mahremiyet Duvari:
   // Broker tum randevulari gorebilir, Danisman sadece kendisininkini.
   async create(dto: CreateAppointmentDto, currentUser: CurrentUserPayload): Promise<Appointment> {
-    const appointment = this.appointmentRepo.create({ ...dto, agentId: currentUser.userId });
+    const appointment = this.appointmentRepo.create({
+      ...dto,
+      agentId: currentUser.userId,
+      disclosureAcceptedAt: dto.disclosureAccepted ? new Date() : null,
+    });
     return this.appointmentRepo.save(appointment);
   }
 
@@ -37,7 +41,11 @@ export class AppointmentsService {
 
   async update(id: string, dto: UpdateAppointmentDto, currentUser: CurrentUserPayload): Promise<Appointment> {
     const appointment = await this.findOneOwned(id, currentUser);
+    const disclosureJustAccepted = dto.disclosureAccepted === true && !appointment.disclosureAccepted;
     Object.assign(appointment, dto);
+    if (disclosureJustAccepted) {
+      appointment.disclosureAcceptedAt = new Date();
+    }
     return this.appointmentRepo.save(appointment);
   }
 

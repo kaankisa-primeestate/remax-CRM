@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { PropertyCommentsModule } from './property-comments/property-comments.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { PropertyCommentsModule } from './property-comments/property-comments.mo
     TasksModule,
     AppointmentsModule,
     PropertyCommentsModule,
+    AnnouncementsModule,
   ],
 })
 export class AppModule {}

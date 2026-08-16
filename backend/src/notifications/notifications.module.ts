@@ -8,9 +8,11 @@ import { Interaction } from '../customers/interaction.entity';
 import { Commission } from '../commissions/commission.entity';
 import { User } from '../users/user.entity';
 import { PropertyComment } from '../property-comments/property-comment.entity';
+import { Appointment } from '../appointments/appointment.entity';
+import { Announcement } from '../announcements/announcement.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, PropertyComment])],
+  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, PropertyComment, Appointment, Announcement])],
   controllers: [NotificationsController],
   providers: [NotificationsService],
 })

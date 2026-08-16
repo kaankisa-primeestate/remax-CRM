@@ -7,6 +7,8 @@ import { Interaction } from '../customers/interaction.entity';
 import { Commission } from '../commissions/commission.entity';
 import { User, UserRole } from '../users/user.entity';
 import { PropertyComment } from '../property-comments/property-comment.entity';
+import { Appointment } from '../appointments/appointment.entity';
+import { Announcement } from '../announcements/announcement.entity';
 
 const PROPERTY_STATUS_LABELS: Record<string, string> = {
   active: 'Aktif',
@@ -25,7 +27,9 @@ export type NotificationType =
   | 'commission_added'
   | 'commission_approved'
   | 'property_pending_approval'
-  | 'broker_message';
+  | 'broker_message'
+  | 'showing_disclosure'
+  | 'announcement';
 
 export interface NotificationItem {
   id: string;
@@ -51,6 +55,8 @@ export class NotificationsService {
     @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(PropertyComment) private readonly commentRepo: Repository<PropertyComment>,
+    @InjectRepository(Appointment) private readonly appointmentRepo: Repository<Appointment>,
+    @InjectRepository(Announcement) private readonly announcementRepo: Repository<Announcement>,
   ) {}
 
   async getRecentActivity(userId: string): Promise<{ items: NotificationItem[]; unreadCount: number }> {
@@ -84,6 +90,7 @@ export class NotificationsService {
       newCommissions,
       approvedCommissions,
       pendingApprovalProperties,
+      acceptedDisclosures,
     ] = await Promise.all([
       this.propertyRepo.find({ order: { createdAt: 'DESC' }, take: LIMIT_PER_SOURCE }),
       this.propertyRepo.find({
@@ -108,6 +115,13 @@ export class NotificationsService {
       this.propertyRepo.find({
         where: { status: PropertyStatus.PENDING_APPROVAL },
         order: { statusChangedAt: 'DESC', createdAt: 'DESC' },
+        take: LIMIT_PER_SOURCE,
+      }),
+      // Yer Gosterme beyani onaylanan randevular -- hukuki kayit, Broker'in
+      // haberdar olmasi ve gerektiginde kontrol edebilmesi icin.
+      this.appointmentRepo.find({
+        where: { disclosureAcceptedAt: Not(IsNull()) },
+        order: { disclosureAcceptedAt: 'DESC' },
         take: LIMIT_PER_SOURCE,
       }),
     ]);
@@ -172,6 +186,15 @@ export class NotificationsService {
         read: false,
         propertyId: p.id,
       })),
+      ...acceptedDisclosures.map((a) => ({
+        id: `disclosure-${a.id}-${new Date(a.disclosureAcceptedAt as Date).getTime()}`,
+        type: 'showing_disclosure' as const,
+        title: `Yer gösterme beyanı alındı: ${a.title}`,
+        agentName: nameFor(a.agentId),
+        occurredAt: a.disclosureAcceptedAt as Date,
+        read: false,
+        propertyId: a.propertyId || undefined,
+      })),
     ]
       .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
       .slice(0, TOTAL_LIMIT)
@@ -206,8 +229,17 @@ export class NotificationsService {
           .getMany()
       : [];
 
-    const items: NotificationItem[] = brokerComments
-      .map((c) => ({
+    // Broker'dan gelen duyurular (tumune ya da sadece bu danismana
+    // gonderilenler) -- basit olcekte tum kayitlari cekip JS'te filtreliyoruz,
+    // cunku simple-array kolonlarda Postgres "contains" sorgusu TypeORM'de
+    // dogrudan desteklenmiyor.
+    const allAnnouncements = await this.announcementRepo.find({ order: { createdAt: 'DESC' }, take: LIMIT_PER_SOURCE });
+    const myAnnouncements = allAnnouncements.filter(
+      (a) => !a.targetAgentIds || a.targetAgentIds.length === 0 || a.targetAgentIds.includes(agentId),
+    );
+
+    const items: NotificationItem[] = [
+      ...brokerComments.map((c) => ({
         id: `broker-message-${c.id}`,
         type: 'broker_message' as const,
         title: `Broker mesaj gönderdi: ${titleById.get(c.propertyId) || 'Portföy'}`,
@@ -215,7 +247,17 @@ export class NotificationsService {
         occurredAt: c.createdAt,
         read: false,
         propertyId: c.propertyId,
-      }))
+      })),
+      ...myAnnouncements.map((a) => ({
+        id: `announcement-${a.id}`,
+        type: 'announcement' as const,
+        title: `Duyuru: ${a.title}`,
+        agentName: 'Broker',
+        occurredAt: a.createdAt,
+        read: false,
+      })),
+    ]
+      .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
       .slice(0, TOTAL_LIMIT)
       .map((item) => ({
         ...item,

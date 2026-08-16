@@ -12,6 +12,8 @@ const TYPE_ICONS = {
   commission_approved: '✅',
   property_pending_approval: '⏳',
   broker_message: '💬',
+  showing_disclosure: '📝',
+  announcement: '📢',
 };
 
 function timeAgo(dateStr) {

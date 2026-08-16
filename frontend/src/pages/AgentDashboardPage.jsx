@@ -6,6 +6,7 @@ import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { dashboardApi } from '../api/dashboard';
 import { tasksApi } from '../api/tasks';
 import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
+import { announcementsApi } from '../api/announcements';
 import { PIPELINE_STAGES } from '../constants/pipeline.js';
 
 const money = (n) =>
@@ -27,22 +28,25 @@ export default function AgentDashboardPage() {
   const [todayTasks, setTodayTasks] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [needsRevisionProperties, setNeedsRevisionProperties] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [properties, customers, targetProgress, tasks, appointments, revisionProperties] = await Promise.all([
+      const [properties, customers, targetProgress, tasks, appointments, revisionProperties, announcementList] = await Promise.all([
         propertiesApi.list({ status: 'active' }),
         customersApi.list({}),
         dashboardApi.myTarget().catch(() => null),
         tasksApi.list().catch(() => []),
         appointmentsApi.list().catch(() => []),
         propertiesApi.list({ status: 'needs_revision' }).catch(() => []),
+        announcementsApi.list().catch(() => []),
       ]);
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
       setMyTarget(targetProgress);
+      setAnnouncements(announcementList.slice(0, 5));
       setAllCustomers(customers);
       setNeedsRevisionProperties(revisionProperties);
 
@@ -99,6 +103,19 @@ export default function AgentDashboardPage() {
       <p style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 13, marginBottom: 20 }}>
         {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       </p>
+
+      {announcements.length > 0 && (
+        <div className="announcement-feed">
+          <div className="announcement-feed__title">📢 Broker'dan Duyurular</div>
+          {announcements.map((a) => (
+            <div key={a.id} className="announcement-feed__item">
+              <div className="announcement-feed__item-title">{a.title}</div>
+              <div className="announcement-feed__item-message">{a.message}</div>
+              <div className="announcement-feed__item-date">{new Date(a.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {needsRevisionProperties.length > 0 && (
         <div className="revision-alert">
