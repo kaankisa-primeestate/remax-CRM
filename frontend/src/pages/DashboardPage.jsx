@@ -3,6 +3,21 @@ import { Link } from 'react-router-dom';
 import { dashboardApi } from '../api/dashboard';
 import { propertiesApi } from '../api/properties';
 import { propertyCommentsApi } from '../api/propertyComments';
+import TradingViewWidget from '../components/TradingViewWidget.jsx';
+
+const TICKER_CONFIG = {
+  symbols: [
+    { proName: 'FX_IDC:USDTRY', title: 'USD/TRY' },
+    { proName: 'FX_IDC:EURTRY', title: 'EUR/TRY' },
+    { proName: 'TVC:GOLD', title: 'Altın' },
+    { proName: 'BIST:XU100', title: 'BIST 100' },
+  ],
+  showSymbolLogo: true,
+  isTransparent: true,
+  displayMode: 'adaptive',
+  colorTheme: 'light',
+  locale: 'tr',
+};
 
 function toISO(date) {
   const yyyy = date.getFullYear();
@@ -154,6 +169,15 @@ export default function DashboardPage() {
 
   return (
     <div>
+      <div className="market-ticker">
+        <TradingViewWidget
+          scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"
+          config={TICKER_CONFIG}
+          height={46}
+        />
+        <Link to="/piyasa" className="market-ticker__link">Tüm Piyasa Verilerini Gör →</Link>
+      </div>
+
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Genel Bakış</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: period === 'custom' ? 12 : 0 }}>

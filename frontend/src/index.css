@@ -2112,3 +2112,46 @@ button {
   font-size: 11px;
   padding: 4px 6px;
 }
+
+/* --- İşlemler: Tapu onay rozeti --- */
+.deal-approval-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #fdf1d6;
+  color: #8a5a00;
+  margin-top: 6px;
+  display: inline-block;
+}
+.deal-approval-badge--ok {
+  background: #dfeee2;
+  color: var(--success);
+}
+
+/* --- Piyasa: kompakt kayan şerit (Panelim/Dashboard üstü) --- */
+.market-ticker {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+  padding: 4px 12px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.market-ticker .tradingview-widget-container {
+  flex: 1;
+  min-width: 0;
+}
+.market-ticker__link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-navy);
+  white-space: nowrap;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.market-ticker__link:hover {
+  text-decoration: underline;
+}

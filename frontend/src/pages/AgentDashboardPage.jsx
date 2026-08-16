@@ -8,6 +8,21 @@ import { tasksApi } from '../api/tasks';
 import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
 import { announcementsApi } from '../api/announcements';
 import { PIPELINE_STAGES } from '../constants/pipeline.js';
+import TradingViewWidget from '../components/TradingViewWidget.jsx';
+
+const TICKER_CONFIG = {
+  symbols: [
+    { proName: 'FX_IDC:USDTRY', title: 'USD/TRY' },
+    { proName: 'FX_IDC:EURTRY', title: 'EUR/TRY' },
+    { proName: 'TVC:GOLD', title: 'Altın' },
+    { proName: 'BIST:XU100', title: 'BIST 100' },
+  ],
+  showSymbolLogo: true,
+  isTransparent: true,
+  displayMode: 'adaptive',
+  colorTheme: 'light',
+  locale: 'tr',
+};
 
 const money = (n) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n || 0);
@@ -113,9 +128,18 @@ export default function AgentDashboardPage() {
       <h2 className="dossier__name" style={{ marginBottom: 4 }}>
         Merhaba{firstName ? `, ${firstName}` : ''} 👋
       </h2>
-      <p style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 13, marginBottom: 20 }}>
+      <p style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 13, marginBottom: 12 }}>
         {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       </p>
+
+      <div className="market-ticker">
+        <TradingViewWidget
+          scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"
+          config={TICKER_CONFIG}
+          height={46}
+        />
+        <Link to="/piyasa" className="market-ticker__link">Tüm Piyasa Verilerini Gör →</Link>
+      </div>
 
       {announcements.length > 0 && (() => {
         const pendingCount = announcements.filter((a) => a.type !== 'celebration' && !a.myResponse).length;
