@@ -69,6 +69,9 @@ let UsersService = UsersService_1 = class UsersService {
             email: dto.email,
             passwordHash,
             role: user_entity_1.UserRole.AGENT,
+            phone: dto.phone || null,
+            address: dto.address || null,
+            birthDate: dto.birthDate || null,
         }));
         const { passwordHash: _omit, ...safeUser } = user;
         return safeUser;

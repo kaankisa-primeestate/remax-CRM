@@ -2223,3 +2223,32 @@ button {
   background: #fbe0dc;
   color: var(--danger);
 }
+
+/* --- Danışman Yönetimi: danışman kartı --- */
+.agent-card {
+  border-bottom: 1px solid var(--paper-line);
+  padding: 14px 0;
+}
+.agent-card:last-child {
+  border-bottom: none;
+}
+.agent-card__header {
+  margin-bottom: 10px;
+}
+.agent-card__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink-navy);
+}
+.agent-card__meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.agent-card__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}

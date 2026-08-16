@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateAgentDto {
   @IsString()
@@ -11,4 +11,16 @@ export class CreateAgentDto {
   @IsString()
   @MinLength(6, { message: 'Şifre en az 6 karakter olmalıdır' })
   password: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  birthDate?: string;
 }

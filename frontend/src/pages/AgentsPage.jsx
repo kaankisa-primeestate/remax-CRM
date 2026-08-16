@@ -2,10 +2,19 @@ import { useEffect, useState, useCallback } from 'react';
 import { usersApi } from '../api/auth';
 import { announcementsApi } from '../api/announcements';
 
+const AGENT_TABS = [
+  { key: 'roster', label: '👥 Danışmanlar' },
+  { key: 'add', label: '➕ Yeni Danışman Ekle' },
+  { key: 'announce', label: '📢 Duyurular' },
+];
+
+const emptyForm = { name: '', email: '', password: '', phone: '', address: '', birthDate: '' };
+
 export default function AgentsPage() {
+  const [activeTab, setActiveTab] = useState('roster');
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [targetDrafts, setTargetDrafts] = useState({});
@@ -47,8 +56,14 @@ export default function AgentsPage() {
     setError(null);
     setSaving(true);
     try {
-      await usersApi.createAgent(form);
-      setForm({ name: '', email: '', password: '' });
+      await usersApi.createAgent({
+        ...form,
+        phone: form.phone.trim() || undefined,
+        address: form.address.trim() || undefined,
+        birthDate: form.birthDate || undefined,
+      });
+      setForm(emptyForm);
+      setActiveTab('roster');
       load();
     } catch (err) {
       const message = err?.response?.data?.message ?? 'Danışman oluşturulamadı.';
@@ -131,8 +146,170 @@ export default function AgentsPage() {
 
   return (
     <div>
-      <div className="folder-panel" style={{ marginBottom: 24 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>📢 Danışmanlara Duyuru Gönder</h2>
+      <h2 className="dossier__name" style={{ marginBottom: 16 }}>Danışman Yönetimi</h2>
+
+      <div className="folder-tabs" style={{ flexWrap: 'wrap' }}>
+        {AGENT_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`folder-tab${activeTab === tab.key ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="finance-tab-content">
+      {activeTab === 'roster' && (
+      <div className="folder-panel">
+        {loading ? (
+          <div className="empty-state">Yükleniyor…</div>
+        ) : agents.length === 0 ? (
+          <div className="empty-state">Henüz danışman eklenmemiş. "Yeni Danışman Ekle" sekmesinden başlayabilirsin.</div>
+        ) : (
+          agents.map((agent) => (
+            <div className="agent-card" key={agent.id}>
+              <div className="agent-card__header">
+                <div>
+                  <div className="agent-card__name">{agent.name}</div>
+                  <div className="agent-card__meta">
+                    {agent.email}
+                    {agent.phone && ` · ${agent.phone}`}
+                  </div>
+                  {(agent.address || agent.birthDate) && (
+                    <div className="agent-card__meta">
+                      {agent.address && `📍 ${agent.address}`}
+                      {agent.address && agent.birthDate && ' · '}
+                      {agent.birthDate && `🎂 ${new Date(agent.birthDate).toLocaleDateString('tr-TR')}`}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="agent-card__fields">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    Aylık Hedef (₺)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={targetDrafts[agent.id] ?? ''}
+                    onChange={(e) => setTargetDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
+                    style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '6px 10px', fontSize: 12 }}
+                    disabled={savingTargetId === agent.id}
+                    onClick={() => handleSaveTarget(agent.id)}
+                  >
+                    {savingTargetId === agent.id ? '…' : 'Kaydet'}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    Aylık Aidat (₺)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={duesDrafts[agent.id] ?? ''}
+                    onChange={(e) => setDuesDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
+                    style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '6px 10px', fontSize: 12 }}
+                    disabled={savingDuesId === agent.id}
+                    onClick={() => handleSaveDues(agent.id)}
+                  >
+                    {savingDuesId === agent.id ? '…' : 'Kaydet'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      )}
+
+      {activeTab === 'add' && (
+      <div className="folder-panel">
+        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Yeni Danışman Ekle</h3>
+        <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -8, marginBottom: 16 }}>
+          Buradaki bilgiler, danışmanın giriş bilgilerini ve ileride cari hesap/aidat kayıtlarının bağlanacağı kimlik bilgilerini oluşturur — doğru ve güncel girilmesi önemli.
+        </p>
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="form-field">
+              <label>Ad Soyad</label>
+              <input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label>E-posta</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label>Şifre</label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                minLength={6}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label>Telefon (opsiyonel)</label>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="0555 123 45 67"
+              />
+            </div>
+            <div className="form-field">
+              <label>Doğum Tarihi (opsiyonel)</label>
+              <input
+                type="date"
+                value={form.birthDate}
+                onChange={(e) => setForm((f) => ({ ...f, birthDate: e.target.value }))}
+              />
+            </div>
+            <div className="form-field full">
+              <label>Yerleşik Adres (opsiyonel)</label>
+              <input
+                value={form.address}
+                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                placeholder="Mahalle, cadde, ilçe/il"
+              />
+            </div>
+          </div>
+          {error && <div className="form-error">{error}</div>}
+          <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: 14 }}>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Ekleniyor…' : '+ Danışman Ekle'}
+            </button>
+          </div>
+        </form>
+      </div>
+      )}
+
+      {activeTab === 'announce' && (
+      <div className="folder-panel">
+        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>📢 Danışmanlara Duyuru Gönder</h3>
         <form onSubmit={handleSendAnnouncement}>
           <div className="form-field">
             <label>Başlık</label>
@@ -206,106 +383,7 @@ export default function AgentsPage() {
           </div>
         )}
       </div>
-
-      <div className="folder-panel" style={{ marginBottom: 24 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Yeni Danışman Ekle</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <div className="form-field">
-              <label>Ad Soyad</label>
-              <input
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="form-field">
-              <label>E-posta</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="form-field">
-              <label>Şifre</label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                minLength={6}
-                required
-              />
-            </div>
-          </div>
-          {error && <div className="form-error">{error}</div>}
-          <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: 14 }}>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Ekleniyor…' : '+ Danışman Ekle'}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="folder-panel">
-        <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Danışmanlar</h2>
-        {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
-        ) : agents.length === 0 ? (
-          <div className="empty-state">Henüz danışman eklenmemiş.</div>
-        ) : (
-          agents.map((agent) => (
-            <div className="record-row" key={agent.id} style={{ flexWrap: 'wrap' }}>
-              <span className="record-row__name">{agent.name}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)' }}>
-                {agent.email}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
-                  Aylık Hedef (₺)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={targetDrafts[agent.id] ?? ''}
-                  onChange={(e) => setTargetDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
-                  style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '6px 10px', fontSize: 12 }}
-                  disabled={savingTargetId === agent.id}
-                  onClick={() => handleSaveTarget(agent.id)}
-                >
-                  {savingTargetId === agent.id ? '…' : 'Kaydet'}
-                </button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
-                  Aylık Aidat (₺)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={duesDrafts[agent.id] ?? ''}
-                  onChange={(e) => setDuesDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
-                  style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '6px 10px', fontSize: 12 }}
-                  disabled={savingDuesId === agent.id}
-                  onClick={() => handleSaveDues(agent.id)}
-                >
-                  {savingDuesId === agent.id ? '…' : 'Kaydet'}
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+      )}
       </div>
     </div>
   );

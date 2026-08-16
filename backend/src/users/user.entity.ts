@@ -22,6 +22,17 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  phone: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  address: string | null;
+
+  // Dogum tarihi -- ileride otomatik "dogum gunu kutlama" duyurulari
+  // icin de kullanilabilecek (Merkez Ofis / Duyurular ozelligiyle baglantili)
+  @Column({ type: 'date', nullable: true })
+  birthDate: string | null;
+
   // Şifrenin bcrypt ile hash'lenmiş hâli — düz metin şifre ASLA saklanmaz
   @Column()
   passwordHash: string;

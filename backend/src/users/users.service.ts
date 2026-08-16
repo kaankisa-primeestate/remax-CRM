@@ -87,6 +87,9 @@ export class UsersService implements OnModuleInit {
         email: dto.email,
         passwordHash,
         role: UserRole.AGENT,
+        phone: dto.phone || null,
+        address: dto.address || null,
+        birthDate: dto.birthDate || null,
       }),
     );
     const { passwordHash: _omit, ...safeUser } = user;
