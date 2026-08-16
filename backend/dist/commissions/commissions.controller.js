@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const commissions_service_1 = require("./commissions.service");
 const create_commission_dto_1 = require("./create-commission.dto");
+const create_commission_payment_dto_1 = require("./dto/create-commission-payment.dto");
 let CommissionsController = class CommissionsController {
     constructor(commissionsService) {
         this.commissionsService = commissionsService;
@@ -47,6 +48,15 @@ let CommissionsController = class CommissionsController {
     }
     remove(id, req) {
         return this.commissionsService.remove(id, req.user.role);
+    }
+    getPayments(id) {
+        return this.commissionsService.getPayments(id);
+    }
+    addPayment(id, dto, req) {
+        return this.commissionsService.addPayment(id, dto, req.user.role);
+    }
+    removePayment(paymentId, req) {
+        return this.commissionsService.removePayment(paymentId, req.user.role);
     }
 };
 exports.CommissionsController = CommissionsController;
@@ -104,6 +114,30 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], CommissionsController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Get)(':id/payments'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], CommissionsController.prototype, "getPayments", null);
+__decorate([
+    (0, common_1.Post)(':id/payments'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, create_commission_payment_dto_1.CreateCommissionPaymentDto, Object]),
+    __metadata("design:returntype", void 0)
+], CommissionsController.prototype, "addPayment", null);
+__decorate([
+    (0, common_1.Delete)('payments/:paymentId'),
+    __param(0, (0, common_1.Param)('paymentId')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], CommissionsController.prototype, "removePayment", null);
 exports.CommissionsController = CommissionsController = __decorate([
     (0, common_1.Controller)('commissions'),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),

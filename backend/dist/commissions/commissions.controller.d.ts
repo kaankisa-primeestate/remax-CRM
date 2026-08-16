@@ -1,5 +1,6 @@
 import { CommissionsService } from './commissions.service';
 import { CreateCommissionDto } from './create-commission.dto';
+import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
 export declare class CommissionsController {
     private readonly commissionsService;
     constructor(commissionsService: CommissionsService);
@@ -17,4 +18,7 @@ export declare class CommissionsController {
         status?: string;
     }, req: any): Promise<import("./commission.entity").Commission>;
     remove(id: string, req: any): Promise<void>;
+    getPayments(id: string): Promise<import("./commission-payment.entity").CommissionPayment[]>;
+    addPayment(id: string, dto: CreateCommissionPaymentDto, req: any): Promise<import("./commission-payment.entity").CommissionPayment>;
+    removePayment(paymentId: string, req: any): Promise<void>;
 }

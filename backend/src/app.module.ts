@@ -18,6 +18,7 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { AgentDuesModule } from './agent-dues/agent-dues.module';
+import { AgentLedgerModule } from './agent-ledger/agent-ledger.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { AgentDuesModule } from './agent-dues/agent-dues.module';
     BankAccountsModule,
     ExpensesModule,
     AgentDuesModule,
+    AgentLedgerModule,
   ],
 })
 export class AppModule {}

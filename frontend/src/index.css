@@ -2266,3 +2266,113 @@ button {
 .agent-card__company-edit .form-field {
   min-width: 140px;
 }
+
+/* --- Komisyonlar: Danışmanın cari bakiye kartı --- */
+.agent-balance-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+.agent-balance-card--owed {
+  background: #dfeee2;
+  border-color: var(--success);
+}
+.agent-balance-card--owing {
+  background: #fbe0dc;
+  border-color: var(--danger);
+}
+.agent-balance-card__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.agent-balance-card__value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink-navy);
+}
+
+/* --- Komisyonlar: ödeme geçmişi paneli --- */
+.commission-row-wrapper {
+  margin-bottom: 4px;
+}
+.commission-payments-panel {
+  background: var(--paper);
+  border-radius: 0 0 8px 8px;
+  padding: 12px 16px;
+  margin-top: -4px;
+  border: 1px solid var(--paper-line);
+  border-top: none;
+}
+.commission-payments-panel__remaining {
+  font-size: 13px;
+  color: var(--ink-navy);
+  margin-bottom: 10px;
+}
+.commission-payment-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0;
+  border-top: 1px solid var(--paper-line);
+  font-size: 13px;
+}
+.commission-payment-item:first-child {
+  border-top: none;
+}
+
+/* --- Finans: Danışman Cari Hesapları --- */
+.ledger-agent-card {
+  border-bottom: 1px solid var(--paper-line);
+}
+.ledger-agent-card:last-child {
+  border-bottom: none;
+}
+.ledger-agent-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 4px;
+  cursor: pointer;
+}
+.ledger-agent-card__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+}
+.ledger-agent-card__email {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.ledger-agent-card__balance {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ledger-agent-card__balance.is-owed {
+  color: var(--danger);
+}
+.ledger-agent-card__balance.is-owing {
+  color: var(--success);
+}
+.ledger-agent-card__body {
+  padding: 4px 4px 16px;
+  border-top: 1px dashed var(--paper-line);
+}
+.ledger-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--paper-line);
+  font-size: 13px;
+}
+.ledger-history-item:first-of-type {
+  border-top: none;
+}

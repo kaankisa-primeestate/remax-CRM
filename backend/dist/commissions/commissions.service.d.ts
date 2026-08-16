@@ -1,9 +1,14 @@
 import { Repository } from 'typeorm';
 import { Commission } from './commission.entity';
 import { CreateCommissionDto } from './create-commission.dto';
+import { CommissionPayment } from './commission-payment.entity';
+import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
+import { BankTransaction } from '../bank-accounts/bank-transaction.entity';
 export declare class CommissionsService {
     private commissionsRepository;
-    constructor(commissionsRepository: Repository<Commission>);
+    private paymentsRepository;
+    private bankTransactionRepository;
+    constructor(commissionsRepository: Repository<Commission>, paymentsRepository: Repository<CommissionPayment>, bankTransactionRepository: Repository<BankTransaction>);
     private calculateAmounts;
     create(dto: CreateCommissionDto, requestingUserId: string, requestingUserRole: string): Promise<Commission>;
     findAll(requestingUserId: string, requestingUserRole: string, filters: {
@@ -28,4 +33,7 @@ export declare class CommissionsService {
         totalPaid: number;
         totalPending: number;
     }>;
+    getPayments(commissionId: string): Promise<CommissionPayment[]>;
+    addPayment(commissionId: string, dto: CreateCommissionPaymentDto, requestingUserRole: string): Promise<CommissionPayment>;
+    removePayment(paymentId: string, requestingUserRole: string): Promise<void>;
 }

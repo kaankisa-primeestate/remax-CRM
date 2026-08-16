@@ -7,12 +7,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Commission } from './commission.entity';
 import { CreateCommissionDto } from './create-commission.dto';
+import { CommissionPayment } from './commission-payment.entity';
+import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
+import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 
 @Injectable()
 export class CommissionsService {
   constructor(
     @InjectRepository(Commission)
     private commissionsRepository: Repository<Commission>,
+    @InjectRepository(CommissionPayment)
+    private paymentsRepository: Repository<CommissionPayment>,
+    @InjectRepository(BankTransaction)
+    private bankTransactionRepository: Repository<BankTransaction>,
   ) {}
 
   private calculateAmounts(dto: CreateCommissionDto) {
@@ -211,5 +218,81 @@ export class CommissionsService {
       totalPaid,
       totalPending,
     };
+  }
+
+  // --- Kismi Odeme Yonetimi ---
+  // Danisman Cari Hesabi mantigi: bir komisyona birden fazla (kismi)
+  // odeme eklenebilir. Kalan bakiye = netPayable - tum odemelerin
+  // toplami. Kalan 0'a inince komisyon otomatik "Odendi" olur.
+
+  async getPayments(commissionId: string): Promise<CommissionPayment[]> {
+    return this.paymentsRepository.find({
+      where: { commissionId },
+      order: { date: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  async addPayment(
+    commissionId: string,
+    dto: CreateCommissionPaymentDto,
+    requestingUserRole: string,
+  ): Promise<CommissionPayment> {
+    if (requestingUserRole !== 'broker') {
+      throw new ForbiddenException('Sadece Broker ödeme kaydedebilir');
+    }
+    const commission = await this.commissionsRepository.findOne({ where: { id: commissionId } });
+    if (!commission) {
+      throw new NotFoundException('Komisyon kaydı bulunamadı');
+    }
+
+    const payment = this.paymentsRepository.create({ ...dto, commissionId });
+    const saved = await this.paymentsRepository.save(payment);
+
+    // Banka/kasa hesabi secildiyse, o hesaptan otomatik bir "cikis"
+    // hareketi olustur -- ofis danismana para odedigi icin.
+    if (dto.bankAccountId) {
+      const transaction = this.bankTransactionRepository.create({
+        bankAccountId: dto.bankAccountId,
+        type: BankTransactionType.WITHDRAWAL,
+        amount: dto.amount,
+        date: dto.date,
+        description: `Komisyon ödemesi: ${commission.propertyTitle || commission.id}`,
+        source: 'commission_payment',
+        sourceId: saved.id,
+      });
+      await this.bankTransactionRepository.save(transaction);
+    }
+
+    // Kalan bakiye 0'a indiyse, komisyon otomatik "Odendi" olur.
+    const allPayments = await this.getPayments(commissionId);
+    const totalPaid = allPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    if (totalPaid >= Number(commission.netPayable) && commission.status !== 'paid') {
+      commission.status = 'paid' as any;
+      commission.statusChangedAt = new Date();
+      await this.commissionsRepository.save(commission);
+    }
+
+    return saved;
+  }
+
+  async removePayment(paymentId: string, requestingUserRole: string): Promise<void> {
+    if (requestingUserRole !== 'broker') {
+      throw new ForbiddenException('Sadece Broker ödeme silebilir');
+    }
+    const payment = await this.paymentsRepository.findOne({ where: { id: paymentId } });
+    if (!payment) {
+      throw new NotFoundException('Ödeme bulunamadı');
+    }
+    await this.bankTransactionRepository.delete({ source: 'commission_payment', sourceId: paymentId });
+    await this.paymentsRepository.remove(payment);
+
+    // Odeme silinince komisyon "Odendi" durumundaysa, kalan bakiye tekrar
+    // olustugu icin "Onaylandi"ya geri donmeli.
+    const commission = await this.commissionsRepository.findOne({ where: { id: payment.commissionId } });
+    if (commission && commission.status === 'paid') {
+      commission.status = 'approved' as any;
+      commission.statusChangedAt = new Date();
+      await this.commissionsRepository.save(commission);
+    }
   }
 }

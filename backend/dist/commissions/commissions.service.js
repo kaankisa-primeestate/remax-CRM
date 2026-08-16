@@ -17,9 +17,13 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const commission_entity_1 = require("./commission.entity");
+const commission_payment_entity_1 = require("./commission-payment.entity");
+const bank_transaction_entity_1 = require("../bank-accounts/bank-transaction.entity");
 let CommissionsService = class CommissionsService {
-    constructor(commissionsRepository) {
+    constructor(commissionsRepository, paymentsRepository, bankTransactionRepository) {
         this.commissionsRepository = commissionsRepository;
+        this.paymentsRepository = paymentsRepository;
+        this.bankTransactionRepository = bankTransactionRepository;
     }
     calculateAmounts(dto) {
         const grossCommission = (dto.transactionAmount * dto.commissionRate) / 100;
@@ -142,11 +146,69 @@ let CommissionsService = class CommissionsService {
             totalPending,
         };
     }
+    async getPayments(commissionId) {
+        return this.paymentsRepository.find({
+            where: { commissionId },
+            order: { date: 'DESC', createdAt: 'DESC' },
+        });
+    }
+    async addPayment(commissionId, dto, requestingUserRole) {
+        if (requestingUserRole !== 'broker') {
+            throw new common_1.ForbiddenException('Sadece Broker ödeme kaydedebilir');
+        }
+        const commission = await this.commissionsRepository.findOne({ where: { id: commissionId } });
+        if (!commission) {
+            throw new common_1.NotFoundException('Komisyon kaydı bulunamadı');
+        }
+        const payment = this.paymentsRepository.create({ ...dto, commissionId });
+        const saved = await this.paymentsRepository.save(payment);
+        if (dto.bankAccountId) {
+            const transaction = this.bankTransactionRepository.create({
+                bankAccountId: dto.bankAccountId,
+                type: bank_transaction_entity_1.BankTransactionType.WITHDRAWAL,
+                amount: dto.amount,
+                date: dto.date,
+                description: `Komisyon ödemesi: ${commission.propertyTitle || commission.id}`,
+                source: 'commission_payment',
+                sourceId: saved.id,
+            });
+            await this.bankTransactionRepository.save(transaction);
+        }
+        const allPayments = await this.getPayments(commissionId);
+        const totalPaid = allPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+        if (totalPaid >= Number(commission.netPayable) && commission.status !== 'paid') {
+            commission.status = 'paid';
+            commission.statusChangedAt = new Date();
+            await this.commissionsRepository.save(commission);
+        }
+        return saved;
+    }
+    async removePayment(paymentId, requestingUserRole) {
+        if (requestingUserRole !== 'broker') {
+            throw new common_1.ForbiddenException('Sadece Broker ödeme silebilir');
+        }
+        const payment = await this.paymentsRepository.findOne({ where: { id: paymentId } });
+        if (!payment) {
+            throw new common_1.NotFoundException('Ödeme bulunamadı');
+        }
+        await this.bankTransactionRepository.delete({ source: 'commission_payment', sourceId: paymentId });
+        await this.paymentsRepository.remove(payment);
+        const commission = await this.commissionsRepository.findOne({ where: { id: payment.commissionId } });
+        if (commission && commission.status === 'paid') {
+            commission.status = 'approved';
+            commission.statusChangedAt = new Date();
+            await this.commissionsRepository.save(commission);
+        }
+    }
 };
 exports.CommissionsService = CommissionsService;
 exports.CommissionsService = CommissionsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(commission_entity_1.Commission)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, typeorm_1.InjectRepository)(commission_payment_entity_1.CommissionPayment)),
+    __param(2, (0, typeorm_1.InjectRepository)(bank_transaction_entity_1.BankTransaction)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository])
 ], CommissionsService);
 //# sourceMappingURL=commissions.service.js.map

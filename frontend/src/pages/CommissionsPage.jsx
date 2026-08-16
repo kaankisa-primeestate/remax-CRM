@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { commissionsApi, COMMISSION_STATUSES } from '../api/commissions';
 import { usersApi } from '../api/auth';
+import { agentLedgerApi } from '../api/agentLedger';
+import { bankAccountsApi } from '../api/bankAccounts';
 import { useAuth } from '../context/AuthContext.jsx';
 import { CommissionStatusBadge } from '../components/CommissionStatusBadge.jsx';
 import CommissionFormModal from '../components/CommissionFormModal.jsx';
@@ -69,6 +71,15 @@ export default function CommissionsPage() {
   const [editing, setEditing] = useState(null);
   const [prefill, setPrefill] = useState(null);
 
+  const [myBalance, setMyBalance] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [expandedPaymentsId, setExpandedPaymentsId] = useState(null);
+  const [payments, setPayments] = useState({});
+  const [payAmount, setPayAmount] = useState('');
+  const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [payAccountId, setPayAccountId] = useState('');
+  const [paySaving, setPaySaving] = useState(false);
+
   // Islemler sayfasindan "Tapu Onayla" ile geldiyse, formu otomatik ac
   // ve ilgili bilgileri (danisman/portfoy/musteri/tutar) on-doldur.
   useEffect(() => {
@@ -84,6 +95,9 @@ export default function CommissionsPage() {
   useEffect(() => {
     if (isBroker) {
       usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
+      bankAccountsApi.list().then(setAccounts).catch(() => setAccounts([]));
+    } else {
+      agentLedgerApi.getBalance().then(setMyBalance).catch(() => setMyBalance(null));
     }
   }, [isBroker]);
 
@@ -133,6 +147,54 @@ export default function CommissionsPage() {
     load();
   }
 
+  async function togglePayments(commissionId) {
+    if (expandedPaymentsId === commissionId) {
+      setExpandedPaymentsId(null);
+      return;
+    }
+    setExpandedPaymentsId(commissionId);
+    setPayAmount('');
+    setPayDate(new Date().toISOString().slice(0, 10));
+    setPayAccountId('');
+    if (!payments[commissionId]) {
+      const list = await commissionsApi.getPayments(commissionId);
+      setPayments((prev) => ({ ...prev, [commissionId]: list }));
+    }
+  }
+
+  async function handleAddPayment(commissionId) {
+    if (!payAmount || Number(payAmount) <= 0) return;
+    setPaySaving(true);
+    try {
+      await commissionsApi.addPayment(commissionId, {
+        amount: Number(payAmount),
+        date: payDate,
+        bankAccountId: payAccountId || undefined,
+      });
+      const list = await commissionsApi.getPayments(commissionId);
+      setPayments((prev) => ({ ...prev, [commissionId]: list }));
+      setPayAmount('');
+      setPayAccountId('');
+      load(); // komisyon durumu "Odendi"ye donmus olabilir
+    } catch (err) {
+      alert('Ödeme eklenemedi, tekrar deneyin.');
+    } finally {
+      setPaySaving(false);
+    }
+  }
+
+  async function handleDeletePayment(commissionId, paymentId) {
+    if (!confirm('Bu ödeme kaydı silinsin mi?')) return;
+    try {
+      await commissionsApi.removePayment(paymentId);
+      const list = await commissionsApi.getPayments(commissionId);
+      setPayments((prev) => ({ ...prev, [commissionId]: list }));
+      load();
+    } catch {
+      alert('Ödeme silinemedi, tekrar deneyin.');
+    }
+  }
+
   const agentName = (agentId) => agents.find((a) => a.id === agentId)?.name ?? agentId;
 
   return (
@@ -156,6 +218,16 @@ export default function CommissionsPage() {
       </div>
 
       <div className="folder-panel">
+        {!isBroker && myBalance !== null && (
+          <div className={`agent-balance-card${myBalance > 0 ? ' agent-balance-card--owed' : myBalance < 0 ? ' agent-balance-card--owing' : ''}`} style={{ marginBottom: 20 }}>
+            <div className="agent-balance-card__label">Cari Bakiyeniz</div>
+            <div className="agent-balance-card__value">
+              {myBalance > 0 && `Ofis size ${formatMoney(myBalance)} borçlu`}
+              {myBalance < 0 && `Ofise ${formatMoney(Math.abs(myBalance))} borçlusunuz`}
+              {myBalance === 0 && 'Bakiyeniz güncel — borç yok'}
+            </div>
+          </div>
+        )}
         {summary && (
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
             <SummaryCard label="Toplam Brüt Komisyon" value={formatMoney(summary.totalGross)} />
@@ -192,10 +264,14 @@ export default function CommissionsPage() {
           </div>
         ) : (
           <div>
-            {commissions.map((c) => (
+            {commissions.map((c) => {
+              const commissionPayments = payments[c.id] || [];
+              const totalPaid = commissionPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+              const remaining = Number(c.netPayable) - totalPaid;
+              return (
+              <div key={c.id} className="commission-row-wrapper">
               <div
                 className="record-row"
-                key={c.id}
                 style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
               >
                 <CommissionStatusBadge status={c.status} />
@@ -226,6 +302,24 @@ export default function CommissionsPage() {
                       ))}
                     </select>
                   )}
+                  {isBroker && c.status === 'approved' && (
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                      onClick={() => togglePayments(c.id)}
+                    >
+                      {expandedPaymentsId === c.id ? 'Kapat' : '💳 Ödeme Ekle'}
+                    </button>
+                  )}
+                  {c.status === 'paid' && (
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                      onClick={() => togglePayments(c.id)}
+                    >
+                      {expandedPaymentsId === c.id ? 'Kapat' : 'Ödeme Geçmişi'}
+                    </button>
+                  )}
                   <button
                     className="btn btn-secondary"
                     style={{ padding: '4px 10px', fontSize: 12 }}
@@ -244,7 +338,56 @@ export default function CommissionsPage() {
                   )}
                 </div>
               </div>
-            ))}
+
+              {expandedPaymentsId === c.id && (
+                <div className="commission-payments-panel">
+                  {c.status !== 'paid' && (
+                    <div className="commission-payments-panel__remaining">
+                      Kalan: <strong>{formatMoney(remaining)}</strong> / {formatMoney(c.netPayable)}
+                    </div>
+                  )}
+                  {isBroker && c.status !== 'paid' && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label>Tutar</label>
+                        <input type="number" min="0.01" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} style={{ width: 120 }} />
+                      </div>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label>Tarih</label>
+                        <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+                      </div>
+                      <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                        <label>Banka Hesabı (opsiyonel)</label>
+                        <select value={payAccountId} onChange={(e) => setPayAccountId(e.target.value)}>
+                          <option value="">Seçilmedi</option>
+                          {accounts.map((acc) => (
+                            <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} disabled={paySaving || !payAmount} onClick={() => handleAddPayment(c.id)}>
+                        {paySaving ? 'Ekleniyor…' : '+ Ödeme Kaydet'}
+                      </button>
+                    </div>
+                  )}
+                  {commissionPayments.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>Henüz ödeme yapılmamış.</div>
+                  ) : (
+                    commissionPayments.map((p) => (
+                      <div key={p.id} className="commission-payment-item">
+                        <span>{formatDate(p.date)}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatMoney(p.amount)}</span>
+                        {isBroker && (
+                          <button type="button" className="task-row__delete" onClick={() => handleDeletePayment(c.id, p.id)} title="Sil">✕</button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -13,6 +13,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { CommissionsService } from './commissions.service';
 import { CreateCommissionDto } from './create-commission.dto';
+import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
 
 @Controller('commissions')
 @UseGuards(AuthGuard('jwt'))
@@ -76,5 +77,22 @@ export class CommissionsController {
   @Delete(':id')
   remove(@Param('id') id: string, @Request() req) {
     return this.commissionsService.remove(id, req.user.role);
+  }
+
+  // GET /api/commissions/:id/payments -- bir komisyonun kismi odeme gecmisi
+  @Get(':id/payments')
+  getPayments(@Param('id') id: string) {
+    return this.commissionsService.getPayments(id);
+  }
+
+  // POST /api/commissions/:id/payments -- Broker kismi odeme ekler
+  @Post(':id/payments')
+  addPayment(@Param('id') id: string, @Body() dto: CreateCommissionPaymentDto, @Request() req) {
+    return this.commissionsService.addPayment(id, dto, req.user.role);
+  }
+
+  @Delete('payments/:paymentId')
+  removePayment(@Param('paymentId') paymentId: string, @Request() req) {
+    return this.commissionsService.removePayment(paymentId, req.user.role);
   }
 }

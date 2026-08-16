@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { bankAccountsApi, CURRENCIES, formatMoney } from '../api/bankAccounts';
 import { expensesApi, EXPENSE_CATEGORIES } from '../api/expenses';
+import { agentLedgerApi } from '../api/agentLedger';
 import { usersApi } from '../api/auth';
 
 const FINANCE_TABS = [
@@ -49,6 +51,18 @@ export default function FinancePage() {
   const [expIsRecurring, setExpIsRecurring] = useState(false);
   const [expSaving, setExpSaving] = useState(false);
 
+  const [ledgerBalances, setLedgerBalances] = useState({});
+  const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [ledgerExpandedId, setLedgerExpandedId] = useState(null);
+  const [ledgerHistory, setLedgerHistory] = useState({});
+  const [adjAgentId, setAdjAgentId] = useState('');
+  const [adjType, setAdjType] = useState('debit');
+  const [adjAmount, setAdjAmount] = useState('');
+  const [adjDescription, setAdjDescription] = useState('');
+  const [adjDate, setAdjDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [adjBankAccountId, setAdjBankAccountId] = useState('');
+  const [adjSaving, setAdjSaving] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     const data = await bankAccountsApi.list();
@@ -67,10 +81,18 @@ export default function FinancePage() {
     setExpLoading(false);
   }, []);
 
+  const loadLedger = useCallback(async () => {
+    setLedgerLoading(true);
+    const balances = await agentLedgerApi.getSummary().catch(() => ({}));
+    setLedgerBalances(balances);
+    setLedgerLoading(false);
+  }, []);
+
   useEffect(() => {
     load();
     loadExpenses();
-  }, [load, loadExpenses]);
+    loadLedger();
+  }, [load, loadExpenses, loadLedger]);
 
   function resetExpenseForm() {
     setExpCategory('rent');
@@ -119,6 +141,51 @@ export default function FinancePage() {
     } catch {
       alert('Gider silinemedi, sayfa yenileniyor.');
       loadExpenses();
+    }
+  }
+
+  async function toggleLedgerHistory(agentId) {
+    if (ledgerExpandedId === agentId) {
+      setLedgerExpandedId(null);
+      return;
+    }
+    setLedgerExpandedId(agentId);
+    setAdjAgentId(agentId);
+    if (!ledgerHistory[agentId]) {
+      const history = await agentLedgerApi.getHistory(agentId);
+      setLedgerHistory((prev) => ({ ...prev, [agentId]: history }));
+    }
+  }
+
+  function resetAdjustmentForm() {
+    setAdjType('debit');
+    setAdjAmount('');
+    setAdjDescription('');
+    setAdjDate(new Date().toISOString().slice(0, 10));
+    setAdjBankAccountId('');
+  }
+
+  async function handleAddAdjustment(agentId) {
+    if (!adjAmount || Number(adjAmount) <= 0 || !adjDescription.trim()) return;
+    setAdjSaving(true);
+    try {
+      await agentLedgerApi.createAdjustment({
+        agentId,
+        type: adjType,
+        amount: Number(adjAmount),
+        description: adjDescription.trim(),
+        date: adjDate,
+        bankAccountId: adjBankAccountId || undefined,
+      });
+      resetAdjustmentForm();
+      const history = await agentLedgerApi.getHistory(agentId);
+      setLedgerHistory((prev) => ({ ...prev, [agentId]: history }));
+      loadLedger();
+      load(); // banka hesabi baglandiysa bakiye guncellensin
+    } catch (err) {
+      alert('Kayıt eklenemedi, tekrar deneyin.');
+    } finally {
+      setAdjSaving(false);
     }
   }
 
@@ -473,13 +540,94 @@ export default function FinancePage() {
       )}
 
       {activeTab === 'ledger' && (
-        <div className="finance-placeholder">
-          <div className="finance-placeholder__icon">👤</div>
-          <div className="finance-placeholder__title">Danışman Cari Hesapları</div>
-          <p className="finance-placeholder__text">
-            Bu bölüm sırada: bir danışmanın komisyonu onaylandığında burada otomatik bir bakiye oluşacak,
-            yapılan (kısmi) ödemeler buradan işlenecek. Danışman kendi bakiyesini Komisyonlar sayfasından görecek.
+        <div className="folder-panel">
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+            Komisyonu onaylanan danışmanların bakiyesi burada otomatik oluşur. Kısmi ödemeleri{' '}
+            <Link to="/komisyonlar">Komisyonlar</Link> sayfasından, avans/ceza gibi manuel kayıtları buradan girebilirsin.
           </p>
+          {ledgerLoading || agents.length === 0 ? (
+            <div className="empty-state">{ledgerLoading ? 'Yükleniyor…' : 'Henüz danışman yok.'}</div>
+          ) : (
+            agents.map((agent) => {
+              const balance = ledgerBalances[agent.id] ?? 0;
+              const history = ledgerHistory[agent.id] || [];
+              return (
+                <div key={agent.id} className="ledger-agent-card">
+                  <div
+                    className="ledger-agent-card__header"
+                    onClick={() => toggleLedgerHistory(agent.id)}
+                  >
+                    <div>
+                      <div className="ledger-agent-card__name">{agent.name}</div>
+                      <div className="ledger-agent-card__email">{agent.email}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className={`ledger-agent-card__balance${balance > 0 ? ' is-owed' : balance < 0 ? ' is-owing' : ''}`}>
+                        {balance > 0 && `Ofis borçlu: ${formatMoney(balance)}`}
+                        {balance < 0 && `Danışman borçlu: ${formatMoney(Math.abs(balance))}`}
+                        {balance === 0 && 'Bakiye: —'}
+                      </div>
+                      <span style={{ color: 'var(--muted)' }}>{ledgerExpandedId === agent.id ? '▲' : '▼'}</span>
+                    </div>
+                  </div>
+
+                  {ledgerExpandedId === agent.id && (
+                    <div className="ledger-agent-card__body">
+                      <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 14, margin: '0 0 10px' }}>Manuel Kayıt Ekle</h4>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>Tür</label>
+                          <select value={adjType} onChange={(e) => setAdjType(e.target.value)}>
+                            <option value="debit">Avans / Ceza (bakiye azalır)</option>
+                            <option value="credit">Danışman Ofis Adına Ödedi (bakiye artar)</option>
+                          </select>
+                        </div>
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>Tutar</label>
+                          <input type="number" min="0.01" step="0.01" value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} style={{ width: 110 }} />
+                        </div>
+                        <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                          <label>Açıklama</label>
+                          <input value={adjDescription} onChange={(e) => setAdjDescription(e.target.value)} placeholder="Örn: Avans ödemesi" />
+                        </div>
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>Tarih</label>
+                          <input type="date" value={adjDate} onChange={(e) => setAdjDate(e.target.value)} />
+                        </div>
+                        <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                          <label>Banka Hesabı (opsiyonel)</label>
+                          <select value={adjBankAccountId} onChange={(e) => setAdjBankAccountId(e.target.value)}>
+                            <option value="">Seçilmedi</option>
+                            {accounts.map((acc) => (
+                              <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} disabled={adjSaving || !adjAmount || !adjDescription.trim()} onClick={() => handleAddAdjustment(agent.id)}>
+                          {adjSaving ? 'Ekleniyor…' : '+ Kayıt Ekle'}
+                        </button>
+                      </div>
+
+                      <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 14, margin: '0 0 10px' }}>Hareket Geçmişi</h4>
+                      {history.length === 0 ? (
+                        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Henüz hareket yok.</div>
+                      ) : (
+                        history.map((item) => (
+                          <div key={item.id} className="ledger-history-item">
+                            <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{new Date(item.date).toLocaleDateString('tr-TR')}</span>
+                            <span style={{ flex: 1 }}>{item.label}</span>
+                            <span style={{ fontFamily: 'var(--font-mono)', color: item.direction === 'credit' ? 'var(--success)' : 'var(--danger)' }}>
+                              {item.direction === 'credit' ? '+' : '−'}{formatMoney(item.amount)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
