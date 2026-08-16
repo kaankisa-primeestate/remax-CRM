@@ -45,6 +45,8 @@ export default function AgentDashboardPage() {
   const [needsRevisionProperties, setNeedsRevisionProperties] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [officeModalOpen, setOfficeModalOpen] = useState(false);
+  const [hotOpportunitiesCount, setHotOpportunitiesCount] = useState(0);
+  const [weeklyShowingsCount, setWeeklyShowingsCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +81,30 @@ export default function AgentDashboardPage() {
         .filter((a) => !a.completed && a.date === todayStr)
         .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
       setTodayAppointments(todaysAppts);
+
+      // Sicak Firsatlar: "Ne zaman?" sorusuna "Hemen" diyen Alici/Kiraci/
+      // Yatirimci musteri sayisi -- yapay zeka puanlamasi gerektirmez,
+      // musterinin kendi beyaniyla zaten "sicak" oldugu belli.
+      const hotCount = customers.filter(
+        (c) => MATCHABLE_TYPES.includes(c.type) && c.purchaseTimeline === 'immediate',
+      ).length;
+      setHotOpportunitiesCount(hotCount);
+
+      // Bu Haftaki Gosterim: bu takvim haftasina (Pazartesi-Pazar) denk
+      // gelen "Ilan Gosterimi" turundeki randevu sayisi.
+      const now = new Date();
+      const dayOfWeek = (now.getDay() + 6) % 7; // Pazartesi=0 olacak sekilde kaydiriyoruz
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - dayOfWeek);
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      const mondayStr = monday.toISOString().slice(0, 10);
+      const sundayStr = sunday.toISOString().slice(0, 10);
+      const weeklyShowings = appointments.filter(
+        (a) => a.type === 'showing' && a.date >= mondayStr && a.date <= sundayStr,
+      ).length;
+      setWeeklyShowingsCount(weeklyShowings);
 
       // Akilli Eslestirme: kendi musterilerinden (alici/kiraci/yatirimci)
       // birkacini tarayip en iyi eslesen portfoyleri topluyoruz. Bu, zaten
@@ -246,12 +272,14 @@ export default function AgentDashboardPage() {
           )}
         </div>
         <div className="metric-card">
-          <div className="metric-card__label">Sıcak Fırsatlar<span className="soon-badge">Yakında</span></div>
-          <div className="metric-card__value" style={{ color: 'var(--muted)', fontSize: 16 }}>—</div>
+          <div className="metric-card__label">Sıcak Fırsatlar</div>
+          <div className="metric-card__value">{loading ? '…' : hotOpportunitiesCount} Müşteri</div>
+          <div className="metric-card__delta is-muted">"Hemen" almak/kiralamak isteyen</div>
         </div>
         <div className="metric-card">
-          <div className="metric-card__label">Bu Haftaki Gösterim<span className="soon-badge">Yakında</span></div>
-          <div className="metric-card__value" style={{ color: 'var(--muted)', fontSize: 16 }}>—</div>
+          <div className="metric-card__label">Bu Haftaki Gösterim</div>
+          <div className="metric-card__value">{loading ? '…' : weeklyShowingsCount} Gösterim</div>
+          <div className="metric-card__delta is-muted">Bu hafta planlanan</div>
         </div>
       </div>
 
