@@ -16,6 +16,7 @@ exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("./users.service");
 const create_agent_dto_1 = require("./dto/create-agent.dto");
+const update_agent_profile_dto_1 = require("./dto/update-agent-profile.dto");
 const change_password_dto_1 = require("../auth/dto/change-password.dto");
 const current_user_decorator_1 = require("../auth/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
@@ -37,6 +38,9 @@ let UsersController = class UsersController {
     }
     setMonthlyDues(id, monthlyDuesAmount) {
         return this.usersService.setMonthlyDues(id, monthlyDuesAmount);
+    }
+    updateAgentProfile(id, dto) {
+        return this.usersService.updateAgentProfile(id, dto);
     }
     async changePassword(dto, user) {
         await this.usersService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
@@ -77,6 +81,15 @@ __decorate([
     __metadata("design:paramtypes", [String, Number]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "setMonthlyDues", null);
+__decorate([
+    (0, common_1.Patch)('agents/:id/profile'),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_agent_profile_dto_1.UpdateAgentProfileDto]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "updateAgentProfile", null);
 __decorate([
     (0, common_1.Patch)('change-password'),
     __param(0, (0, common_1.Body)()),

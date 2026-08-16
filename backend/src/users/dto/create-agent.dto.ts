@@ -23,4 +23,16 @@ export class CreateAgentDto {
   @IsOptional()
   @IsString()
   birthDate?: string;
+
+  @IsOptional()
+  @IsString()
+  nationalId?: string;
+
+  @IsOptional()
+  @IsString()
+  companyName?: string;
+
+  @IsOptional()
+  @IsString()
+  taxId?: string;
 }

@@ -33,6 +33,19 @@ export class User {
   @Column({ type: 'date', nullable: true })
   birthDate: string | null;
 
+  // TC Kimlik No -- danismanin kendisine ait (sahis kimligi)
+  @Column({ type: 'varchar', nullable: true })
+  nationalId: string | null;
+
+  // Danisman genelde kendi sirketi (sahis sirketi) uzerinden fatura
+  // keser -- Cari Hesap ve komisyon odemelerinin doğru muhataba
+  // (sirkete) baglanabilmesi icin bu bilgiler onemli.
+  @Column({ type: 'varchar', nullable: true })
+  companyName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  taxId: string | null; // Vergi Kimlik No
+
   // Şifrenin bcrypt ile hash'lenmiş hâli — düz metin şifre ASLA saklanmaz
   @Column()
   passwordHash: string;

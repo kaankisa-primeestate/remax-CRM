@@ -5,4 +5,7 @@ export declare class CreateAgentDto {
     phone?: string;
     address?: string;
     birthDate?: string;
+    nationalId?: string;
+    companyName?: string;
+    taxId?: string;
 }

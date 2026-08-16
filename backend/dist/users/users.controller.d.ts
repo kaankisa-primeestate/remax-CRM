@@ -1,5 +1,6 @@
 import { UsersService } from './users.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
+import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 export declare class UsersController {
@@ -9,6 +10,7 @@ export declare class UsersController {
     createAgent(dto: CreateAgentDto): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     setMonthlyTarget(id: string, monthlyTarget: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     setMonthlyDues(id: string, monthlyDuesAmount: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
+    updateAgentProfile(id: string, dto: UpdateAgentProfileDto): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     changePassword(dto: ChangePasswordDto, user: CurrentUserPayload): Promise<{
         success: boolean;
     }>;

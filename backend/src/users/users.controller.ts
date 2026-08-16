@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
+import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -39,6 +40,13 @@ export class UsersController {
   @Roles(UserRole.BROKER)
   setMonthlyDues(@Param('id') id: string, @Body('monthlyDuesAmount') monthlyDuesAmount: number) {
     return this.usersService.setMonthlyDues(id, monthlyDuesAmount);
+  }
+
+  // PATCH /api/users/agents/:id/profile — Broker kimlik/sirket bilgilerini gunceller
+  @Patch('agents/:id/profile')
+  @Roles(UserRole.BROKER)
+  updateAgentProfile(@Param('id') id: string, @Body() dto: UpdateAgentProfileDto) {
+    return this.usersService.updateAgentProfile(id, dto);
   }
 
   // PATCH /api/users/change-password — Broker veya Danisman kendi sifresini degistirir

@@ -8,7 +8,10 @@ const AGENT_TABS = [
   { key: 'announce', label: '📢 Duyurular' },
 ];
 
-const emptyForm = { name: '', email: '', password: '', phone: '', address: '', birthDate: '' };
+const emptyForm = {
+  name: '', email: '', password: '', phone: '', address: '', birthDate: '',
+  nationalId: '', companyName: '', taxId: '',
+};
 
 export default function AgentsPage() {
   const [activeTab, setActiveTab] = useState('roster');
@@ -21,6 +24,8 @@ export default function AgentsPage() {
   const [savingTargetId, setSavingTargetId] = useState(null);
   const [duesDrafts, setDuesDrafts] = useState({});
   const [savingDuesId, setSavingDuesId] = useState(null);
+  const [profileDrafts, setProfileDrafts] = useState({});
+  const [savingProfileId, setSavingProfileId] = useState(null);
 
   const [announceTitle, setAnnounceTitle] = useState('');
   const [announceMessage, setAnnounceMessage] = useState('');
@@ -43,6 +48,13 @@ export default function AgentsPage() {
     setDuesDrafts(
       Object.fromEntries(data.map((a) => [a.id, a.monthlyDuesAmount != null ? String(a.monthlyDuesAmount) : ''])),
     );
+    setProfileDrafts(
+      Object.fromEntries(data.map((a) => [a.id, {
+        companyName: a.companyName || '',
+        taxId: a.taxId || '',
+        nationalId: a.nationalId || '',
+      }])),
+    );
     setRecentAnnouncements(announcements.slice(0, 20));
     setLoading(false);
   }, []);
@@ -61,6 +73,9 @@ export default function AgentsPage() {
         phone: form.phone.trim() || undefined,
         address: form.address.trim() || undefined,
         birthDate: form.birthDate || undefined,
+        nationalId: form.nationalId.trim() || undefined,
+        companyName: form.companyName.trim() || undefined,
+        taxId: form.taxId.trim() || undefined,
       });
       setForm(emptyForm);
       setActiveTab('roster');
@@ -144,6 +159,24 @@ export default function AgentsPage() {
     }
   }
 
+  async function handleSaveProfile(agentId) {
+    setSavingProfileId(agentId);
+    try {
+      const draft = profileDrafts[agentId];
+      const payload = {
+        companyName: draft.companyName.trim() || undefined,
+        taxId: draft.taxId.trim() || undefined,
+        nationalId: draft.nationalId.trim() || undefined,
+      };
+      await usersApi.updateAgentProfile(agentId, payload);
+      setAgents((prev) => prev.map((a) => (a.id === agentId ? { ...a, ...payload } : a)));
+    } catch (err) {
+      alert('Şirket bilgileri kaydedilemedi, tekrar deneyin.');
+    } finally {
+      setSavingProfileId(null);
+    }
+  }
+
   return (
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>Danışman Yönetimi</h2>
@@ -184,6 +217,9 @@ export default function AgentsPage() {
                       {agent.address && agent.birthDate && ' · '}
                       {agent.birthDate && `🎂 ${new Date(agent.birthDate).toLocaleDateString('tr-TR')}`}
                     </div>
+                  )}
+                  {agent.companyName && (
+                    <div className="agent-card__meta">🏢 {agent.companyName}{agent.taxId && ` · VKN: ${agent.taxId}`}</div>
                   )}
                 </div>
               </div>
@@ -231,6 +267,41 @@ export default function AgentsPage() {
                   </button>
                 </div>
               </div>
+              <div className="agent-card__company-edit">
+                <div className="form-field" style={{ margin: 0 }}>
+                  <label style={{ fontSize: 10 }}>Şirket Adı</label>
+                  <input
+                    value={profileDrafts[agent.id]?.companyName ?? ''}
+                    onChange={(e) => setProfileDrafts((d) => ({ ...d, [agent.id]: { ...d[agent.id], companyName: e.target.value } }))}
+                    style={{ fontSize: 12, padding: '5px 8px' }}
+                  />
+                </div>
+                <div className="form-field" style={{ margin: 0 }}>
+                  <label style={{ fontSize: 10 }}>Vergi Kimlik No</label>
+                  <input
+                    value={profileDrafts[agent.id]?.taxId ?? ''}
+                    onChange={(e) => setProfileDrafts((d) => ({ ...d, [agent.id]: { ...d[agent.id], taxId: e.target.value } }))}
+                    style={{ fontSize: 12, padding: '5px 8px' }}
+                  />
+                </div>
+                <div className="form-field" style={{ margin: 0 }}>
+                  <label style={{ fontSize: 10 }}>TC Kimlik No</label>
+                  <input
+                    value={profileDrafts[agent.id]?.nationalId ?? ''}
+                    onChange={(e) => setProfileDrafts((d) => ({ ...d, [agent.id]: { ...d[agent.id], nationalId: e.target.value } }))}
+                    style={{ fontSize: 12, padding: '5px 8px' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 10px', fontSize: 12, alignSelf: 'flex-end' }}
+                  disabled={savingProfileId === agent.id}
+                  onClick={() => handleSaveProfile(agent.id)}
+                >
+                  {savingProfileId === agent.id ? '…' : 'Şirket Bilgilerini Kaydet'}
+                </button>
+              </div>
             </div>
           ))
         )}
@@ -244,6 +315,7 @@ export default function AgentsPage() {
           Buradaki bilgiler, danışmanın giriş bilgilerini ve ileride cari hesap/aidat kayıtlarının bağlanacağı kimlik bilgilerini oluşturur — doğru ve güncel girilmesi önemli.
         </p>
         <form onSubmit={handleSubmit}>
+          <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Kişisel Bilgiler</h4>
           <div className="form-grid">
             <div className="form-field">
               <label>Ad Soyad</label>
@@ -288,6 +360,15 @@ export default function AgentsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, birthDate: e.target.value }))}
               />
             </div>
+            <div className="form-field">
+              <label>TC Kimlik No (opsiyonel)</label>
+              <input
+                value={form.nationalId}
+                onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value }))}
+                placeholder="11 haneli"
+                maxLength={11}
+              />
+            </div>
             <div className="form-field full">
               <label>Yerleşik Adres (opsiyonel)</label>
               <input
@@ -297,6 +378,28 @@ export default function AgentsPage() {
               />
             </div>
           </div>
+
+          <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', color: 'var(--muted)', margin: '18px 0 8px' }}>Şirket Bilgileri (Fatura Kesimi İçin)</h4>
+          <div className="form-grid">
+            <div className="form-field">
+              <label>Şirket Adı (opsiyonel)</label>
+              <input
+                value={form.companyName}
+                onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
+                placeholder="Örn: Hasan Yılmaz Gayrimenkul"
+              />
+            </div>
+            <div className="form-field">
+              <label>Vergi Kimlik No (opsiyonel)</label>
+              <input
+                value={form.taxId}
+                onChange={(e) => setForm((f) => ({ ...f, taxId: e.target.value }))}
+                placeholder="10 haneli"
+                maxLength={10}
+              />
+            </div>
+          </div>
+
           {error && <div className="form-error">{error}</div>}
           <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: 14 }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>

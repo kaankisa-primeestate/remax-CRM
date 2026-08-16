@@ -2252,3 +2252,17 @@ button {
   flex-wrap: wrap;
   gap: 16px;
 }
+
+/* --- Danışman kartı: şirket/vergi bilgileri düzenleme bölümü --- */
+.agent-card__company-edit {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--paper-line);
+}
+.agent-card__company-edit .form-field {
+  min-width: 140px;
+}

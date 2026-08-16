@@ -44,6 +44,18 @@ __decorate([
     __metadata("design:type", Object)
 ], User.prototype, "birthDate", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "nationalId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "companyName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "taxId", void 0);
+__decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);

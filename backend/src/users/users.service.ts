@@ -11,6 +11,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserRole } from './user.entity';
 import { CreateAgentDto } from './dto/create-agent.dto';
+import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
 
 const SALT_ROUNDS = 10;
 
@@ -90,6 +91,9 @@ export class UsersService implements OnModuleInit {
         phone: dto.phone || null,
         address: dto.address || null,
         birthDate: dto.birthDate || null,
+        nationalId: dto.nationalId || null,
+        companyName: dto.companyName || null,
+        taxId: dto.taxId || null,
       }),
     );
     const { passwordHash: _omit, ...safeUser } = user;
@@ -124,6 +128,23 @@ export class UsersService implements OnModuleInit {
       throw new NotFoundException('Danışman bulunamadı');
     }
     agent.monthlyDuesAmount = monthlyDuesAmount;
+    const saved = await this.userRepo.save(agent);
+    const { passwordHash, ...rest } = saved;
+    return rest;
+  }
+
+  // Broker, sonradan kimlik/sirket bilgilerini (telefon, adres, TC no,
+  // sirket adi, vergi no vb.) doldurabilir/duzeltebilir -- danisman
+  // olusturulurken girilmemis olabilir.
+  async updateAgentProfile(
+    agentId: string,
+    dto: UpdateAgentProfileDto,
+  ): Promise<Omit<User, 'passwordHash'>> {
+    const agent = await this.userRepo.findOne({ where: { id: agentId, role: UserRole.AGENT } });
+    if (!agent) {
+      throw new NotFoundException('Danışman bulunamadı');
+    }
+    Object.assign(agent, dto);
     const saved = await this.userRepo.save(agent);
     const { passwordHash, ...rest } = saved;
     return rest;

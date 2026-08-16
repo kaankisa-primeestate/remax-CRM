@@ -9,6 +9,9 @@ export declare class User {
     phone: string | null;
     address: string | null;
     birthDate: string | null;
+    nationalId: string | null;
+    companyName: string | null;
+    taxId: string | null;
     passwordHash: string;
     role: UserRole;
     lastNotificationsSeenAt: Date | null;
