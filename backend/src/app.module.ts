@@ -14,6 +14,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { PropertyCommentsModule } from './property-comments/property-comments.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AnnouncementsModule } from './announcements/announcements.module';
     AppointmentsModule,
     PropertyCommentsModule,
     AnnouncementsModule,
+    TransactionsModule,
   ],
 })
 export class AppModule {}

@@ -2067,3 +2067,48 @@ button {
   0% { transform: translateY(-20px) rotate(0deg); opacity: 0.9; }
   100% { transform: translateY(120px) rotate(360deg); opacity: 0; }
 }
+
+/* --- İşlemler: Kanban kartı --- */
+.transaction-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.transaction-card__title {
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.transaction-card__title a {
+  color: var(--ink-navy);
+  text-decoration: none;
+}
+.transaction-card__title a:hover {
+  text-decoration: underline;
+}
+.transaction-card__meta {
+  color: var(--muted);
+  font-size: 11px;
+}
+.transaction-card__meta a {
+  color: var(--slate);
+}
+.transaction-card__offer {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--success);
+  margin-top: 4px;
+}
+.transaction-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.transaction-card__stage-select {
+  flex: 1;
+  font-size: 11px;
+  padding: 4px 6px;
+}
