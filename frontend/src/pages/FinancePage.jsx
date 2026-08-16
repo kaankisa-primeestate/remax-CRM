@@ -3,10 +3,20 @@ import { bankAccountsApi, CURRENCIES, formatMoney } from '../api/bankAccounts';
 import { expensesApi, EXPENSE_CATEGORIES } from '../api/expenses';
 import { usersApi } from '../api/auth';
 
-// Finans -- Asama 1: Banka Hesaplari. Diger asamalar (Danisman Cari
-// Hesabi, Ofis Giderleri, Ortaklar, ozet pano) ayni sayfaya sirayla
-// eklenecek. Bkz. Finans_Modulu_Yol_Haritasi.md
+const FINANCE_TABS = [
+  { key: 'accounts', label: '🏦 Banka Hesapları' },
+  { key: 'expenses', label: '🧾 Giderler' },
+  { key: 'ledger', label: '👤 Danışman Cari Hesapları' },
+  { key: 'partners', label: '🤝 Ortaklar' },
+  { key: 'summary', label: '📊 Özet' },
+];
+
+// Finans -- gercek bir muhasebe uygulamasi gibi sekmeli (tab) yapida.
+// Asama 1 (Banka Hesaplari) ve Asama 2 (Giderler) tam calisir durumda;
+// Asama 3-5 (Cari Hesap, Ortaklar, Ozet) placeholder sekmeler olarak
+// hazir, sirayla doldurulacak. Bkz. Finans_Modulu_Yol_Haritasi.md
 export default function FinancePage() {
+  const [activeTab, setActiveTab] = useState('accounts');
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -204,6 +214,22 @@ export default function FinancePage() {
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>Finans</h2>
 
+      <div className="folder-tabs" style={{ flexWrap: 'wrap' }}>
+        {FINANCE_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`folder-tab${activeTab === tab.key ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="finance-tab-content">
+      {activeTab === 'accounts' && (
+        <>
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Banka Hesabı Ekle</h3>
         <form onSubmit={handleAddAccount} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -333,10 +359,11 @@ export default function FinancePage() {
           </div>
         ))
       )}
+        </>
+      )}
 
-      {/* --- Ofis Giderleri --- */}
-      <h2 className="dossier__name" style={{ marginTop: 32, marginBottom: 16 }}>Ofis Giderleri</h2>
-
+      {activeTab === 'expenses' && (
+        <>
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Gider Ekle</h3>
         <form onSubmit={handleAddExpense} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -441,6 +468,41 @@ export default function FinancePage() {
             </table>
           </div>
         )}
+      </div>
+        </>
+      )}
+
+      {activeTab === 'ledger' && (
+        <div className="finance-placeholder">
+          <div className="finance-placeholder__icon">👤</div>
+          <div className="finance-placeholder__title">Danışman Cari Hesapları</div>
+          <p className="finance-placeholder__text">
+            Bu bölüm sırada: bir danışmanın komisyonu onaylandığında burada otomatik bir bakiye oluşacak,
+            yapılan (kısmi) ödemeler buradan işlenecek. Danışman kendi bakiyesini Komisyonlar sayfasından görecek.
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'partners' && (
+        <div className="finance-placeholder">
+          <div className="finance-placeholder__icon">🤝</div>
+          <div className="finance-placeholder__title">Ortaklar</div>
+          <p className="finance-placeholder__text">
+            Bu bölüm sırada: ortakların sermaye giriş/çıkışlarının ve kâr payı hareketlerinin takip edildiği hesaplar burada olacak.
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'summary' && (
+        <div className="finance-placeholder">
+          <div className="finance-placeholder__icon">📊</div>
+          <div className="finance-placeholder__title">Özet</div>
+          <p className="finance-placeholder__text">
+            Bu bölüm sırada: toplam gelir/gider, net kâr-zarar, banka bakiyeleri toplamı ve danışmanlara olan
+            toplam borç, hepsi bir arada burada görünecek.
+          </p>
+        </div>
+      )}
       </div>
     </div>
   );
