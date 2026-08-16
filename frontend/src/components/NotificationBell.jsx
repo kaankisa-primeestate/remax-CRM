@@ -14,6 +14,7 @@ const TYPE_ICONS = {
   broker_message: '💬',
   showing_disclosure: '📝',
   announcement: '📢',
+  deal_pending_approval: '🏆',
 };
 
 function timeAgo(dateStr) {

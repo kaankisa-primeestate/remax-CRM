@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { commissionsApi, COMMISSION_STATUSES } from '../api/commissions';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -56,6 +57,8 @@ function SummaryCard({ label, value, accent }) {
 
 export default function CommissionsPage() {
   const { isBroker, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [commissions, setCommissions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +67,19 @@ export default function CommissionsPage() {
   const [agents, setAgents] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+
+  // Islemler sayfasindan "Tapu Onayla" ile geldiyse, formu otomatik ac
+  // ve ilgili bilgileri (danisman/portfoy/musteri/tutar) on-doldur.
+  useEffect(() => {
+    if (location.state?.prefillCommission) {
+      setPrefill(location.state.prefillCommission);
+      setShowForm(true);
+      // State'i temizle ki sayfa yenilenince (F5) tekrar acilmasin
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (isBroker) {
@@ -234,7 +250,11 @@ export default function CommissionsPage() {
       </div>
 
       {showForm && (
-        <CommissionFormModal onSubmit={handleCreate} onClose={() => setShowForm(false)} />
+        <CommissionFormModal
+          initialValues={prefill}
+          onSubmit={handleCreate}
+          onClose={() => { setShowForm(false); setPrefill(null); }}
+        />
       )}
       {editing && (
         <CommissionFormModal

@@ -45,10 +45,20 @@ export class TransactionsService {
     currentUser: CurrentUserPayload,
   ): Promise<Transaction> {
     const transaction = await this.findOneOwned(id, currentUser);
+
+    // Tapu Onay Akisi: sadece Broker "dealApproved: true" ayarlayabilir.
+    if (dto.dealApproved === true && currentUser.role !== 'broker') {
+      throw new ForbiddenException('Bu işlemi sadece Broker onaylayabilir');
+    }
+
     const stageChanging = dto.stage !== undefined && dto.stage !== transaction.stage;
+    const dealJustApproved = dto.dealApproved === true && !transaction.dealApproved;
     Object.assign(transaction, dto);
     if (stageChanging) {
       transaction.stageChangedAt = new Date();
+    }
+    if (dealJustApproved) {
+      transaction.dealApprovedAt = new Date();
     }
     return this.transactionRepo.save(transaction);
   }

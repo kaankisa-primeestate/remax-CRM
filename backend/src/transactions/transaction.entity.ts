@@ -48,6 +48,15 @@ export class Transaction {
   @Column({ type: 'timestamp', nullable: true })
   stageChangedAt: Date | null;
 
+  // Tapu Onay Akisi: asama "deed" (Tapu) oldugunda islem otomatik olarak
+  // "onay bekliyor" durumuna girer -- SADECE Broker onaylayabilir. Onay
+  // sonrasi Komisyonlar sayfasinda on-doldurulmus bir kayit acilir.
+  @Column({ default: false })
+  dealApproved: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  dealApprovedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

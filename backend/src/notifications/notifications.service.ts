@@ -9,6 +9,7 @@ import { User, UserRole } from '../users/user.entity';
 import { PropertyComment } from '../property-comments/property-comment.entity';
 import { Appointment } from '../appointments/appointment.entity';
 import { Announcement } from '../announcements/announcement.entity';
+import { Transaction } from '../transactions/transaction.entity';
 
 const PROPERTY_STATUS_LABELS: Record<string, string> = {
   active: 'Aktif',
@@ -29,7 +30,8 @@ export type NotificationType =
   | 'property_pending_approval'
   | 'broker_message'
   | 'showing_disclosure'
-  | 'announcement';
+  | 'announcement'
+  | 'deal_pending_approval';
 
 export interface NotificationItem {
   id: string;
@@ -57,6 +59,7 @@ export class NotificationsService {
     @InjectRepository(PropertyComment) private readonly commentRepo: Repository<PropertyComment>,
     @InjectRepository(Appointment) private readonly appointmentRepo: Repository<Appointment>,
     @InjectRepository(Announcement) private readonly announcementRepo: Repository<Announcement>,
+    @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
   ) {}
 
   async getRecentActivity(userId: string): Promise<{ items: NotificationItem[]; unreadCount: number }> {
@@ -91,6 +94,7 @@ export class NotificationsService {
       approvedCommissions,
       pendingApprovalProperties,
       acceptedDisclosures,
+      pendingDeals,
     ] = await Promise.all([
       this.propertyRepo.find({ order: { createdAt: 'DESC' }, take: LIMIT_PER_SOURCE }),
       this.propertyRepo.find({
@@ -122,6 +126,13 @@ export class NotificationsService {
       this.appointmentRepo.find({
         where: { disclosureAcceptedAt: Not(IsNull()) },
         order: { disclosureAcceptedAt: 'DESC' },
+        take: LIMIT_PER_SOURCE,
+      }),
+      // Tapu asamasina gelmis ama Broker henuz onaylamamis islemler --
+      // onaylandiginda otomatik komisyon kaydi acilacak.
+      this.transactionRepo.find({
+        where: { stage: 'deed' as any, dealApproved: false },
+        order: { stageChangedAt: 'DESC', createdAt: 'DESC' },
         take: LIMIT_PER_SOURCE,
       }),
     ]);
@@ -194,6 +205,15 @@ export class NotificationsService {
         occurredAt: a.disclosureAcceptedAt as Date,
         read: false,
         propertyId: a.propertyId || undefined,
+      })),
+      ...pendingDeals.map((t) => ({
+        id: `deal-pending-${t.id}-${new Date(t.stageChangedAt || t.createdAt).getTime()}`,
+        type: 'deal_pending_approval' as const,
+        title: `Tapu onayı bekleyen işlem`,
+        agentName: nameFor(t.agentId),
+        occurredAt: (t.stageChangedAt as Date) || t.createdAt,
+        read: false,
+        propertyId: t.propertyId,
       })),
     ]
       .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())

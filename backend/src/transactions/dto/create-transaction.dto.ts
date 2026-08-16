@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsNumber, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsNumber, IsString, IsUUID } from 'class-validator';
 import { TransactionStage } from '../transaction.entity';
 
 export class CreateTransactionDto {
@@ -21,4 +21,8 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  dealApproved?: boolean;
 }

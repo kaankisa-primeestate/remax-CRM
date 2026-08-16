@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { transactionsApi, TRANSACTION_STAGES } from '../api/transactions';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { propertiesApi } from '../api/properties';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const money = (n) =>
   n ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : null;
@@ -12,6 +13,8 @@ const money = (n) =>
 // Musteri Kanban'indaki (pipelineStage) genel ilgi durumundan farkli --
 // burasi SOMUT bir anlasmanin asamasini gosterir.
 export default function TransactionsPage() {
+  const { isBroker } = useAuth();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [properties, setProperties] = useState([]);
@@ -78,6 +81,33 @@ export default function TransactionsPage() {
     } catch {
       alert('İşlem silinemedi, sayfa yenileniyor.');
       load();
+    }
+  }
+
+  // Tapu Onay Akisi: Broker onaylayinca, bu bilgilerle ON-DOLDURULMUS
+  // bir Komisyon formu acilsin diye Komisyonlar sayfasina yonlendiriyoruz
+  // -- danisman/musteri/portfoy/tutar bilgilerini tekrar yazmaya gerek kalmaz.
+  async function handleApproveDeal(t) {
+    try {
+      await transactionsApi.update(t.id, { dealApproved: true });
+      const customer = customers.find((c) => c.id === t.customerId);
+      const property = properties.find((p) => p.id === t.propertyId);
+      navigate('/komisyonlar', {
+        state: {
+          prefillCommission: {
+            agentId: t.agentId,
+            propertyId: t.propertyId,
+            customerId: t.customerId,
+            propertyTitle: property?.title || '',
+            transactionType: property?.listingType === 'rent' ? 'rent' : 'sale',
+            transactionAmount: t.offerAmount || '',
+            dueDate: new Date().toISOString().slice(0, 10),
+          },
+        },
+      });
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Onaylanamadı.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
     }
   }
 
@@ -149,6 +179,21 @@ export default function TransactionsPage() {
                           </div>
                           {t.offerAmount && (
                             <div className="transaction-card__offer">{money(t.offerAmount)}</div>
+                          )}
+                          {t.stage === 'deed' && (
+                            <div className={t.dealApproved ? 'deal-approval-badge deal-approval-badge--ok' : 'deal-approval-badge'}>
+                              {t.dealApproved ? '✓ Broker onayladı' : '⏳ Broker onayı bekliyor'}
+                            </div>
+                          )}
+                          {t.stage === 'deed' && !t.dealApproved && isBroker && (
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }}
+                              onClick={() => handleApproveDeal(t)}
+                            >
+                              ✓ Onayla ve Komisyon Aç
+                            </button>
                           )}
                           <div className="transaction-card__actions">
                             <select
