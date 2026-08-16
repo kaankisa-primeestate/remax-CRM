@@ -15,6 +15,7 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { PropertyCommentsModule } from './property-comments/property-comments.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     PropertyCommentsModule,
     AnnouncementsModule,
     TransactionsModule,
+    BankAccountsModule,
   ],
 })
 export class AppModule {}
