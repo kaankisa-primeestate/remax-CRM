@@ -305,32 +305,34 @@ export default function DashboardPage() {
             {data.leaderboard.length === 0 ? (
               <div className="panel__empty">Bu aralıkta veri yok.</div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '6px 8px' }}>#</th>
-                    <th style={{ padding: '6px 8px' }}>Danışman</th>
-                    <th style={{ padding: '6px 8px' }}>Portföy</th>
-                    <th style={{ padding: '6px 8px' }}>Müşteri</th>
-                    <th style={{ padding: '6px 8px' }}>Görüşme</th>
-                    <th style={{ padding: '6px 8px' }}>Komisyon</th>
-                    <th style={{ padding: '6px 8px' }}>Satış Tutarı</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.leaderboard.map((row, i) => (
-                    <tr key={row.agentId} style={{ borderTop: '1px solid var(--paper-line)' }}>
-                      <td style={{ padding: '10px 8px', fontWeight: 700 }}>{i + 1}</td>
-                      <td style={{ padding: '10px 8px' }}>{row.agentName}</td>
-                      <td style={{ padding: '10px 8px' }}>{row.propertiesCount}</td>
-                      <td style={{ padding: '10px 8px' }}>{row.customersCount}</td>
-                      <td style={{ padding: '10px 8px' }}>{row.interactionsCount}</td>
-                      <td style={{ padding: '10px 8px' }}>{row.commissionsCount}</td>
-                      <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)' }}>{money(row.salesValue)}</td>
+              <div className="table-scroll">
+                <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>#</th>
+                      <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Danışman</th>
+                      <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Portföy</th>
+                      <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Müşteri</th>
+                      <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Görüşme</th>
+                      <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Komisyon</th>
+                      <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Satış Tutarı</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.leaderboard.map((row, i) => (
+                      <tr key={row.agentId} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                        <td style={{ padding: '10px 8px', fontWeight: 700 }}>{i + 1}</td>
+                        <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>{row.agentName}</td>
+                        <td style={{ padding: '10px 8px' }}>{row.propertiesCount}</td>
+                        <td style={{ padding: '10px 8px' }}>{row.customersCount}</td>
+                        <td style={{ padding: '10px 8px' }}>{row.interactionsCount}</td>
+                        <td style={{ padding: '10px 8px' }}>{row.commissionsCount}</td>
+                        <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{money(row.salesValue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 

@@ -2155,3 +2155,9 @@ button {
 .market-ticker__link:hover {
   text-decoration: underline;
 }
+
+/* --- Genis tablolar icin yatay kaydirma kutusu (mobil tasma engelleme) --- */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
