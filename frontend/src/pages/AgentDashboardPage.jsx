@@ -47,6 +47,9 @@ export default function AgentDashboardPage() {
   const [officeModalOpen, setOfficeModalOpen] = useState(false);
   const [hotOpportunitiesCount, setHotOpportunitiesCount] = useState(0);
   const [weeklyShowingsCount, setWeeklyShowingsCount] = useState(0);
+  const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
+  const [monthlyLeaderboard, setMonthlyLeaderboard] = useState([]);
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState('week');
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +138,14 @@ export default function AgentDashboardPage() {
     }
     load();
     return () => { cancelled = true; };
+  }, []);
+
+  // Liderlik Tablosu -- Broker Dashboard'daki ile ayni veri, gamification
+  // amacli tum ofis gorebiliyor. Ayri, bagimsiz bir yukleme (ana veri
+  // akisina dokunmadan).
+  useEffect(() => {
+    dashboardApi.leaderboard('week').then(setWeeklyLeaderboard).catch(() => setWeeklyLeaderboard([]));
+    dashboardApi.leaderboard('month').then(setMonthlyLeaderboard).catch(() => setMonthlyLeaderboard([]));
   }, []);
 
   async function handleRespondAnnouncement(announcementId, status) {
@@ -377,6 +388,72 @@ export default function AgentDashboardPage() {
             );
           })}
         </div>
+      </div>
+
+      {/* --- Liderlik Tablosu (gamification) --- */}
+      <div className="folder-panel" style={{ marginTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>🏆 Liderlik Tablosu</h3>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              type="button"
+              className={leaderboardPeriod === 'week' ? 'btn btn-primary' : 'btn btn-secondary'}
+              style={{ fontSize: 12, padding: '5px 12px' }}
+              onClick={() => setLeaderboardPeriod('week')}
+            >
+              Bu Hafta
+            </button>
+            <button
+              type="button"
+              className={leaderboardPeriod === 'month' ? 'btn btn-primary' : 'btn btn-secondary'}
+              style={{ fontSize: 12, padding: '5px 12px' }}
+              onClick={() => setLeaderboardPeriod('month')}
+            >
+              Bu Ay
+            </button>
+          </div>
+        </div>
+        {(() => {
+          const rows = leaderboardPeriod === 'week' ? weeklyLeaderboard : monthlyLeaderboard;
+          if (rows.length === 0) {
+            return <div className="empty-state">Bu dönem için henüz veri yok.</div>;
+          }
+          return (
+            <div className="table-scroll">
+              <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                    <th style={{ padding: '6px 8px' }}>#</th>
+                    <th style={{ padding: '6px 8px' }}>Danışman</th>
+                    <th style={{ padding: '6px 8px' }}>Portföy</th>
+                    <th style={{ padding: '6px 8px' }}>Müşteri</th>
+                    <th style={{ padding: '6px 8px' }}>Görüşme</th>
+                    <th style={{ padding: '6px 8px' }}>Satış Tutarı</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, i) => (
+                    <tr
+                      key={row.agentId}
+                      style={{
+                        borderTop: '1px solid var(--paper-line)',
+                        background: row.agentId === user?.id ? 'var(--paper-line)' : 'transparent',
+                        fontWeight: row.agentId === user?.id ? 700 : 400,
+                      }}
+                    >
+                      <td style={{ padding: '8px' }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
+                      <td style={{ padding: '8px' }}>{row.agentName}{row.agentId === user?.id ? ' (Siz)' : ''}</td>
+                      <td style={{ padding: '8px' }}>{row.propertiesCount}</td>
+                      <td style={{ padding: '8px' }}>{row.customersCount}</td>
+                      <td style={{ padding: '8px' }}>{row.interactionsCount}</td>
+                      <td style={{ padding: '8px', fontFamily: 'var(--font-mono)' }}>{money(row.salesValue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

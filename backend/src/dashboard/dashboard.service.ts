@@ -137,6 +137,58 @@ export class DashboardService {
     };
   }
 
+  // Sadece liderlik tablosunu dondurur -- hem Broker Dashboard'ta hem
+  // Danisman Panelim'de kullanilir (Broker-ozel getSummary'den bagimsiz,
+  // ayri/kucuk bir sorgu -- mevcut calisan koda dokunmamak icin).
+  async getLeaderboard(from: Date, to: Date) {
+    const agents = await this.userRepo.find({ where: { role: UserRole.AGENT } });
+    const agentNameById = new Map(agents.map((a) => [a.id, a.name]));
+
+    const [properties, customers, interactions, commissions] = await Promise.all([
+      this.propertyRepo.find({ where: { createdAt: Between(from, to) } }),
+      this.customerRepo.find({ where: { createdAt: Between(from, to) } }),
+      this.interactionRepo.find({ where: { createdAt: Between(from, to) }, relations: ['customer'] }),
+      this.commissionRepo.find({ where: { createdAt: Between(from, to) } }),
+    ]);
+
+    const statsByAgent = new Map<string, AgentStats>();
+    const ensure = (agentId: string): AgentStats => {
+      if (!statsByAgent.has(agentId)) {
+        statsByAgent.set(agentId, {
+          propertiesCount: 0,
+          customersCount: 0,
+          interactionsCount: 0,
+          commissionsCount: 0,
+          salesValue: 0,
+        });
+      }
+      return statsByAgent.get(agentId)!;
+    };
+
+    for (const p of properties) {
+      if (p.agentId) ensure(p.agentId).propertiesCount += 1;
+    }
+    for (const c of customers) {
+      if (c.agentId) ensure(c.agentId).customersCount += 1;
+    }
+    for (const i of interactions) {
+      const agentId = i.customer?.agentId;
+      if (agentId) ensure(agentId).interactionsCount += 1;
+    }
+    for (const cm of commissions) {
+      ensure(cm.agentId).commissionsCount += 1;
+      ensure(cm.agentId).salesValue += Number(cm.netPayable);
+    }
+
+    return Array.from(statsByAgent.entries())
+      .map(([agentId, stats]) => ({
+        agentId,
+        agentName: agentNameById.get(agentId) || 'Bilinmeyen',
+        ...stats,
+      }))
+      .sort((a, b) => b.salesValue - a.salesValue || b.propertiesCount - a.propertiesCount);
+  }
+
   // Danismanin kendi "Bu Ayki Hedefim" karti icin: hedef vs bu ayin
   // gerceklesen ciro tutari (komisyon kayitlarindan).
   async getAgentMonthlyProgress(agentId: string) {

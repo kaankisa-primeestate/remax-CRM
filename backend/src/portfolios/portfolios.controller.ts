@@ -38,6 +38,7 @@ export class PortfoliosController {
     @Query('minArea') minArea?: string,
     @Query('maxArea') maxArea?: string,
     @Query('agentId') agentId?: string,
+    @Query('scope') scope?: string,
     @Query('rooms') rooms?: string,
     @Query('minBuildingAge') minBuildingAge?: string,
     @Query('maxBuildingAge') maxBuildingAge?: string,
@@ -51,7 +52,7 @@ export class PortfoliosController {
   ) {
     return this.portfoliosService.findAll(
       {
-        search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId,
+        search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId, scope,
         rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword,
       },
       user,

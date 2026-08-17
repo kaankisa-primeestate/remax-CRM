@@ -17,6 +17,7 @@ export interface FindPropertiesQuery {
   minArea?: string;
   maxArea?: string;
   agentId?: string; // sadece Broker için geçerli
+  scope?: string; // 'office' ise Danışman TÜM ofis portföyünü görür (Ofis Portföyü sekmesi)
   rooms?: string; // ornek: '2+1'
   minBuildingAge?: string;
   maxBuildingAge?: string;
@@ -120,9 +121,16 @@ export class PortfoliosService {
       );
     }
 
-    // Mahremiyet Duvarı: bir Danışman sadece kendi portföyünü görebilir.
+    // Mahremiyet Duvarı: bir Danışman normalde sadece kendi portföyünü
+    // görebilir. Ancak "Ofis Portföyü" sekmesi (scope=office) için,
+    // TÜM ofisin portföylerini görüntüleyebilir -- işbirlikli satış
+    // yapabilmek icin meslektaslarinin ilanlarini gorebilmesi gerekiyor.
+    // Bu SADECE goruntuleme icindir; duzenleme/silme hala sahibine ozel
+    // (bkz. assertWriteAccess).
     if (currentUser.role === 'agent') {
-      qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
+      if (query.scope !== 'office') {
+        qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
+      }
     } else if (query.agentId) {
       qb.andWhere('property.agentId = :agentId', { agentId: query.agentId });
     }
@@ -130,12 +138,14 @@ export class PortfoliosService {
     return qb.getMany();
   }
 
+  // Herhangi bir Danisman herhangi bir portfoyun DETAYINI gorebilir
+  // (Ofis Portfoyu / isbirlikli satis icin gerekli) -- duzenleme/silme
+  // yine de sadece sahibine/Broker'a ozel (bkz. assertWriteAccess).
   async findOne(id: string, currentUser: CurrentUserPayload): Promise<Property> {
     const property = await this.propertyRepo.findOne({ where: { id } });
     if (!property) {
       throw new NotFoundException('Portföy bulunamadı');
     }
-    this.assertAccess(property, currentUser);
     return property;
   }
 
@@ -145,6 +155,7 @@ export class PortfoliosService {
     currentUser: CurrentUserPayload,
   ): Promise<Property> {
     const property = await this.findOne(id, currentUser);
+    this.assertWriteAccess(property, currentUser);
     const safeDto = currentUser.role === 'agent' ? { ...dto, agentId: undefined } : dto;
     const statusChanging = safeDto.status !== undefined && safeDto.status !== property.status;
 
@@ -174,12 +185,13 @@ export class PortfoliosService {
 
   async remove(id: string, currentUser: CurrentUserPayload): Promise<void> {
     const property = await this.findOne(id, currentUser);
+    this.assertWriteAccess(property, currentUser);
     await this.propertyRepo.remove(property);
   }
 
-  private assertAccess(property: Property, currentUser: CurrentUserPayload) {
+  private assertWriteAccess(property: Property, currentUser: CurrentUserPayload) {
     if (currentUser.role === 'agent' && property.agentId !== currentUser.userId) {
-      throw new ForbiddenException('Bu portföye erişim yetkiniz yok');
+      throw new ForbiddenException('Bu portföyü düzenleme yetkiniz yok');
     }
   }
 

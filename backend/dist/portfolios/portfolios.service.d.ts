@@ -14,6 +14,7 @@ export interface FindPropertiesQuery {
     minArea?: string;
     maxArea?: string;
     agentId?: string;
+    scope?: string;
     rooms?: string;
     minBuildingAge?: string;
     maxBuildingAge?: string;
@@ -33,7 +34,7 @@ export declare class PortfoliosService {
     findOne(id: string, currentUser: CurrentUserPayload): Promise<Property>;
     update(id: string, dto: UpdatePropertyDto, currentUser: CurrentUserPayload): Promise<Property>;
     remove(id: string, currentUser: CurrentUserPayload): Promise<void>;
-    private assertAccess;
+    private assertWriteAccess;
     findOnePublic(id: string): Promise<{
         id: string;
         title: string;

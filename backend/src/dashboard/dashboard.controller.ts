@@ -33,4 +33,23 @@ export class DashboardController {
   getMyTargetProgress(@CurrentUser() user: CurrentUserPayload) {
     return this.dashboardService.getAgentMonthlyProgress(user.userId);
   }
+
+  // GET /api/dashboard/leaderboard?period=week|month — hem Broker hem
+  // Danisman erisebilir (gamification/motivasyon amacli, tum ofis gorur).
+  @Get('leaderboard')
+  getLeaderboard(@Query('period') period?: string) {
+    const now = new Date();
+    const to = new Date(now);
+    to.setHours(23, 59, 59, 999);
+    const from = new Date(now);
+    if (period === 'month') {
+      from.setDate(1);
+    } else {
+      // hafta: Pazartesi baslangicli
+      const dayOfWeek = (now.getDay() + 6) % 7;
+      from.setDate(now.getDate() - dayOfWeek);
+    }
+    from.setHours(0, 0, 0, 0);
+    return this.dashboardService.getLeaderboard(from, to);
+  }
 }

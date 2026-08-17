@@ -92,7 +92,9 @@ let PortfoliosService = class PortfoliosService {
             qb.andWhere('(property.notes ILIKE :keyword OR property.view ILIKE :keyword OR property.facade ILIKE :keyword OR property.heatingType ILIKE :keyword OR property.deedStatus ILIKE :keyword OR property.title ILIKE :keyword)', { keyword: `%${query.keyword}%` });
         }
         if (currentUser.role === 'agent') {
-            qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
+            if (query.scope !== 'office') {
+                qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
+            }
         }
         else if (query.agentId) {
             qb.andWhere('property.agentId = :agentId', { agentId: query.agentId });
@@ -104,11 +106,11 @@ let PortfoliosService = class PortfoliosService {
         if (!property) {
             throw new common_1.NotFoundException('Portföy bulunamadı');
         }
-        this.assertAccess(property, currentUser);
         return property;
     }
     async update(id, dto, currentUser) {
         const property = await this.findOne(id, currentUser);
+        this.assertWriteAccess(property, currentUser);
         const safeDto = currentUser.role === 'agent' ? { ...dto, agentId: undefined } : dto;
         const statusChanging = safeDto.status !== undefined && safeDto.status !== property.status;
         if (statusChanging && safeDto.status === property_entity_1.PropertyStatus.ACTIVE) {
@@ -129,11 +131,12 @@ let PortfoliosService = class PortfoliosService {
     }
     async remove(id, currentUser) {
         const property = await this.findOne(id, currentUser);
+        this.assertWriteAccess(property, currentUser);
         await this.propertyRepo.remove(property);
     }
-    assertAccess(property, currentUser) {
+    assertWriteAccess(property, currentUser) {
         if (currentUser.role === 'agent' && property.agentId !== currentUser.userId) {
-            throw new common_1.ForbiddenException('Bu portföye erişim yetkiniz yok');
+            throw new common_1.ForbiddenException('Bu portföyü düzenleme yetkiniz yok');
         }
     }
     async findOnePublic(id) {

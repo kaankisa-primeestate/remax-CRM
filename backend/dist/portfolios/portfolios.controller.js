@@ -26,9 +26,9 @@ let PortfoliosController = class PortfoliosController {
     create(dto, user) {
         return this.portfoliosService.create(dto, user);
     }
-    findAll(user, search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId, rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword) {
+    findAll(user, search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId, scope, rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword) {
         return this.portfoliosService.findAll({
-            search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId,
+            search, propertyType, listingType, status, district, minPrice, maxPrice, minArea, maxArea, agentId, scope,
             rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword,
         }, user);
     }
@@ -64,18 +64,19 @@ __decorate([
     __param(8, (0, common_1.Query)('minArea')),
     __param(9, (0, common_1.Query)('maxArea')),
     __param(10, (0, common_1.Query)('agentId')),
-    __param(11, (0, common_1.Query)('rooms')),
-    __param(12, (0, common_1.Query)('minBuildingAge')),
-    __param(13, (0, common_1.Query)('maxBuildingAge')),
-    __param(14, (0, common_1.Query)('heatingType')),
-    __param(15, (0, common_1.Query)('view')),
-    __param(16, (0, common_1.Query)('hasPool')),
-    __param(17, (0, common_1.Query)('hasGym')),
-    __param(18, (0, common_1.Query)('hasSecurity')),
-    __param(19, (0, common_1.Query)('hasParking')),
-    __param(20, (0, common_1.Query)('keyword')),
+    __param(11, (0, common_1.Query)('scope')),
+    __param(12, (0, common_1.Query)('rooms')),
+    __param(13, (0, common_1.Query)('minBuildingAge')),
+    __param(14, (0, common_1.Query)('maxBuildingAge')),
+    __param(15, (0, common_1.Query)('heatingType')),
+    __param(16, (0, common_1.Query)('view')),
+    __param(17, (0, common_1.Query)('hasPool')),
+    __param(18, (0, common_1.Query)('hasGym')),
+    __param(19, (0, common_1.Query)('hasSecurity')),
+    __param(20, (0, common_1.Query)('hasParking')),
+    __param(21, (0, common_1.Query)('keyword')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String]),
+    __metadata("design:paramtypes", [Object, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], PortfoliosController.prototype, "findAll", null);
 __decorate([

@@ -6,7 +6,7 @@ export declare class PortfoliosController {
     private readonly portfoliosService;
     constructor(portfoliosService: PortfoliosService);
     create(dto: CreatePropertyDto, user: CurrentUserPayload): Promise<import("./property.entity").Property>;
-    findAll(user: CurrentUserPayload, search?: string, propertyType?: string, listingType?: string, status?: string, district?: string, minPrice?: string, maxPrice?: string, minArea?: string, maxArea?: string, agentId?: string, rooms?: string, minBuildingAge?: string, maxBuildingAge?: string, heatingType?: string, view?: string, hasPool?: string, hasGym?: string, hasSecurity?: string, hasParking?: string, keyword?: string): Promise<import("./property.entity").Property[]>;
+    findAll(user: CurrentUserPayload, search?: string, propertyType?: string, listingType?: string, status?: string, district?: string, minPrice?: string, maxPrice?: string, minArea?: string, maxArea?: string, agentId?: string, scope?: string, rooms?: string, minBuildingAge?: string, maxBuildingAge?: string, heatingType?: string, view?: string, hasPool?: string, hasGym?: string, hasSecurity?: string, hasParking?: string, keyword?: string): Promise<import("./property.entity").Property[]>;
     findOne(id: string, user: CurrentUserPayload): Promise<import("./property.entity").Property>;
     update(id: string, dto: UpdatePropertyDto, user: CurrentUserPayload): Promise<import("./property.entity").Property>;
     remove(id: string, user: CurrentUserPayload): Promise<void>;

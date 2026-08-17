@@ -39,11 +39,12 @@ const filterLabelStyle = {
 const rangeInputRowStyle = { display: 'flex', gap: 8, minWidth: 0 };
 
 export default function PropertyListPage() {
-  const { isBroker } = useAuth();
+  const { isBroker, user } = useAuth();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeType, setActiveType] = useState('all');
+  const [scope, setScope] = useState('mine'); // 'mine' | 'office' -- sadece Danisman icin anlamli
   const [showForm, setShowForm] = useState(false);
   const location = useLocation();
 
@@ -75,10 +76,10 @@ export default function PropertyListPage() {
   const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
-    if (isBroker) {
+    if (isBroker || scope === 'office') {
       usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
     }
-  }, [isBroker]);
+  }, [isBroker, scope]);
 
   // Sekme (Tümü/Konut/Arsa/...) değiştiğinde filtre panelini otomatik kapat
   useEffect(() => {
@@ -91,6 +92,7 @@ export default function PropertyListPage() {
     if (search) params.search = search;
     if (activeType !== 'all') params.propertyType = activeType;
     if (isBroker && agentId) params.agentId = agentId;
+    if (!isBroker && scope === 'office') params.scope = 'office';
     if (status) params.status = status;
     if (minPrice) params.minPrice = minPrice;
     if (maxPrice) params.maxPrice = maxPrice;
@@ -111,7 +113,7 @@ export default function PropertyListPage() {
     setProperties(data);
     setLoading(false);
   }, [
-    search, activeType, isBroker, agentId, status, minPrice, maxPrice, minArea, maxArea,
+    search, activeType, isBroker, agentId, scope, status, minPrice, maxPrice, minArea, maxArea,
     rooms, minBuildingAge, maxBuildingAge, heatingType, view, hasPool, hasGym, hasSecurity, hasParking, keyword,
   ]);
 
@@ -169,6 +171,22 @@ export default function PropertyListPage() {
 
   return (
     <div>
+      {!isBroker && (
+        <div className="folder-tabs" style={{ marginBottom: 4 }}>
+          <button
+            className={`folder-tab ${scope === 'mine' ? 'active' : ''}`}
+            onClick={() => setScope('mine')}
+          >
+            👤 Portföylerim
+          </button>
+          <button
+            className={`folder-tab ${scope === 'office' ? 'active' : ''}`}
+            onClick={() => setScope('office')}
+          >
+            🏢 Ofis Portföyü
+          </button>
+        </div>
+      )}
       <div className="folder-tabs">
         <button
           className={`folder-tab ${activeType === 'all' ? 'active' : ''}`}
@@ -303,18 +321,32 @@ export default function PropertyListPage() {
           </div>
         ) : (
           <div>
-            {properties.map((p) => (
-              <Link to={`/portfoyler/${p.id}`} className="record-row" key={p.id}>
-                <ListingTypeBadge listingType={p.listingType} />
-                <QuickStatusSelect
-                  status={p.status}
-                  onChange={(newStatus) => handleStatusChange(p.id, newStatus)}
-                />
-                <span className="record-row__name">{p.title}</span>
-                <span className="record-row__phone">{p.district}</span>
-                <span className="record-row__budget">{formatPrice(p)}</span>
-              </Link>
-            ))}
+            {properties.map((p) => {
+              const isOfficeView = !isBroker && scope === 'office';
+              const isOwnListing = !user || p.agentId === user.id;
+              const ownerName = isOfficeView ? agents.find((a) => a.id === p.agentId)?.name : null;
+              return (
+                <Link to={`/portfoyler/${p.id}`} className="record-row" key={p.id}>
+                  <ListingTypeBadge listingType={p.listingType} />
+                  {isOfficeView && !isOwnListing ? (
+                    <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--muted)' }}>
+                      {PROPERTY_STATUSES.find((s) => s.value === p.status)?.label}
+                    </span>
+                  ) : (
+                    <QuickStatusSelect
+                      status={p.status}
+                      onChange={(newStatus) => handleStatusChange(p.id, newStatus)}
+                    />
+                  )}
+                  <span className="record-row__name">{p.title}</span>
+                  <span className="record-row__phone">
+                    {p.district}
+                    {isOfficeView && ownerName && ` · 👤 ${ownerName}`}
+                  </span>
+                  <span className="record-row__budget">{formatPrice(p)}</span>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
