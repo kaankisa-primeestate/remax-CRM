@@ -76,8 +76,12 @@ export default function PropertyListPage() {
   const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
-    if (isBroker || scope === 'office') {
+    if (isBroker) {
       usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
+    } else if (scope === 'office') {
+      // Danisman icin: sadece isim donen, herkese acik endpoint
+      // (listAgents Broker'a ozel oldugu icin 403 doner, bu yuzden ayri)
+      usersApi.listAgentRoster().then(setAgents).catch(() => setAgents([]));
     }
   }, [isBroker, scope]);
 

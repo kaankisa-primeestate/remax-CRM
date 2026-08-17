@@ -30,6 +30,9 @@ let UsersController = class UsersController {
     findAllAgents() {
         return this.usersService.findAllAgents();
     }
+    findAgentRoster() {
+        return this.usersService.findAgentRoster();
+    }
     createAgent(dto) {
         return this.usersService.createAgent(dto);
     }
@@ -55,6 +58,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "findAllAgents", null);
+__decorate([
+    (0, common_1.Get)('agents/roster'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "findAgentRoster", null);
 __decorate([
     (0, common_1.Post)('agents'),
     (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),

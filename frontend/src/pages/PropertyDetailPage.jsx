@@ -8,10 +8,12 @@ import PropertyShareModal from '../components/PropertyShareModal.jsx';
 import PhotoLightbox from '../components/PhotoLightbox.jsx';
 import QuickStatusSelect from '../components/QuickStatusSelect.jsx';
 import PropertyComments from '../components/PropertyComments.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isBroker } = useAuth();
   const [property, setProperty] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -56,6 +58,10 @@ export default function PropertyDetailPage() {
   if (!property) return <div className="empty-state">Yükleniyor…</div>;
 
   const typeLabel = PROPERTY_TYPES.find((t) => t.value === property.propertyType)?.label;
+  // Mahremiyet Duvarı: Broker her zaman duzenleyebilir; Danisman sadece
+  // KENDI ilanini duzenleyebilir (Ofis Portfoyu'nden gelen baskasinin
+  // ilaninda duzenleme/silme/durum degistirme butonlari gizlenir).
+  const canEdit = isBroker || property.agentId === user?.id;
   const priceLabel = new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency: property.priceCurrency || 'TRY',
@@ -99,7 +105,13 @@ export default function PropertyDetailPage() {
             <h2 className="dossier__name">{property.title}</h2>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <ListingTypeBadge listingType={property.listingType} />
-              <QuickStatusSelect status={property.status} onChange={handleStatusChange} />
+              {canEdit ? (
+                <QuickStatusSelect status={property.status} onChange={handleStatusChange} />
+              ) : (
+                <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--muted)' }}>
+                  {property.status === 'active' ? 'Aktif' : property.status}
+                </span>
+              )}
               <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--slate)' }}>
                 {typeLabel}
               </span>
@@ -107,8 +119,12 @@ export default function PropertyDetailPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => setShowShare(true)}>Paylaş</button>
-            <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>Düzenle</button>
-            <button className="btn btn-danger" onClick={handleDelete}>Sil</button>
+            {canEdit && (
+              <>
+                <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>Düzenle</button>
+                <button className="btn btn-danger" onClick={handleDelete}>Sil</button>
+              </>
+            )}
           </div>
         </div>
 

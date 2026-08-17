@@ -86,6 +86,13 @@ let UsersService = UsersService_1 = class UsersService {
         });
         return agents.map(({ passwordHash, ...rest }) => rest);
     }
+    async findAgentRoster() {
+        const agents = await this.userRepo.find({
+            where: { role: user_entity_1.UserRole.AGENT },
+            order: { name: 'ASC' },
+        });
+        return agents.map((a) => ({ id: a.id, name: a.name }));
+    }
     async setMonthlyTarget(agentId, monthlyTarget) {
         const agent = await this.userRepo.findOne({ where: { id: agentId, role: user_entity_1.UserRole.AGENT } });
         if (!agent) {

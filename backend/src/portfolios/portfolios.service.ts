@@ -122,13 +122,14 @@ export class PortfoliosService {
     }
 
     // Mahremiyet Duvarı: bir Danışman normalde sadece kendi portföyünü
-    // görebilir. Ancak "Ofis Portföyü" sekmesi (scope=office) için,
-    // TÜM ofisin portföylerini görüntüleyebilir -- işbirlikli satış
-    // yapabilmek icin meslektaslarinin ilanlarini gorebilmesi gerekiyor.
-    // Bu SADECE goruntuleme icindir; duzenleme/silme hala sahibine ozel
-    // (bkz. assertWriteAccess).
+    // görebilir. "Ofis Portföyü" sekmesi (scope=office) için, KENDİ
+    // ilanlari HARIC tum ofisin portfoylerini gorebilir -- "Portfoylerim"
+    // zaten kendi ilanlarini gosterdigi icin burada tekrar gormesine
+    // gerek yok, işbirlikli satış icin meslektaslarinin ilanlarini gorur.
     if (currentUser.role === 'agent') {
-      if (query.scope !== 'office') {
+      if (query.scope === 'office') {
+        qb.andWhere('property.agentId != :ownAgentId', { ownAgentId: currentUser.userId });
+      } else {
         qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
       }
     } else if (query.agentId) {

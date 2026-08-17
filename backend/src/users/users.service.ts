@@ -109,6 +109,17 @@ export class UsersService implements OnModuleInit {
     return agents.map(({ passwordHash, ...rest }) => rest);
   }
 
+  // Herhangi bir giris yapmis kullanici (Danisman dahil) erisebilir --
+  // SADECE isim doner, telefon/adres/TC/sirket gibi hassas bilgi ICERMEZ.
+  // Ofis Portfoyu gibi yerlerde "kimin ilani" bilgisini gostermek icin.
+  async findAgentRoster(): Promise<{ id: string; name: string }[]> {
+    const agents = await this.userRepo.find({
+      where: { role: UserRole.AGENT },
+      order: { name: 'ASC' },
+    });
+    return agents.map((a) => ({ id: a.id, name: a.name }));
+  }
+
   // Broker, bir danismanin aylik hedefini belirler/gunceller.
   async setMonthlyTarget(agentId: string, monthlyTarget: number): Promise<Omit<User, 'passwordHash'>> {
     const agent = await this.userRepo.findOne({ where: { id: agentId, role: UserRole.AGENT } });

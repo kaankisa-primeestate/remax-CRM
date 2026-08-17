@@ -92,7 +92,10 @@ let PortfoliosService = class PortfoliosService {
             qb.andWhere('(property.notes ILIKE :keyword OR property.view ILIKE :keyword OR property.facade ILIKE :keyword OR property.heatingType ILIKE :keyword OR property.deedStatus ILIKE :keyword OR property.title ILIKE :keyword)', { keyword: `%${query.keyword}%` });
         }
         if (currentUser.role === 'agent') {
-            if (query.scope !== 'office') {
+            if (query.scope === 'office') {
+                qb.andWhere('property.agentId != :ownAgentId', { ownAgentId: currentUser.userId });
+            }
+            else {
                 qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
             }
         }

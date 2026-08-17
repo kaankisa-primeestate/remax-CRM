@@ -7,6 +7,10 @@ export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
     findAllAgents(): Promise<Omit<import("./user.entity").User, "passwordHash">[]>;
+    findAgentRoster(): Promise<{
+        id: string;
+        name: string;
+    }[]>;
     createAgent(dto: CreateAgentDto): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     setMonthlyTarget(id: string, monthlyTarget: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     setMonthlyDues(id: string, monthlyDuesAmount: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;

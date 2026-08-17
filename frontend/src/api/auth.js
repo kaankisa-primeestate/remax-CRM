@@ -17,4 +17,7 @@ export const usersApi = {
     apiClient.patch(`/users/agents/${agentId}/dues`, { monthlyDuesAmount }).then((r) => r.data),
   updateAgentProfile: (agentId, payload) =>
     apiClient.patch(`/users/agents/${agentId}/profile`, payload).then((r) => r.data),
+  // Herkese acik (Danisman dahil), sadece isim doner -- Ofis Portfoyu gibi
+  // yerlerde "kimin ilani" gostermek icin.
+  listAgentRoster: () => apiClient.get('/users/agents/roster').then((r) => r.data),
 };

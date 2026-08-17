@@ -21,6 +21,13 @@ export class UsersController {
     return this.usersService.findAllAgents();
   }
 
+  // GET /api/users/agents/roster — HERKESE (Danisman dahil) acik, sadece
+  // isim doner. Ofis Portfoyu gibi yerlerde "kimin ilani" gostermek icin.
+  @Get('agents/roster')
+  findAgentRoster() {
+    return this.usersService.findAgentRoster();
+  }
+
   // POST /api/users/agents — Broker yeni bir danışman hesabı oluşturur
   @Post('agents')
   @Roles(UserRole.BROKER)
