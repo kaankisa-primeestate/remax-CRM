@@ -33,6 +33,8 @@ const emptyForm = {
   status: 'active',
   notes: '',
   agentId: '',
+  ownerName: '',
+  ownerPhone: '',
 };
 
 function toFormState(initialValues) {
@@ -137,6 +139,8 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
         view: form.view || undefined,
         facade: form.facade || undefined,
         notes: form.notes || undefined,
+        ownerName: form.ownerName || undefined,
+        ownerPhone: form.ownerPhone || undefined,
         agentId: form.agentId || undefined,
         photoUrls,
       };
@@ -375,6 +379,15 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
                   style={{ display: 'none' }}
                 />
               </label>
+            </div>
+
+            <div className="form-field">
+              <label>Satıcı / Mülk Sahibi Adı (opsiyonel)</label>
+              <input name="ownerName" value={form.ownerName} onChange={handleChange} placeholder="Örn: Serdar Bey" />
+            </div>
+            <div className="form-field">
+              <label>Satıcı Telefonu (opsiyonel)</label>
+              <input name="ownerPhone" value={form.ownerPhone} onChange={handleChange} placeholder="0555 123 45 67" />
             </div>
 
             <div className="form-field full">

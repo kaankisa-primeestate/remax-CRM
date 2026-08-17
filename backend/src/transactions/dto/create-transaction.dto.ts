@@ -1,14 +1,25 @@
-import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsNumber, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsNumber, IsString, IsUUID } from 'class-validator';
 import { TransactionStage } from '../transaction.entity';
 
 export class CreateTransactionDto {
-  @IsNotEmpty()
+  // Musteri: ya customerId (sistemde kayitli) ya da externalCustomerLabel
+  // (harici, serbest metin) doldurulur -- ikisi de opsiyonel, en az biri
+  // servis katmaninda kontrol edilir.
+  @IsOptional()
   @IsUUID()
-  customerId: string;
+  customerId?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
+  @IsString()
+  externalCustomerLabel?: string;
+
+  @IsOptional()
   @IsUUID()
-  propertyId: string;
+  propertyId?: string;
+
+  @IsOptional()
+  @IsString()
+  externalPropertyLabel?: string;
 
   @IsOptional()
   @IsEnum(TransactionStage)
@@ -19,8 +30,12 @@ export class CreateTransactionDto {
   offerAmount?: number;
 
   @IsOptional()
+  @IsNumber()
+  depositAmount?: number;
+
+  @IsOptional()
   @IsString()
-  notes?: string;
+  depositDate?: string;
 
   @IsOptional()
   @IsBoolean()

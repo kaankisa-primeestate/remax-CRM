@@ -90,6 +90,15 @@ export class Property {
   @Column({ type: 'text', nullable: true })
   revisionNote: string | null;
 
+  // Satici / Mulk Sahibi bilgisi -- Islem kartinin "Ozet & Taraflar"
+  // sekmesinde gosterilir. Danismanin musterisi degil, ilanin gercek
+  // sahibi (opsiyonel, bilgi amacli).
+  @Column({ type: 'varchar', nullable: true })
+  ownerName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  ownerPhone: string | null;
+
   // --- Konut tipi ilanlar için anlamlı, arsa/tarla için boş kalabilir ---
   @Column({ type: 'varchar', nullable: true })
   rooms: string | null; // Oda sayısı, örn. "3+1"

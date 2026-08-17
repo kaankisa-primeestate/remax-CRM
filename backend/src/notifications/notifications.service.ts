@@ -131,7 +131,7 @@ export class NotificationsService {
       // Tapu asamasina gelmis ama Broker henuz onaylamamis islemler --
       // onaylandiginda otomatik komisyon kaydi acilacak.
       this.transactionRepo.find({
-        where: { stage: 'deed' as any, dealApproved: false },
+        where: { stage: 'closed' as any, dealApproved: false },
         order: { stageChangedAt: 'DESC', createdAt: 'DESC' },
         take: LIMIT_PER_SOURCE,
       }),
@@ -213,7 +213,7 @@ export class NotificationsService {
         agentName: nameFor(t.agentId),
         occurredAt: (t.stageChangedAt as Date) || t.createdAt,
         read: false,
-        propertyId: t.propertyId,
+        propertyId: t.propertyId || undefined,
       })),
     ]
       .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())

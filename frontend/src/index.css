@@ -2376,3 +2376,11 @@ button {
 .ledger-history-item:first-of-type {
   border-top: none;
 }
+
+/* --- İşlemler: harici taraf etiketi --- */
+.external-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--brass);
+  text-transform: uppercase;
+}

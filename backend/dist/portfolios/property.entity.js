@@ -102,6 +102,14 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", Object)
+], Property.prototype, "ownerName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], Property.prototype, "ownerPhone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
 ], Property.prototype, "rooms", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'int', nullable: true }),

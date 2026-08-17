@@ -13,6 +13,8 @@ export declare class CreatePropertyDto {
     mortgageEligible?: boolean;
     contractEndDate?: string;
     revisionNote?: string;
+    ownerName?: string;
+    ownerPhone?: string;
     rooms?: string;
     bathrooms?: number;
     floor?: string;

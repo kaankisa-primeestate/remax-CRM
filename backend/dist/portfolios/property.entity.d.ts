@@ -37,6 +37,8 @@ export declare class Property {
     mortgageEligible: boolean;
     contractEndDate: string | null;
     revisionNote: string | null;
+    ownerName: string | null;
+    ownerPhone: string | null;
     rooms: string | null;
     bathrooms: number | null;
     floor: string | null;

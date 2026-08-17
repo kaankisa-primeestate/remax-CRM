@@ -11,6 +11,7 @@ import {
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { AddNoteDto } from './dto/add-note.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -44,5 +45,17 @@ export class TransactionsController {
   async remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     await this.transactionsService.remove(id, user);
     return { success: true };
+  }
+
+  // GET /api/transactions/:id/notes -- Zaman Akisi sekmesi
+  @Get(':id/notes')
+  getNotes(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.getNotes(id, user);
+  }
+
+  // POST /api/transactions/:id/notes
+  @Post(':id/notes')
+  addNote(@Param('id') id: string, @Body() dto: AddNoteDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.addNote(id, dto, user);
   }
 }

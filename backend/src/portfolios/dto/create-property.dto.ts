@@ -64,6 +64,14 @@ export class CreatePropertyDto {
   @IsString()
   revisionNote?: string;
 
+  @IsOptional()
+  @IsString()
+  ownerName?: string;
+
+  @IsOptional()
+  @IsString()
+  ownerPhone?: string;
+
   // --- Konut tipi alanlar (opsiyonel — arsa/tarla için boş kalabilir) ---
   @IsOptional()
   @IsString()
