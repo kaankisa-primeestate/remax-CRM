@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -33,7 +33,7 @@ import NotificationBell from './components/NotificationBell.jsx';
 const BROKER_NAV = [
   { to: '/dashboard', label: 'Genel Bakış', icon: '📌' },
   { to: '/danismanlar', label: 'Danışman Yönetimi', icon: '👥' },
-  { to: '/', label: 'Müşteri Havuzu', icon: '👤' },
+  { to: '/musteriler', label: 'Müşteri Havuzu', icon: '👤' },
   { to: '/portfoyler', label: 'Portföy Havuzu', icon: '🏠' },
   { to: '/komisyonlar', label: 'Ciro & Komisyon', icon: '📈' },
   { to: '/talepler', label: 'Talepler', icon: '🗒️' },
@@ -51,7 +51,7 @@ const BROKER_NAV = [
 // Danışman sol menusu -- mevcut, onaylanmis yapi korunuyor.
 const AGENT_NAV = [
   { to: '/panelim', label: 'Panelim', icon: '🏡' },
-  { to: '/', label: 'Müşteriler', icon: '👥' },
+  { to: '/musteriler', label: 'Müşteriler', icon: '👥' },
   { to: '/portfoyler', label: 'Portföyler', icon: '🏠' },
   { to: '/talepler', label: 'Talepler', icon: '📋' },
   { to: '/islemler', label: 'İşlemler', icon: '🔄' },
@@ -86,7 +86,7 @@ function Sidebar({ open, onClose }) {
         </div>
         <nav className="sidebar__nav">
           {visibleItems.map((item) => {
-            const isActive = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
+            const isActive = location.pathname.startsWith(item.to);
             if (item.disabled) {
               return (
                 <span key={item.to} className="sidebar__link is-disabled" title="Yakında">
@@ -131,7 +131,7 @@ function QuickAddMenu() {
         <>
           <div className="quickadd-menu__backdrop" onClick={() => setOpen(false)} />
           <div className="quickadd-menu__panel">
-            <Link to="/" state={{ openQuickAdd: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}>👤 Yeni Müşteri</Link>
+            <Link to="/musteriler" state={{ openQuickAdd: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}>👤 Yeni Müşteri</Link>
             <Link to="/portfoyler" state={{ openPropertyWizard: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}>🏠 Yeni Portföy</Link>
           </div>
         </>
@@ -211,6 +211,14 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route
               path="/"
+              element={
+                <ProtectedRoute>
+                  <Navigate to={user.role === 'broker' ? '/dashboard' : '/panelim'} replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/musteriler"
               element={
                 <ProtectedRoute>
                   <CustomerListPage />
