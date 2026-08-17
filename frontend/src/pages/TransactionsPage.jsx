@@ -76,15 +76,20 @@ export default function TransactionsPage() {
   async function handleAdd(e) {
     e.preventDefault();
     const hasCustomer = customerMode === 'system' ? !!customerId : !!externalCustomerLabel.trim();
+    if (!hasCustomer) {
+      alert(customerMode === 'system' ? 'Lütfen bir müşteri seçin.' : 'Lütfen harici müşteri bilgisi girin.');
+      return;
+    }
+    // Portfoy BILEREK opsiyonel -- bir Talep, henuz portfoy belirlenmeden
+    // (sadece "ne ariyor" bilgisiyle) acilabilir.
     const hasProperty = propertyMode === 'system' ? !!propertyId : !!externalPropertyLabel.trim();
-    if (!hasCustomer || !hasProperty) return;
     setSaving(true);
     try {
       await transactionsApi.create({
         customerId: customerMode === 'system' ? customerId : undefined,
         externalCustomerLabel: customerMode === 'external' ? externalCustomerLabel.trim() : undefined,
-        propertyId: propertyMode === 'system' ? propertyId : undefined,
-        externalPropertyLabel: propertyMode === 'external' ? externalPropertyLabel.trim() : undefined,
+        propertyId: hasProperty && propertyMode === 'system' ? propertyId : undefined,
+        externalPropertyLabel: hasProperty && propertyMode === 'external' ? externalPropertyLabel.trim() : undefined,
         offerAmount: offerAmount ? Number(offerAmount) : undefined,
       });
       resetForm();
@@ -226,7 +231,7 @@ export default function TransactionsPage() {
             )}
           </div>
           <div className="form-field" style={{ margin: 0, minWidth: 200 }}>
-            <label>Portföy</label>
+            <label>Portföy (opsiyonel — henüz belirlenmemişse boş bırakabilirsin)</label>
             <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
               <button type="button" className={propertyMode === 'system' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setPropertyMode('system')}>Sistemde Kayıtlı</button>
               <button type="button" className={propertyMode === 'external' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setPropertyMode('external')}>Harici</button>
@@ -271,7 +276,7 @@ export default function TransactionsPage() {
                       return (
                         <div key={t.id} className="transaction-card">
                           <div className="transaction-card__title" onClick={() => openDetail(t)} style={{ cursor: 'pointer' }}>
-                            {property ? property.title : (t.externalPropertyLabel || 'Portföy silinmiş')}
+                            {property ? property.title : (t.externalPropertyLabel || (t.propertyId ? 'Portföy silinmiş' : '📋 Portföy henüz belirlenmedi'))}
                             {!property && t.externalPropertyLabel && <span className="external-tag"> harici</span>}
                           </div>
                           <div className="transaction-card__meta">
@@ -364,7 +369,9 @@ export default function TransactionsPage() {
                       {' · '}{detailProperty.district}
                     </p>
                   ) : (
-                    <p style={{ fontSize: 14, color: 'var(--muted)' }}>{detailTx.externalPropertyLabel || '—'} (harici)</p>
+                    <p style={{ fontSize: 14, color: 'var(--muted)' }}>
+                      {detailTx.externalPropertyLabel ? `${detailTx.externalPropertyLabel} (harici)` : 'Henüz belirlenmedi — süreç ilerledikçe eklenebilir.'}
+                    </p>
                   )}
 
                   {detailProperty && (detailProperty.ownerName || detailProperty.ownerPhone) && (

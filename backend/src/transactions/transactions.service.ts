@@ -28,9 +28,10 @@ export class TransactionsService {
     if (!dto.customerId && !dto.externalCustomerLabel) {
       throw new BadRequestException('Müşteri seçin ya da harici müşteri bilgisi girin');
     }
-    if (!dto.propertyId && !dto.externalPropertyLabel) {
-      throw new BadRequestException('Portföy seçin ya da harici portföy bilgisi girin');
-    }
+    // Portfoy BILEREK zorunlu tutulmuyor -- bir Talep, henuz hicbir
+    // portfoy belirlenmeden acilabilir (senaryo: "Kadikoy 3+1 ariyor"
+    // gibi sadece kriter bilgisiyle baslar, portfoy sureç ilerledikce
+    // eslesir/eklenir).
     const transaction = this.transactionRepo.create({
       ...dto,
       agentId: currentUser.userId,
