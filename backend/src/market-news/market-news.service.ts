@@ -1,5 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Parser from 'rss-parser';
+// NOT: rss-parser paketi TypeScript'in standart "default export" sozdizimini
+// desteklemiyor (paket dogrudan CommonJS ile module.exports = Parser
+// seklinde disari aciliyor, .default diye bir alani yok). Bu yuzden
+// `import Parser from 'rss-parser'` derleme zamaninda calisir gorunse de
+// CALISMA ZAMANINDA "Parser.default is not a constructor" hatasi verir --
+// dogru sozdizimi asagidaki TypeScript'e ozel import-equals biçimidir.
+import Parser = require('rss-parser');
 
 export interface RealEstateNewsItem {
   title: string;
