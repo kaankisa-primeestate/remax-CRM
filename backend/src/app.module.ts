@@ -28,15 +28,18 @@ import { AgentLedgerModule } from './agent-ledger/agent-ledger.module';
     ConfigModule.forRoot({ isGlobal: true }),
 
     // Genel istek sinirlamasi (rate limiting) -- brute-force saldirilarina
-    // (orn. giris ekraninda sinirsiz sifre denemesi) karsi temel koruma.
-    // Varsayilan: dakikada 100 istek/IP -- normal kullanimda hic
-    // hissedilmez, ama otomatik/bot saldirilarini engeller. Login
-    // endpoint'ine ayrica daha siki bir sinir uygulanir (bkz.
-    // auth.controller.ts, @Throttle dekoratoru).
+    // karsi temel koruma. Asil siki sinir zaten login endpoint'ine ozel
+    // uygulaniyor (bkz. auth.controller.ts, dakikada 10 deneme). Bu genel
+    // limit sadece anormal/otomatik trafiği (bot, DoS denemesi) yakalamak
+    // icin -- bilinçli olarak YUKSEK tutuldu (300/dakika), cunku bircok
+    // danisman AYNI ofis WiFi'sinden (ayni genel IP) calisabiliyor; dusuk
+    // bir limit, gercek kullanicilarin yogun saatlerde (herkes ayni anda
+    // dashboard actiginda + bildirim zili her 60sn otomatik yenilendiginde)
+    // yanlislikla engellenmesine yol acabilirdi.
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 100,
+        limit: 300,
       },
     ]),
 

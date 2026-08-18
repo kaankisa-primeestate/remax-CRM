@@ -40,7 +40,7 @@ exports.AppModule = AppModule = __decorate([
             throttler_1.ThrottlerModule.forRoot([
                 {
                     ttl: 60000,
-                    limit: 100,
+                    limit: 300,
                 },
             ]),
             typeorm_1.TypeOrmModule.forRootAsync({

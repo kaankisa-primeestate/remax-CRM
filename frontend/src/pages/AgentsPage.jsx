@@ -159,7 +159,11 @@ export default function AgentsPage() {
           payload.commissionSharePercentage = Number(form.commissionSharePercentage);
         }
         maybe('contractStartDate', form.contractStartDate);
-        maybe('mentorAgentId', form.mentorAgentId);
+        // mentorAgentId ozel durum: diger alanlardan farkli olarak, bos
+        // birakilip kaydedilmesi "mentoru kaldir" anlamina gelmeli -- bu
+        // yuzden "maybe" ile atlanmiyor, her zaman acikca gonderiliyor
+        // (ya secilen id, ya da null).
+        payload.mentorAgentId = form.mentorAgentId || null;
         payload.powerStartCompleted = form.powerStartCompleted;
         maybe('powerStartCertificateNo', form.powerStartCertificateNo.trim());
         maybe('powerStartCertificateDate', form.powerStartCertificateDate);
