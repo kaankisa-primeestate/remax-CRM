@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { CustomersModule } from './customers/customers.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -24,6 +26,19 @@ import { AgentLedgerModule } from './agent-ledger/agent-ledger.module';
   imports: [
     // .env dosyasını global olarak yükle
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // Genel istek sinirlamasi (rate limiting) -- brute-force saldirilarina
+    // (orn. giris ekraninda sinirsiz sifre denemesi) karsi temel koruma.
+    // Varsayilan: dakikada 100 istek/IP -- normal kullanimda hic
+    // hissedilmez, ama otomatik/bot saldirilarini engeller. Login
+    // endpoint'ine ayrica daha siki bir sinir uygulanir (bkz.
+    // auth.controller.ts, @Throttle dekoratoru).
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
 
     // PostgreSQL bağlantısı
     TypeOrmModule.forRootAsync({
@@ -74,6 +89,10 @@ import { AgentLedgerModule } from './agent-ledger/agent-ledger.module';
     ExpensesModule,
     AgentDuesModule,
     AgentLedgerModule,
+  ],
+  providers: [
+    // ThrottlerGuard'ı tüm endpoint'lere global olarak uygular.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

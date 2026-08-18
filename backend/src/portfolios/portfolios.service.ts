@@ -139,13 +139,25 @@ export class PortfoliosService {
     return qb.getMany();
   }
 
-  // Herhangi bir Danisman herhangi bir portfoyun DETAYINI gorebilir
-  // (Ofis Portfoyu / isbirlikli satis icin gerekli) -- duzenleme/silme
-  // yine de sadece sahibine/Broker'a ozel (bkz. assertWriteAccess).
+  // Herhangi bir Danisman, bir portfoyun AKTIF/SATILDI/KIRALANDI durumundaki
+  // detayini gorebilir (Ofis Portfoyu / isbirlikli satis icin gerekli).
+  // Ama "Onay Bekliyor" veya "Revizyon Istendi" durumundaki ilanlar --
+  // ki bunlar Broker'in o danismana ozel yazdigi revizyon notunu icerebilir
+  // -- SADECE sahibine ve Broker'a aciktir, diger danismanlarin gormemesi
+  // gerekir.
   async findOne(id: string, currentUser: CurrentUserPayload): Promise<Property> {
     const property = await this.propertyRepo.findOne({ where: { id } });
     if (!property) {
       throw new NotFoundException('Portföy bulunamadı');
+    }
+    const isOwner = property.agentId === currentUser.userId;
+    const isBroker = currentUser.role === 'broker';
+    const isPubliclyShareable =
+      property.status === PropertyStatus.ACTIVE ||
+      property.status === PropertyStatus.SOLD ||
+      property.status === PropertyStatus.RENTED;
+    if (!isOwner && !isBroker && !isPubliclyShareable) {
+      throw new ForbiddenException('Bu portföy henüz onay sürecinde, sadece sahibi ve Broker görebilir');
     }
     return property;
   }

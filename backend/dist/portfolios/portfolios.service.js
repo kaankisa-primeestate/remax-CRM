@@ -109,6 +109,14 @@ let PortfoliosService = class PortfoliosService {
         if (!property) {
             throw new common_1.NotFoundException('Portföy bulunamadı');
         }
+        const isOwner = property.agentId === currentUser.userId;
+        const isBroker = currentUser.role === 'broker';
+        const isPubliclyShareable = property.status === property_entity_1.PropertyStatus.ACTIVE ||
+            property.status === property_entity_1.PropertyStatus.SOLD ||
+            property.status === property_entity_1.PropertyStatus.RENTED;
+        if (!isOwner && !isBroker && !isPubliclyShareable) {
+            throw new common_1.ForbiddenException('Bu portföy henüz onay sürecinde, sadece sahibi ve Broker görebilir');
+        }
         return property;
     }
     async update(id, dto, currentUser) {
