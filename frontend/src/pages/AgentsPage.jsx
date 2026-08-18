@@ -84,6 +84,7 @@ export default function AgentsPage() {
   const [addAgentTab, setAddAgentTab] = useState('personal');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingLicense, setUploadingLicense] = useState(false);
+  const [editingAgentId, setEditingAgentId] = useState(null); // null = yeni ekleme, doluysa duzenleme modu
   const [targetDrafts, setTargetDrafts] = useState({});
   const [savingTargetId, setSavingTargetId] = useState(null);
   const [duesDrafts, setDuesDrafts] = useState({});
@@ -130,6 +131,54 @@ export default function AgentsPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+
+    if (editingAgentId) {
+      // Duzenleme modu: sablon zorunluluklari uygulanmaz -- eski
+      // danismanlarin cogu alani bos olabilir, sadece doldurulan
+      // alanlar guncellenir (kismi guncelleme).
+      setSaving(true);
+      try {
+        const payload = {};
+        const maybe = (key, value) => {
+          if (value !== '' && value !== null && value !== undefined) payload[key] = value;
+        };
+        maybe('phone', form.phone.trim());
+        maybe('address', form.address.trim());
+        maybe('birthDate', form.birthDate);
+        maybe('nationalId', form.nationalId.trim());
+        maybe('profilePhotoUrl', form.profilePhotoUrl);
+        maybe('companyType', form.companyType);
+        maybe('companyName', form.companyName.trim());
+        maybe('taxOffice', form.taxOffice.trim());
+        maybe('taxId', form.taxId.trim());
+        maybe('mykCertificateNo', form.mykCertificateNo.trim());
+        maybe('realEstateLicenseUrl', form.realEstateLicenseUrl);
+        maybe('officeName', form.officeName);
+        maybe('commissionShareType', form.commissionShareType);
+        if (form.commissionSharePercentage !== '' && !Number.isNaN(Number(form.commissionSharePercentage))) {
+          payload.commissionSharePercentage = Number(form.commissionSharePercentage);
+        }
+        maybe('contractStartDate', form.contractStartDate);
+        maybe('mentorAgentId', form.mentorAgentId);
+        payload.powerStartCompleted = form.powerStartCompleted;
+        maybe('powerStartCertificateNo', form.powerStartCertificateNo.trim());
+        maybe('powerStartCertificateDate', form.powerStartCertificateDate);
+
+        const updated = await usersApi.updateAgentProfile(editingAgentId, payload);
+        setAgents((prev) => prev.map((a) => (a.id === editingAgentId ? { ...a, ...updated } : a)));
+        setForm(emptyForm);
+        setAddAgentTab('personal');
+        setEditingAgentId(null);
+        setActiveTab('roster');
+      } catch (err) {
+        const message = err?.response?.data?.message ?? 'Danışman güncellenemedi.';
+        setError(Array.isArray(message) ? message.join(', ') : message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const validationErrors = validateAgentForm(form);
     if (validationErrors.length > 0) {
       // Ilk eksik alanin oldugu sekmeye atla, tum hatalari listele.
@@ -176,9 +225,44 @@ export default function AgentsPage() {
     }
   }
 
+  // Danışman kartındaki "Düzenle" butonuna basılınca çağrılır -- aynı
+  // formu, mevcut degerlerle onceden doldurulmus sekilde acar.
+  function handleEditAgent(agent) {
+    setForm({
+      name: agent.name || '',
+      nationalId: agent.nationalId || '',
+      email: agent.email || '',
+      phone: agent.phone || '',
+      profilePhotoUrl: agent.profilePhotoUrl || '',
+      password: '',
+      companyType: agent.companyType || '',
+      companyName: agent.companyName || '',
+      taxOffice: agent.taxOffice || '',
+      taxId: agent.taxId || '',
+      mykCertificateNo: agent.mykCertificateNo || '',
+      realEstateLicenseUrl: agent.realEstateLicenseUrl || '',
+      officeName: agent.officeName || FIXED_OFFICE_NAME,
+      commissionShareType: agent.commissionShareType || '',
+      commissionSharePercentage: agent.commissionSharePercentage != null ? String(agent.commissionSharePercentage) : '',
+      contractStartDate: agent.contractStartDate ? agent.contractStartDate.slice(0, 10) : '',
+      mentorAgentId: agent.mentorAgentId || '',
+      monthlyDuesAmount: agent.monthlyDuesAmount != null ? String(agent.monthlyDuesAmount) : '',
+      powerStartCompleted: !!agent.powerStartCompleted,
+      powerStartCertificateNo: agent.powerStartCertificateNo || '',
+      powerStartCertificateDate: agent.powerStartCertificateDate ? agent.powerStartCertificateDate.slice(0, 10) : '',
+      address: agent.address || '',
+      birthDate: agent.birthDate ? agent.birthDate.slice(0, 10) : '',
+    });
+    setEditingAgentId(agent.id);
+    setAddAgentTab('personal');
+    setError(null);
+    setActiveTab('add');
+  }
+
   function handleCancelAddAgent() {
     setForm(emptyForm);
     setAddAgentTab('personal');
+    setEditingAgentId(null);
     setError(null);
     setActiveTab('roster');
   }
@@ -333,7 +417,7 @@ export default function AgentsPage() {
                     style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                   />
                 )}
-                <div>
+                <div style={{ flex: 1 }}>
                   <div className="agent-card__name">{agent.name}</div>
                   <div className="agent-card__meta">
                     {agent.email}
@@ -350,6 +434,14 @@ export default function AgentsPage() {
                     <div className="agent-card__meta">🏢 {agent.companyName}{agent.taxId && ` · VKN: ${agent.taxId}`}</div>
                   )}
                 </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: 12, padding: '6px 12px', flexShrink: 0 }}
+                  onClick={() => handleEditAgent(agent)}
+                >
+                  ✏️ Düzenle
+                </button>
               </div>
 
               {/* Mali/Yasal, Calisma Modeli ve Akademi bilgileri + belge linkleri --
@@ -483,9 +575,13 @@ export default function AgentsPage() {
 
       {activeTab === 'add' && (
       <div className="folder-panel">
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Yeni Danışman Ekle</h3>
+        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>
+          {editingAgentId ? `Danışmanı Düzenle: ${form.name}` : 'Yeni Danışman Ekle'}
+        </h3>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -8, marginBottom: 16 }}>
-          Danışmanın giriş bilgilerini, mali/yasal kayıtlarını, çalışma modelini ve eğitim durumunu içeren tam profil kaydı — tüm sekmelerdeki zorunlu alanlar doldurulmadan kaydedilemez.
+          {editingAgentId
+            ? 'Değiştirmek istediğin alanları güncelle ve kaydet — boş bıraktığın alanlar mevcut kayıtlı değerleriyle korunur.'
+            : 'Danışmanın giriş bilgilerini, mali/yasal kayıtlarını, çalışma modelini ve eğitim durumunu içeren tam profil kaydı — tüm sekmelerdeki zorunlu alanlar doldurulmadan kaydedilemez.'}
         </p>
 
         <div className="folder-tabs" style={{ flexWrap: 'wrap', marginBottom: 0 }}>
@@ -505,11 +601,16 @@ export default function AgentsPage() {
           {addAgentTab === 'personal' && (
             <div className="form-grid">
               <div className="form-field">
-                <label>Adı Soyadı *</label>
-                <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+                <label>Adı Soyadı {!editingAgentId && '*'}</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  disabled={!!editingAgentId}
+                  style={editingAgentId ? { opacity: 0.7, cursor: 'not-allowed' } : undefined}
+                />
               </div>
               <div className="form-field">
-                <label>T.C. Kimlik No *</label>
+                <label>T.C. Kimlik No {!editingAgentId && '*'}</label>
                 <input
                   value={form.nationalId}
                   onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value.replace(/\D/g, '') }))}
@@ -518,33 +619,40 @@ export default function AgentsPage() {
                 />
               </div>
               <div className="form-field">
-                <label>Kurumsal E-posta *</label>
+                <label>Kurumsal E-posta {!editingAgentId && '*'}</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="isim@remax.com.tr"
+                  disabled={!!editingAgentId}
+                  style={editingAgentId ? { opacity: 0.7, cursor: 'not-allowed' } : undefined}
                 />
+                {editingAgentId && (
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>E-posta değişikliği için ayrı bir işlem gerekir.</span>
+                )}
               </div>
               <div className="form-field">
-                <label>Cep Telefonu *</label>
+                <label>Cep Telefonu {!editingAgentId && '*'}</label>
                 <input
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                   placeholder="+90 5XX XXX XX XX"
                 />
               </div>
+              {!editingAgentId && (
+                <div className="form-field">
+                  <label>Şifre * (giriş için gerekli)</label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                    minLength={6}
+                  />
+                </div>
+              )}
               <div className="form-field">
-                <label>Şifre * (giriş için gerekli)</label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  minLength={6}
-                />
-              </div>
-              <div className="form-field">
-                <label>Profil Fotoğrafı * (JPG/PNG)</label>
+                <label>Profil Fotoğrafı {!editingAgentId && '* '}(JPG/PNG)</label>
                 {form.profilePhotoUrl ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <img src={form.profilePhotoUrl} alt="Profil" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
@@ -735,7 +843,7 @@ export default function AgentsPage() {
           {error && <div className="form-error">{error}</div>}
           <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: 14, gap: 8 }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Kaydediliyor…' : 'Kaydet'}
+              {saving ? 'Kaydediliyor…' : editingAgentId ? 'Değişiklikleri Kaydet' : 'Kaydet'}
             </button>
             <button type="button" className="btn btn-secondary" onClick={handleCancelAddAgent}>
               İptal
