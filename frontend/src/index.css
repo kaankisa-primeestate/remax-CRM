@@ -2113,6 +2113,42 @@ button {
   padding: 4px 6px;
 }
 
+/* --- İşlemler: Hareketsizlik uyarısı (7/15 gün) --- */
+.transaction-card--stale-warning {
+  border-left: 3px solid #b8860b;
+  background: #fdf8ee;
+}
+.transaction-card--stale-danger {
+  border-left: 3px solid var(--danger);
+  background: #fbeeeb;
+}
+.staleness-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.staleness-badge--warning {
+  background: #fdf1d6;
+  color: #8a5a00;
+}
+.staleness-badge--danger {
+  background: #f6dcd6;
+  color: var(--danger);
+}
+
+/* --- İşlemler: Kanban sütun toplamı --- */
+.kanban-column__total {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
+  margin-top: 2px;
+}
+
 /* --- İşlemler: Tapu onay rozeti --- */
 .deal-approval-badge {
   font-family: var(--font-mono);

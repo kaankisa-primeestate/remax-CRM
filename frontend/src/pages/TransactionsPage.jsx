@@ -8,6 +8,19 @@ import { useAuth } from '../context/AuthContext.jsx';
 const money = (n) =>
   n ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : null;
 
+// Hareketsizlik uyarısı: bir işlem son aşama değişiminden bu yana kaç
+// gündür bekliyor -- 7-14 gün "warning" (sarı), 15+ gün "danger" (kırmızı).
+// Kapanış + Broker onaylanmış işlemler tamamlanmış sayılır, uyarı gösterilmez.
+function getStaleness(t) {
+  if (t.stage === 'closed' && t.dealApproved) return { level: 'none', days: 0 };
+  const since = t.stageChangedAt || t.createdAt;
+  if (!since) return { level: 'none', days: 0 };
+  const days = Math.floor((Date.now() - new Date(since).getTime()) / 86400000);
+  if (days >= 15) return { level: 'danger', days };
+  if (days >= 7) return { level: 'warning', days };
+  return { level: 'none', days };
+}
+
 const DETAIL_TABS = [
   { key: 'summary', label: '📋 Özet' },
   { key: 'financial', label: '💰 Finansal' },
@@ -264,17 +277,35 @@ export default function TransactionsPage() {
           <div className="kanban-board">
             {TRANSACTION_STAGES.map((stage) => {
               const stageTransactions = transactions.filter((t) => t.stage === stage.value);
+              const stageTotal = stageTransactions.reduce((sum, t) => sum + (Number(t.offerAmount) || 0), 0);
               return (
                 <div className="kanban-column" key={stage.value}>
-                  <div className="kanban-column__title">{stage.label} ({stageTransactions.length})</div>
+                  <div className="kanban-column__title">
+                    {stage.label} ({stageTransactions.length})
+                    {stageTotal > 0 && <div className="kanban-column__total">{money(stageTotal)}</div>}
+                  </div>
                   {stageTransactions.length === 0 ? (
                     <div className="kanban-empty">Bu aşamada işlem yok</div>
                   ) : (
                     stageTransactions.map((t) => {
                       const customer = customers.find((c) => c.id === t.customerId);
                       const property = properties.find((p) => p.id === t.propertyId);
+                      const staleness = getStaleness(t);
+                      const cardClass = staleness.level === 'danger'
+                        ? 'transaction-card transaction-card--stale-danger'
+                        : staleness.level === 'warning'
+                          ? 'transaction-card transaction-card--stale-warning'
+                          : 'transaction-card';
                       return (
-                        <div key={t.id} className="transaction-card">
+                        <div key={t.id} className={cardClass}>
+                          {staleness.level !== 'none' && (
+                            <div
+                              className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'}
+                              title="Bu işlem uzun süredir bu aşamada bekliyor"
+                            >
+                              ⏱ {staleness.days} gündür bu aşamada
+                            </div>
+                          )}
                           <div className="transaction-card__title" onClick={() => openDetail(t)} style={{ cursor: 'pointer' }}>
                             {property ? property.title : (t.externalPropertyLabel || (t.propertyId ? 'Portföy silinmiş' : '📋 Portföy henüz belirlenmedi'))}
                             {!property && t.externalPropertyLabel && <span className="external-tag"> harici</span>}
