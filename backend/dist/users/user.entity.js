@@ -9,13 +9,23 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = exports.UserRole = void 0;
+exports.User = exports.CommissionShareType = exports.CompanyType = exports.UserRole = void 0;
 const typeorm_1 = require("typeorm");
 var UserRole;
 (function (UserRole) {
     UserRole["BROKER"] = "broker";
     UserRole["AGENT"] = "agent";
 })(UserRole || (exports.UserRole = UserRole = {}));
+var CompanyType;
+(function (CompanyType) {
+    CompanyType["SAHIS"] = "sahis";
+    CompanyType["LIMITED"] = "limited";
+})(CompanyType || (exports.CompanyType = CompanyType = {}));
+var CommissionShareType;
+(function (CommissionShareType) {
+    CommissionShareType["RAPP"] = "rapp";
+    CommissionShareType["MAXIMUM"] = "maximum";
+})(CommissionShareType || (exports.CommissionShareType = CommissionShareType = {}));
 let User = class User {
 };
 exports.User = User;
@@ -55,6 +65,54 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", Object)
 ], User.prototype, "taxId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "profilePhotoUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'enum', enum: CompanyType, nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "companyType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "taxOffice", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "mykCertificateNo", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "realEstateLicenseUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true, default: 'RE/MAX Bostancı' }),
+    __metadata("design:type", Object)
+], User.prototype, "officeName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'enum', enum: CommissionShareType, nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "commissionShareType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "contractStartDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "mentorAgentId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], User.prototype, "powerStartCompleted", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "powerStartCertificateNo", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "powerStartCertificateDate", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

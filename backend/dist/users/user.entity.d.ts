@@ -2,6 +2,14 @@ export declare enum UserRole {
     BROKER = "broker",
     AGENT = "agent"
 }
+export declare enum CompanyType {
+    SAHIS = "sahis",
+    LIMITED = "limited"
+}
+export declare enum CommissionShareType {
+    RAPP = "rapp",
+    MAXIMUM = "maximum"
+}
 export declare class User {
     id: string;
     name: string;
@@ -12,6 +20,18 @@ export declare class User {
     nationalId: string | null;
     companyName: string | null;
     taxId: string | null;
+    profilePhotoUrl: string | null;
+    companyType: CompanyType | null;
+    taxOffice: string | null;
+    mykCertificateNo: string | null;
+    realEstateLicenseUrl: string | null;
+    officeName: string | null;
+    commissionShareType: CommissionShareType | null;
+    contractStartDate: string | null;
+    mentorAgentId: string | null;
+    powerStartCompleted: boolean;
+    powerStartCertificateNo: string | null;
+    powerStartCertificateDate: string | null;
     passwordHash: string;
     role: UserRole;
     lastNotificationsSeenAt: Date | null;

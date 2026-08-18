@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { usersApi } from '../api/auth';
 import { announcementsApi } from '../api/announcements';
+import { uploadFile } from '../api/client';
 
 const AGENT_TABS = [
   { key: 'roster', label: '👥 Danışmanlar' },
@@ -8,10 +9,67 @@ const AGENT_TABS = [
   { key: 'announce', label: '📢 Duyurular' },
 ];
 
+// "Yeni Danışman Ekle" şablonundaki 4 sekme (bkz. proje notları) --
+// sabit sırayla, formun kendi ic navigasyonu.
+const ADD_AGENT_TABS = [
+  { key: 'personal', label: '1. Kişisel Bilgiler' },
+  { key: 'legal', label: '2. Mali ve Yasal Kayıtlar' },
+  { key: 'work', label: '3. Çalışma Modeli & Hakediş' },
+  { key: 'academy', label: '4. Akademi & Eğitim' },
+];
+
+const COMPANY_TYPES = [
+  { value: 'sahis', label: 'Şahıs Şirketi' },
+  { value: 'limited', label: 'Ltd. Şti.' },
+];
+
+const COMMISSION_SHARE_TYPES = [
+  { value: 'rapp', label: 'RAPP (%48)' },
+  { value: 'maximum', label: 'MAXIMUM (%80)' },
+];
+
+const FIXED_OFFICE_NAME = 'RE/MAX Bostancı';
+
 const emptyForm = {
-  name: '', email: '', password: '', phone: '', address: '', birthDate: '',
-  nationalId: '', companyName: '', taxId: '',
+  // Sekme 1: Kişisel Bilgiler
+  name: '', nationalId: '', email: '', phone: '', profilePhotoUrl: '', password: '',
+  // Sekme 2: Mali ve Yasal Kayıtlar
+  companyType: '', companyName: '', taxOffice: '', taxId: '', mykCertificateNo: '', realEstateLicenseUrl: '',
+  // Sekme 3: Çalışma Modeli & Hakediş
+  officeName: FIXED_OFFICE_NAME, commissionShareType: '', contractStartDate: '', mentorAgentId: '',
+  // Sekme 4: Akademi & Eğitim
+  powerStartCompleted: false, powerStartCertificateNo: '', powerStartCertificateDate: '',
+  // Ek (şablonda yok, mevcut sistemden korunuyor, opsiyonel)
+  address: '', birthDate: '',
 };
+
+// Her sekmedeki zorunlu alanları kontrol eder; eksik varsa o sekmenin
+// anahtarını + kullanıcıya gösterilecek mesajı döner.
+function validateAgentForm(form) {
+  const errors = [];
+  if (!form.name.trim()) errors.push({ tab: 'personal', message: 'Ad Soyad zorunludur' });
+  if (!/^\d{11}$/.test(form.nationalId)) errors.push({ tab: 'personal', message: 'T.C. Kimlik No 11 haneli olmalıdır' });
+  if (!form.email.trim()) errors.push({ tab: 'personal', message: 'Kurumsal e-posta zorunludur' });
+  if (!form.phone.trim()) errors.push({ tab: 'personal', message: 'Cep telefonu zorunludur' });
+  if (!form.profilePhotoUrl) errors.push({ tab: 'personal', message: 'Profil fotoğrafı zorunludur' });
+  if (!form.password || form.password.length < 6) errors.push({ tab: 'personal', message: 'Şifre en az 6 karakter olmalıdır' });
+
+  if (!form.companyType) errors.push({ tab: 'legal', message: 'Şirket türü seçin' });
+  if (!form.companyName.trim()) errors.push({ tab: 'legal', message: 'Şirket unvanı zorunludur' });
+  if (!form.taxOffice.trim()) errors.push({ tab: 'legal', message: 'Vergi dairesi zorunludur' });
+  if (!form.taxId.trim()) errors.push({ tab: 'legal', message: 'Vergi kimlik no zorunludur' });
+  if (!form.mykCertificateNo.trim()) errors.push({ tab: 'legal', message: 'MYK Seviye 5 belge no zorunludur' });
+  if (!form.realEstateLicenseUrl) errors.push({ tab: 'legal', message: 'Taşınmaz Ticareti Yetki Belgesi zorunludur' });
+
+  if (!form.commissionShareType) errors.push({ tab: 'work', message: 'Komisyon paylaşım tipi seçin' });
+  if (!form.contractStartDate) errors.push({ tab: 'work', message: 'Sözleşme başlangıç tarihi zorunludur' });
+
+  if (!form.powerStartCompleted) errors.push({ tab: 'academy', message: 'Power Start Eğitimi tamamlandı olarak işaretlenmelidir' });
+  if (!form.powerStartCertificateNo.trim()) errors.push({ tab: 'academy', message: 'Sertifika no zorunludur' });
+  if (!form.powerStartCertificateDate) errors.push({ tab: 'academy', message: 'Sertifika tarihi zorunludur' });
+
+  return errors;
+}
 
 export default function AgentsPage() {
   const [activeTab, setActiveTab] = useState('roster');
@@ -20,6 +78,9 @@ export default function AgentsPage() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [addAgentTab, setAddAgentTab] = useState('personal');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingLicense, setUploadingLicense] = useState(false);
   const [targetDrafts, setTargetDrafts] = useState({});
   const [savingTargetId, setSavingTargetId] = useState(null);
   const [duesDrafts, setDuesDrafts] = useState({});
@@ -66,18 +127,40 @@ export default function AgentsPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    const validationErrors = validateAgentForm(form);
+    if (validationErrors.length > 0) {
+      // Ilk eksik alanin oldugu sekmeye atla, tum hatalari listele.
+      setAddAgentTab(validationErrors[0].tab);
+      setError(validationErrors.map((v) => v.message).join(' · '));
+      return;
+    }
     setSaving(true);
     try {
       await usersApi.createAgent({
-        ...form,
-        phone: form.phone.trim() || undefined,
+        name: form.name.trim(),
+        nationalId: form.nationalId,
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        profilePhotoUrl: form.profilePhotoUrl,
+        password: form.password,
+        companyType: form.companyType,
+        companyName: form.companyName.trim(),
+        taxOffice: form.taxOffice.trim(),
+        taxId: form.taxId.trim(),
+        mykCertificateNo: form.mykCertificateNo.trim(),
+        realEstateLicenseUrl: form.realEstateLicenseUrl,
+        officeName: form.officeName,
+        commissionShareType: form.commissionShareType,
+        contractStartDate: form.contractStartDate,
+        mentorAgentId: form.mentorAgentId || undefined,
+        powerStartCompleted: form.powerStartCompleted,
+        powerStartCertificateNo: form.powerStartCertificateNo.trim(),
+        powerStartCertificateDate: form.powerStartCertificateDate,
         address: form.address.trim() || undefined,
         birthDate: form.birthDate || undefined,
-        nationalId: form.nationalId.trim() || undefined,
-        companyName: form.companyName.trim() || undefined,
-        taxId: form.taxId.trim() || undefined,
       });
       setForm(emptyForm);
+      setAddAgentTab('personal');
       setActiveTab('roster');
       load();
     } catch (err) {
@@ -85,6 +168,39 @@ export default function AgentsPage() {
       setError(Array.isArray(message) ? message.join(', ') : message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  function handleCancelAddAgent() {
+    setForm(emptyForm);
+    setAddAgentTab('personal');
+    setError(null);
+    setActiveTab('roster');
+  }
+
+  async function handlePhotoUpload(file) {
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadFile(file);
+      setForm((f) => ({ ...f, profilePhotoUrl: url }));
+    } catch {
+      alert('Fotoğraf yüklenemedi, tekrar deneyin.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function handleLicenseUpload(file) {
+    if (!file) return;
+    setUploadingLicense(true);
+    try {
+      const url = await uploadFile(file);
+      setForm((f) => ({ ...f, realEstateLicenseUrl: url }));
+    } catch {
+      alert('Belge yüklenemedi, tekrar deneyin.');
+    } finally {
+      setUploadingLicense(false);
     }
   }
 
@@ -312,98 +428,223 @@ export default function AgentsPage() {
       <div className="folder-panel">
         <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Yeni Danışman Ekle</h3>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -8, marginBottom: 16 }}>
-          Buradaki bilgiler, danışmanın giriş bilgilerini ve ileride cari hesap/aidat kayıtlarının bağlanacağı kimlik bilgilerini oluşturur — doğru ve güncel girilmesi önemli.
+          Danışmanın giriş bilgilerini, mali/yasal kayıtlarını, çalışma modelini ve eğitim durumunu içeren tam profil kaydı — tüm sekmelerdeki zorunlu alanlar doldurulmadan kaydedilemez.
         </p>
-        <form onSubmit={handleSubmit}>
-          <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Kişisel Bilgiler</h4>
-          <div className="form-grid">
-            <div className="form-field">
-              <label>Ad Soyad</label>
-              <input
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="form-field">
-              <label>E-posta</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="form-field">
-              <label>Şifre</label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                minLength={6}
-                required
-              />
-            </div>
-            <div className="form-field">
-              <label>Telefon (opsiyonel)</label>
-              <input
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="0555 123 45 67"
-              />
-            </div>
-            <div className="form-field">
-              <label>Doğum Tarihi (opsiyonel)</label>
-              <input
-                type="date"
-                value={form.birthDate}
-                onChange={(e) => setForm((f) => ({ ...f, birthDate: e.target.value }))}
-              />
-            </div>
-            <div className="form-field">
-              <label>TC Kimlik No (opsiyonel)</label>
-              <input
-                value={form.nationalId}
-                onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value }))}
-                placeholder="11 haneli"
-                maxLength={11}
-              />
-            </div>
-            <div className="form-field full">
-              <label>Yerleşik Adres (opsiyonel)</label>
-              <input
-                value={form.address}
-                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                placeholder="Mahalle, cadde, ilçe/il"
-              />
-            </div>
-          </div>
 
-          <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', color: 'var(--muted)', margin: '18px 0 8px' }}>Şirket Bilgileri (Fatura Kesimi İçin)</h4>
-          <div className="form-grid">
-            <div className="form-field">
-              <label>Şirket Adı (opsiyonel)</label>
-              <input
-                value={form.companyName}
-                onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
-                placeholder="Örn: Hasan Yılmaz Gayrimenkul"
-              />
+        <div className="folder-tabs" style={{ flexWrap: 'wrap', marginBottom: 0 }}>
+          {ADD_AGENT_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`folder-tab${addAgentTab === tab.key ? ' active' : ''}`}
+              onClick={() => setAddAgentTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="folder-panel" style={{ borderRadius: '0 8px 8px 8px', marginTop: -1 }}>
+          {addAgentTab === 'personal' && (
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Adı Soyadı *</label>
+                <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="form-field">
+                <label>T.C. Kimlik No *</label>
+                <input
+                  value={form.nationalId}
+                  onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value.replace(/\D/g, '') }))}
+                  placeholder="11 haneli"
+                  maxLength={11}
+                />
+              </div>
+              <div className="form-field">
+                <label>Kurumsal E-posta *</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="isim@remax.com.tr"
+                />
+              </div>
+              <div className="form-field">
+                <label>Cep Telefonu *</label>
+                <input
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+90 5XX XXX XX XX"
+                />
+              </div>
+              <div className="form-field">
+                <label>Şifre * (giriş için gerekli)</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  minLength={6}
+                />
+              </div>
+              <div className="form-field">
+                <label>Profil Fotoğrafı * (JPG/PNG)</label>
+                {form.profilePhotoUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <img src={form.profilePhotoUrl} alt="Profil" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                    <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => setForm((f) => ({ ...f, profilePhotoUrl: '' }))}>
+                      Değiştir
+                    </button>
+                  </div>
+                ) : (
+                  <label className="btn btn-secondary" style={{ display: 'inline-flex', width: 'fit-content', cursor: 'pointer', fontSize: 12 }}>
+                    {uploadingPhoto ? 'Yükleniyor…' : '📷 Fotoğraf Yükle'}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      style={{ display: 'none' }}
+                      disabled={uploadingPhoto}
+                      onChange={(e) => handlePhotoUpload(e.target.files?.[0])}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="form-field full">
+                <label>Yerleşik Adres (opsiyonel)</label>
+                <input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} placeholder="Mahalle, cadde, ilçe/il" />
+              </div>
+              <div className="form-field">
+                <label>Doğum Tarihi (opsiyonel)</label>
+                <input type="date" value={form.birthDate} onChange={(e) => setForm((f) => ({ ...f, birthDate: e.target.value }))} />
+              </div>
             </div>
-            <div className="form-field">
-              <label>Vergi Kimlik No (opsiyonel)</label>
-              <input
-                value={form.taxId}
-                onChange={(e) => setForm((f) => ({ ...f, taxId: e.target.value }))}
-                placeholder="10 haneli"
-                maxLength={10}
-              />
+          )}
+
+          {addAgentTab === 'legal' && (
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Şirket Türü *</label>
+                <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+                  {COMPANY_TYPES.map((ct) => (
+                    <label key={ct.value} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400 }}>
+                      <input
+                        type="radio"
+                        name="companyType"
+                        checked={form.companyType === ct.value}
+                        onChange={() => setForm((f) => ({ ...f, companyType: ct.value }))}
+                      />
+                      {ct.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="form-field">
+                <label>Şirket Unvanı *</label>
+                <input value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Örn: Hasan Yılmaz Gayrimenkul" />
+              </div>
+              <div className="form-field">
+                <label>Vergi Dairesi *</label>
+                <input value={form.taxOffice} onChange={(e) => setForm((f) => ({ ...f, taxOffice: e.target.value }))} placeholder="Örn: Kadıköy Vergi Dairesi" />
+              </div>
+              <div className="form-field">
+                <label>Vergi No *</label>
+                <input value={form.taxId} onChange={(e) => setForm((f) => ({ ...f, taxId: e.target.value }))} placeholder="10 haneli" maxLength={10} />
+              </div>
+              <div className="form-field">
+                <label>MYK Seviye 5 Belge No *</label>
+                <input value={form.mykCertificateNo} onChange={(e) => setForm((f) => ({ ...f, mykCertificateNo: e.target.value }))} placeholder="Belge kodu" />
+              </div>
+              <div className="form-field">
+                <label>Taşınmaz Ticareti Yetki Belgesi *</label>
+                {form.realEstateLicenseUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <a href={form.realEstateLicenseUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>📎 Belgeyi görüntüle</a>
+                    <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => setForm((f) => ({ ...f, realEstateLicenseUrl: '' }))}>
+                      Değiştir
+                    </button>
+                  </div>
+                ) : (
+                  <label className="btn btn-secondary" style={{ display: 'inline-flex', width: 'fit-content', cursor: 'pointer', fontSize: 12 }}>
+                    {uploadingLicense ? 'Yükleniyor…' : '📎 Belge Yükle'}
+                    <input
+                      type="file"
+                      style={{ display: 'none' }}
+                      disabled={uploadingLicense}
+                      onChange={(e) => handleLicenseUpload(e.target.files?.[0])}
+                    />
+                  </label>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {addAgentTab === 'work' && (
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Bağlı Olduğu Ofis</label>
+                <input value={form.officeName} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
+              </div>
+              <div className="form-field">
+                <label>Komisyon Paylaşım Tipi *</label>
+                <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+                  {COMMISSION_SHARE_TYPES.map((cs) => (
+                    <label key={cs.value} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400 }}>
+                      <input
+                        type="radio"
+                        name="commissionShareType"
+                        checked={form.commissionShareType === cs.value}
+                        onChange={() => setForm((f) => ({ ...f, commissionShareType: cs.value }))}
+                      />
+                      {cs.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="form-field">
+                <label>Sözleşme Başlangıç Tarihi *</label>
+                <input type="date" value={form.contractStartDate} onChange={(e) => setForm((f) => ({ ...f, contractStartDate: e.target.value }))} />
+              </div>
+              <div className="form-field">
+                <label>Mentor / Koç (opsiyonel)</label>
+                <select value={form.mentorAgentId} onChange={(e) => setForm((f) => ({ ...f, mentorAgentId: e.target.value }))}>
+                  <option value="">Seçiniz</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {addAgentTab === 'academy' && (
+            <div className="form-grid">
+              <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  id="powerStartCompleted"
+                  checked={form.powerStartCompleted}
+                  onChange={(e) => setForm((f) => ({ ...f, powerStartCompleted: e.target.checked }))}
+                  style={{ width: 'auto' }}
+                />
+                <label htmlFor="powerStartCompleted" style={{ margin: 0 }}>Power Start Eğitimi Tamamlandı *</label>
+              </div>
+              <div className="form-field">
+                <label>Sertifika No *</label>
+                <input value={form.powerStartCertificateNo} onChange={(e) => setForm((f) => ({ ...f, powerStartCertificateNo: e.target.value }))} />
+              </div>
+              <div className="form-field">
+                <label>Sertifika Tarihi *</label>
+                <input type="date" value={form.powerStartCertificateDate} onChange={(e) => setForm((f) => ({ ...f, powerStartCertificateDate: e.target.value }))} />
+              </div>
+            </div>
+          )}
 
           {error && <div className="form-error">{error}</div>}
-          <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: 14 }}>
+          <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: 14, gap: 8 }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Ekleniyor…' : '+ Danışman Ekle'}
+              {saving ? 'Kaydediliyor…' : 'Kaydet'}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={handleCancelAddAgent}>
+              İptal
             </button>
           </div>
         </form>
