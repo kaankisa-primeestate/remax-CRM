@@ -83,6 +83,12 @@ __decorate([
     __metadata("design:type", String)
 ], CreateAgentDto.prototype, "commissionShareType", void 0);
 __decorate([
+    (0, class_validator_1.IsNumber)({}, { message: 'Komisyon paylaşım yüzdesi geçerli bir sayı olmalıdır' }),
+    (0, class_validator_1.Min)(0, { message: 'Komisyon paylaşım yüzdesi 0-100 arasında olmalıdır' }),
+    (0, class_validator_1.Max)(100, { message: 'Komisyon paylaşım yüzdesi 0-100 arasında olmalıdır' }),
+    __metadata("design:type", Number)
+], CreateAgentDto.prototype, "commissionSharePercentage", void 0);
+__decorate([
     (0, class_validator_1.IsDateString)({}, { message: 'Sözleşme başlangıç tarihi zorunludur' }),
     __metadata("design:type", String)
 ], CreateAgentDto.prototype, "contractStartDate", void 0);
@@ -91,6 +97,12 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateAgentDto.prototype, "mentorAgentId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'Aylık aidat tutarı geçerli bir sayı olmalıdır' }),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateAgentDto.prototype, "monthlyDuesAmount", void 0);
 __decorate([
     (0, class_validator_1.IsBoolean)({ message: 'Power Start Eğitimi tamamlandı olarak işaretlenmelidir' }),
     __metadata("design:type", Boolean)

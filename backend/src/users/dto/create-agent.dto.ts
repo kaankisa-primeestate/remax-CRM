@@ -4,9 +4,12 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Length,
+  Max,
+  Min,
   MinLength,
 } from 'class-validator';
 import { CompanyType, CommissionShareType } from '../user.entity';
@@ -72,12 +75,26 @@ export class CreateAgentDto {
   @IsEnum(CommissionShareType, { message: 'Komisyon paylaşım tipi seçin' })
   commissionShareType: CommissionShareType;
 
+  // Varsayilan RAPP=%48 / MAXIMUM=%80'den farkli anlasilmis olabilir --
+  // bu yuzden ayri, elle girilen/duzenlenen bir yuzde alani.
+  @IsNumber({}, { message: 'Komisyon paylaşım yüzdesi geçerli bir sayı olmalıdır' })
+  @Min(0, { message: 'Komisyon paylaşım yüzdesi 0-100 arasında olmalıdır' })
+  @Max(100, { message: 'Komisyon paylaşım yüzdesi 0-100 arasında olmalıdır' })
+  commissionSharePercentage: number;
+
   @IsDateString({}, { message: 'Sözleşme başlangıç tarihi zorunludur' })
   contractStartDate: string;
 
   @IsOptional()
   @IsString()
   mentorAgentId?: string; // opsiyonel
+
+  // Aylik ofis aidati -- opsiyonel, olusturma sirasinda girilmezse
+  // Broker daha sonra "Danisman Aidatlari" ekranindan da belirleyebilir.
+  @IsOptional()
+  @IsNumber({}, { message: 'Aylık aidat tutarı geçerli bir sayı olmalıdır' })
+  @Min(0)
+  monthlyDuesAmount?: number;
 
   // --- Sekme 4: Akademi & Eğitim ---
   @IsBoolean({ message: 'Power Start Eğitimi tamamlandı olarak işaretlenmelidir' })

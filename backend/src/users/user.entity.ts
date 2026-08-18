@@ -88,6 +88,13 @@ export class User {
   @Column({ type: 'enum', enum: CommissionShareType, nullable: true })
   commissionShareType: CommissionShareType | null;
 
+  // Gercek anlasilan komisyon payi yuzdesi -- RAPP/MAXIMUM birer varsayilan
+  // kategori (%48 / %80), ama gercek oran anlasmaya gore farklilik
+  // gosterebiliyor (orn. MAXIMUM ama %75). Bu yuzden tip ile ayri, elle
+  // duzenlenebilir bir sayisal alan.
+  @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
+  commissionSharePercentage: number | null;
+
   @Column({ type: 'date', nullable: true })
   contractStartDate: string | null;
 

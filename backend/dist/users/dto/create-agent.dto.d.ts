@@ -14,8 +14,10 @@ export declare class CreateAgentDto {
     realEstateLicenseUrl: string;
     officeName?: string;
     commissionShareType: CommissionShareType;
+    commissionSharePercentage: number;
     contractStartDate: string;
     mentorAgentId?: string;
+    monthlyDuesAmount?: number;
     powerStartCompleted: boolean;
     powerStartCertificateNo: string;
     powerStartCertificateDate: string;

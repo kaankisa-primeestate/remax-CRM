@@ -27,6 +27,7 @@ export declare class User {
     realEstateLicenseUrl: string | null;
     officeName: string | null;
     commissionShareType: CommissionShareType | null;
+    commissionSharePercentage: number | null;
     contractStartDate: string | null;
     mentorAgentId: string | null;
     powerStartCompleted: boolean;

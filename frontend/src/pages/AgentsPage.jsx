@@ -24,8 +24,8 @@ const COMPANY_TYPES = [
 ];
 
 const COMMISSION_SHARE_TYPES = [
-  { value: 'rapp', label: 'RAPP (%48)' },
-  { value: 'maximum', label: 'MAXIMUM (%80)' },
+  { value: 'rapp', label: 'RAPP', defaultPct: 48 },
+  { value: 'maximum', label: 'MAXIMUM', defaultPct: 80 },
 ];
 
 const FIXED_OFFICE_NAME = 'RE/MAX Bostancı';
@@ -36,7 +36,7 @@ const emptyForm = {
   // Sekme 2: Mali ve Yasal Kayıtlar
   companyType: '', companyName: '', taxOffice: '', taxId: '', mykCertificateNo: '', realEstateLicenseUrl: '',
   // Sekme 3: Çalışma Modeli & Hakediş
-  officeName: FIXED_OFFICE_NAME, commissionShareType: '', contractStartDate: '', mentorAgentId: '',
+  officeName: FIXED_OFFICE_NAME, commissionShareType: '', commissionSharePercentage: '', contractStartDate: '', mentorAgentId: '', monthlyDuesAmount: '',
   // Sekme 4: Akademi & Eğitim
   powerStartCompleted: false, powerStartCertificateNo: '', powerStartCertificateDate: '',
   // Ek (şablonda yok, mevcut sistemden korunuyor, opsiyonel)
@@ -62,6 +62,9 @@ function validateAgentForm(form) {
   if (!form.realEstateLicenseUrl) errors.push({ tab: 'legal', message: 'Taşınmaz Ticareti Yetki Belgesi zorunludur' });
 
   if (!form.commissionShareType) errors.push({ tab: 'work', message: 'Komisyon paylaşım tipi seçin' });
+  if (form.commissionSharePercentage === '' || Number.isNaN(Number(form.commissionSharePercentage))) {
+    errors.push({ tab: 'work', message: 'Komisyon paylaşım yüzdesi girin' });
+  }
   if (!form.contractStartDate) errors.push({ tab: 'work', message: 'Sözleşme başlangıç tarihi zorunludur' });
 
   if (!form.powerStartCompleted) errors.push({ tab: 'academy', message: 'Power Start Eğitimi tamamlandı olarak işaretlenmelidir' });
@@ -151,8 +154,10 @@ export default function AgentsPage() {
         realEstateLicenseUrl: form.realEstateLicenseUrl,
         officeName: form.officeName,
         commissionShareType: form.commissionShareType,
+        commissionSharePercentage: Number(form.commissionSharePercentage),
         contractStartDate: form.contractStartDate,
         mentorAgentId: form.mentorAgentId || undefined,
+        monthlyDuesAmount: form.monthlyDuesAmount !== '' ? Number(form.monthlyDuesAmount) : undefined,
         powerStartCompleted: form.powerStartCompleted,
         powerStartCertificateNo: form.powerStartCertificateNo.trim(),
         powerStartCertificateDate: form.powerStartCertificateDate,
@@ -584,20 +589,57 @@ export default function AgentsPage() {
                 <input value={form.officeName} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
               </div>
               <div className="form-field">
+                <label>Aylık Ofis Aidatı (opsiyonel)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.monthlyDuesAmount}
+                  onChange={(e) => setForm((f) => ({ ...f, monthlyDuesAmount: e.target.value }))}
+                  placeholder="Örn: 2500"
+                />
+              </div>
+              <div className="form-field full">
                 <label>Komisyon Paylaşım Tipi *</label>
-                <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+                <div style={{ display: 'flex', gap: 18, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   {COMMISSION_SHARE_TYPES.map((cs) => (
                     <label key={cs.value} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400 }}>
                       <input
                         type="radio"
                         name="commissionShareType"
                         checked={form.commissionShareType === cs.value}
-                        onChange={() => setForm((f) => ({ ...f, commissionShareType: cs.value }))}
+                        onChange={() =>
+                          setForm((f) => ({
+                            ...f,
+                            commissionShareType: cs.value,
+                            // Tipi degistirince varsayilan yuzdeyi onerir, ama
+                            // kullanici zaten elle bir sey girmisse (farkli
+                            // bir tipten geliyorsa) onu korur -- degistirme
+                            // anindaki en dogru davranis varsayilani onermek.
+                            commissionSharePercentage: String(cs.defaultPct),
+                          }))
+                        }
                       />
-                      {cs.label}
+                      {cs.label} (varsayılan %{cs.defaultPct})
                     </label>
                   ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>Anlaşılan oran:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={form.commissionSharePercentage}
+                      onChange={(e) => setForm((f) => ({ ...f, commissionSharePercentage: e.target.value }))}
+                      style={{ width: 70 }}
+                      disabled={!form.commissionShareType}
+                    />
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>%</span>
+                  </div>
                 </div>
+                <p style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 0' }}>
+                  Tip seçince oran otomatik önerilir, farklı anlaşıldıysa (örn. MAXIMUM ama %75) üzerine tıklayıp değiştirebilirsiniz.
+                </p>
               </div>
               <div className="form-field">
                 <label>Sözleşme Başlangıç Tarihi *</label>
