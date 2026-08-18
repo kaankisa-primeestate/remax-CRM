@@ -42,7 +42,7 @@ export class TransactionDocument {
 
   // Sadece docType='other' oldugunda anlamli -- kullanicinin kendi verdigi
   // isim (orn. "Vekaletname", "Ekspertiz Raporu").
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   label: string | null;
 
   @Column({ default: false })
@@ -50,10 +50,10 @@ export class TransactionDocument {
 
   // Cloudinary'e yuklenen dosyanin linki -- dosyasiz da "tamamlandi"
   // isaretlenebildigi icin nullable.
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   fileUrl: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   fileName: string | null;
 
   // Denormalize: kim ekledi/guncelledi -- performans icin kayitla birlikte saklanir.
