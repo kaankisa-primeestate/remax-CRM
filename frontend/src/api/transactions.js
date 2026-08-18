@@ -7,6 +7,9 @@ export const transactionsApi = {
   remove: (id) => apiClient.delete(`/transactions/${id}`),
   getNotes: (id) => apiClient.get(`/transactions/${id}/notes`).then((r) => r.data),
   addNote: (id, text) => apiClient.post(`/transactions/${id}/notes`, { text }).then((r) => r.data),
+  getDocuments: (id) => apiClient.get(`/transactions/${id}/documents`).then((r) => r.data),
+  addDocument: (id, payload) => apiClient.post(`/transactions/${id}/documents`, payload).then((r) => r.data),
+  removeDocument: (documentId) => apiClient.delete(`/transactions/documents/${documentId}`),
 };
 
 export const TRANSACTION_STAGES = [
@@ -15,4 +18,14 @@ export const TRANSACTION_STAGES = [
   { value: 'offer', label: 'Teklif' },
   { value: 'deed', label: 'Tapu' },
   { value: 'closed', label: 'Kapanış' },
+];
+
+// Backend enum'uyla birebir eşleşir (transaction-document.entity.ts).
+// Sabit kontrol listesi kalemleri -- 'other' haric hepsi tekil, sabit bir
+// kontrol maddesi temsil eder.
+export const TRANSACTION_DOC_TYPES = [
+  { value: 'disclosure', label: 'Yer Gösterme Formu' },
+  { value: 'contract', label: 'Sözleşme' },
+  { value: 'deed', label: 'Tapu' },
+  { value: 'id', label: 'Kimlik' },
 ];

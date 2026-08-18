@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { transactionsApi, TRANSACTION_STAGES } from '../api/transactions';
+import { transactionsApi, TRANSACTION_STAGES, TRANSACTION_DOC_TYPES } from '../api/transactions';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { propertiesApi } from '../api/properties';
+import { uploadFile } from '../api/client';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const money = (n) =>
@@ -60,6 +61,10 @@ export default function TransactionsPage() {
   const [depositAmount, setDepositAmount] = useState('');
   const [depositDate, setDepositDate] = useState('');
   const [savingDeposit, setSavingDeposit] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [uploadingType, setUploadingType] = useState(null); // hangi kalem icin yukleme devam ediyor
+  const [otherLabel, setOtherLabel] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -202,7 +207,9 @@ export default function TransactionsPage() {
     setDepositAmount(t.depositAmount != null ? String(t.depositAmount) : '');
     setDepositDate(t.depositDate ? t.depositDate.slice(0, 10) : '');
     setNotes([]);
+    setDocuments([]);
     setNotesLoading(true);
+    setDocumentsLoading(true);
     try {
       const list = await transactionsApi.getNotes(t.id);
       setNotes(list);
@@ -210,6 +217,14 @@ export default function TransactionsPage() {
       setNotes([]);
     } finally {
       setNotesLoading(false);
+    }
+    try {
+      const docs = await transactionsApi.getDocuments(t.id);
+      setDocuments(docs);
+    } catch {
+      setDocuments([]);
+    } finally {
+      setDocumentsLoading(false);
     }
   }
 
@@ -229,6 +244,57 @@ export default function TransactionsPage() {
       alert('Not eklenemedi, tekrar deneyin.');
     } finally {
       setSavingNote(false);
+    }
+  }
+
+  // Belgeler: bir kontrol listesi kaleminin en son eklenen satiri, o kalemin
+  // guncel durumunu gosterir (yeni satir eskisinin "uzerine" yazar, gecmis
+  // silinmez).
+  function latestDocFor(docType) {
+    return documents.find((d) => d.docType === docType) || null; // documents zaten createdAt DESC sirali geliyor
+  }
+
+  async function handleUploadDocument(docType, file, label) {
+    if (!detailTx || !file) return;
+    setUploadingType(docType);
+    try {
+      const url = await uploadFile(file);
+      const saved = await transactionsApi.addDocument(detailTx.id, {
+        docType,
+        label: label || undefined,
+        fileUrl: url,
+        fileName: file.name,
+      });
+      setDocuments((prev) => [saved, ...prev]);
+      if (docType === 'other') setOtherLabel('');
+    } catch {
+      alert('Dosya yüklenemedi, tekrar deneyin.');
+    } finally {
+      setUploadingType(null);
+    }
+  }
+
+  async function handleMarkDocumentDone(docType) {
+    if (!detailTx) return;
+    setUploadingType(docType);
+    try {
+      const saved = await transactionsApi.addDocument(detailTx.id, { docType, completed: true });
+      setDocuments((prev) => [saved, ...prev]);
+    } catch {
+      alert('İşaretlenemedi, tekrar deneyin.');
+    } finally {
+      setUploadingType(null);
+    }
+  }
+
+  async function handleDeleteDocument(documentId) {
+    if (!confirm('Bu belge silinsin mi?')) return;
+    setDocuments((prev) => prev.filter((d) => d.id !== documentId));
+    try {
+      await transactionsApi.removeDocument(documentId);
+    } catch {
+      alert('Belge silinemedi, sayfa yenileniyor.');
+      if (detailTx) openDetail(detailTx);
     }
   }
 
@@ -413,16 +479,23 @@ export default function TransactionsPage() {
             </div>
 
             <div className="folder-tabs" style={{ flexWrap: 'wrap' }}>
-              {DETAIL_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  className={`folder-tab${activeDetailTab === tab.key ? ' active' : ''}`}
-                  onClick={() => setActiveDetailTab(tab.key)}
-                >
-                  {tab.label}
-                </button>
-              ))}
+              {DETAIL_TABS.map((tab) => {
+                let label = tab.label;
+                if (tab.key === 'docs' && documents.length > 0) {
+                  const doneCount = TRANSACTION_DOC_TYPES.filter((dt) => latestDocFor(dt.value)?.completed).length;
+                  label = `${tab.label} (${doneCount}/${TRANSACTION_DOC_TYPES.length})`;
+                }
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    className={`folder-tab${activeDetailTab === tab.key ? ' active' : ''}`}
+                    onClick={() => setActiveDetailTab(tab.key)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="finance-tab-content" style={{ maxHeight: '55vh', overflowY: 'auto', paddingTop: 16 }}>
@@ -488,12 +561,105 @@ export default function TransactionsPage() {
               )}
 
               {activeDetailTab === 'docs' && (
-                <div className="finance-placeholder" style={{ margin: '0 auto' }}>
-                  <div className="finance-placeholder__icon">📁</div>
-                  <div className="finance-placeholder__title">Belgeler</div>
-                  <p className="finance-placeholder__text">
-                    Bu bölüm sırada: Yer Gösterme Formu, Sözleşme, Tapu, Kimlik gibi belgelerin kontrol listesi ve dosya yükleme burada olacak.
-                  </p>
+                <div>
+                  {documentsLoading ? (
+                    <div className="empty-state">Yükleniyor…</div>
+                  ) : (
+                    <>
+                      <div className="doc-checklist">
+                        {TRANSACTION_DOC_TYPES.map((docType) => {
+                          const latest = latestDocFor(docType.value);
+                          const isDone = !!latest?.completed;
+                          const isUploading = uploadingType === docType.value;
+                          return (
+                            <div key={docType.value} className={`doc-checklist__item${isDone ? ' doc-checklist__item--done' : ''}`}>
+                              <div className="doc-checklist__header">
+                                <span className="doc-checklist__check">{isDone ? '✅' : '⬜'}</span>
+                                <span className="doc-checklist__title">{docType.label}</span>
+                              </div>
+                              {latest?.fileUrl ? (
+                                <a href={latest.fileUrl} target="_blank" rel="noreferrer" className="doc-checklist__file">
+                                  📎 {latest.fileName || 'Dosyayı görüntüle'}
+                                </a>
+                              ) : (
+                                <div className="doc-checklist__actions">
+                                  <label className="btn btn-secondary doc-checklist__upload-btn">
+                                    {isUploading ? 'Yükleniyor…' : '📎 Dosya Yükle'}
+                                    <input
+                                      type="file"
+                                      style={{ display: 'none' }}
+                                      disabled={isUploading}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleUploadDocument(docType.value, file);
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                  </label>
+                                  {!isDone && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary"
+                                      style={{ fontSize: 11, padding: '4px 8px' }}
+                                      disabled={isUploading}
+                                      onClick={() => handleMarkDocumentDone(docType.value)}
+                                    >
+                                      Dosyasız Tamamlandı İşaretle
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                              {latest && (
+                                <button
+                                  type="button"
+                                  className="doc-checklist__remove"
+                                  onClick={() => handleDeleteDocument(latest.id)}
+                                >
+                                  Kaldır
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <h4 style={{ fontFamily: 'var(--font-display)', marginTop: 18 }}>Diğer Belgeler</h4>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div className="form-field" style={{ margin: 0, flex: 1, minWidth: 160 }}>
+                          <label>Belge Adı</label>
+                          <input value={otherLabel} onChange={(e) => setOtherLabel(e.target.value)} placeholder="Örn: Vekaletname, Ekspertiz Raporu" />
+                        </div>
+                        <label className={`btn btn-primary doc-checklist__upload-btn${!otherLabel.trim() ? ' is-disabled' : ''}`}>
+                          {uploadingType === 'other' ? 'Yükleniyor…' : '+ Dosya Ekle'}
+                          <input
+                            type="file"
+                            style={{ display: 'none' }}
+                            disabled={!otherLabel.trim() || uploadingType === 'other'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file && otherLabel.trim()) handleUploadDocument('other', file, otherLabel.trim());
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                      {documents.filter((d) => d.docType === 'other').length === 0 ? (
+                        <div className="empty-state">Henüz ek belge eklenmemiş.</div>
+                      ) : (
+                        documents.filter((d) => d.docType === 'other').map((d) => (
+                          <div key={d.id} className="ledger-history-item">
+                            <span style={{ flex: 1 }}>{d.label || 'Diğer Belge'}</span>
+                            {d.fileUrl && (
+                              <a href={d.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>
+                                📎 {d.fileName || 'Görüntüle'}
+                              </a>
+                            )}
+                            <button type="button" className="task-row__delete" onClick={() => handleDeleteDocument(d.id)} title="Sil">✕</button>
+                          </div>
+                        ))
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

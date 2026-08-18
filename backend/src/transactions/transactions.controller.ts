@@ -12,6 +12,7 @@ import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { AddNoteDto } from './dto/add-note.dto';
+import { AddDocumentDto } from './dto/add-document.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -57,5 +58,24 @@ export class TransactionsController {
   @Post(':id/notes')
   addNote(@Param('id') id: string, @Body() dto: AddNoteDto, @CurrentUser() user: CurrentUserPayload) {
     return this.transactionsService.addNote(id, dto, user);
+  }
+
+  // GET /api/transactions/:id/documents -- Belgeler sekmesi
+  @Get(':id/documents')
+  getDocuments(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.getDocuments(id, user);
+  }
+
+  // POST /api/transactions/:id/documents
+  @Post(':id/documents')
+  addDocument(@Param('id') id: string, @Body() dto: AddDocumentDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.addDocument(id, dto, user);
+  }
+
+  // DELETE /api/transactions/documents/:documentId
+  @Delete('documents/:documentId')
+  async removeDocument(@Param('documentId') documentId: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.transactionsService.removeDocument(documentId, user);
+    return { success: true };
   }
 }

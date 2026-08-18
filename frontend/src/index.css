@@ -2325,6 +2325,76 @@ button {
   margin-top: -1px;
 }
 
+/* --- İşlemler: Belgeler / kontrol listesi --- */
+.doc-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.doc-checklist__item {
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  position: relative;
+}
+.doc-checklist__item--done {
+  border-color: #1e7a3d;
+  background: #f2f9f4;
+}
+.doc-checklist__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.doc-checklist__check {
+  font-size: 14px;
+}
+.doc-checklist__title {
+  font-weight: 600;
+  font-size: 13px;
+}
+.doc-checklist__file {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--ink-navy);
+  word-break: break-word;
+}
+.doc-checklist__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+.doc-checklist__upload-btn {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+.doc-checklist__upload-btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.doc-checklist__remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: underline;
+  padding: 0;
+}
+.doc-checklist__remove:hover {
+  color: var(--danger);
+}
+
 /* --- Finans: henüz kurulmamış sekmeler için placeholder --- */
 .finance-placeholder {
   background: var(--paper-raised);

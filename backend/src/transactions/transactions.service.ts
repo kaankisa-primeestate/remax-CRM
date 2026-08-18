@@ -8,9 +8,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction, TransactionStage } from './transaction.entity';
 import { TransactionNote } from './transaction-note.entity';
+import { TransactionDocument } from './transaction-document.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { AddNoteDto } from './dto/add-note.dto';
+import { AddDocumentDto } from './dto/add-document.dto';
 import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -19,6 +21,7 @@ export class TransactionsService {
   constructor(
     @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
     @InjectRepository(TransactionNote) private readonly noteRepo: Repository<TransactionNote>,
+    @InjectRepository(TransactionDocument) private readonly documentRepo: Repository<TransactionDocument>,
     @InjectRepository(Property) private readonly propertyRepo: Repository<Property>,
   ) {}
 
@@ -106,6 +109,7 @@ export class TransactionsService {
   async remove(id: string, currentUser: CurrentUserPayload): Promise<void> {
     const transaction = await this.findOneOwned(id, currentUser);
     await this.noteRepo.delete({ transactionId: id });
+    await this.documentRepo.delete({ transactionId: id });
     await this.transactionRepo.remove(transaction);
   }
 
@@ -129,5 +133,49 @@ export class TransactionsService {
       authorName: currentUser.name,
     });
     return this.noteRepo.save(note);
+  }
+
+  // --- Belgeler: kontrol listesi + dosya yukleme ---
+  // Her "ekleme" yeni bir satir olusturur (gecmis/denetim izi korunur --
+  // eski satirlar silinmez, sadece elle silinirse gider). Bir turun guncel
+  // durumu, o tur icin en son eklenen satira bakilarak belirlenir.
+
+  async getDocuments(
+    transactionId: string,
+    currentUser: CurrentUserPayload,
+  ): Promise<TransactionDocument[]> {
+    await this.findOneOwned(transactionId, currentUser);
+    return this.documentRepo.find({ where: { transactionId }, order: { createdAt: 'DESC' } });
+  }
+
+  async addDocument(
+    transactionId: string,
+    dto: AddDocumentDto,
+    currentUser: CurrentUserPayload,
+  ): Promise<TransactionDocument> {
+    await this.findOneOwned(transactionId, currentUser);
+    // Dosya yuklenmisse otomatik olarak "tamamlandi" sayilir; dosyasiz
+    // eklemede completed degeri elle verilen deger ne ise odur (varsayilan false).
+    const completed = dto.fileUrl ? true : !!dto.completed;
+    const document = this.documentRepo.create({
+      transactionId,
+      docType: dto.docType,
+      label: dto.label || null,
+      completed,
+      fileUrl: dto.fileUrl || null,
+      fileName: dto.fileName || null,
+      updatedByName: currentUser.name,
+    });
+    return this.documentRepo.save(document);
+  }
+
+  async removeDocument(documentId: string, currentUser: CurrentUserPayload): Promise<void> {
+    const document = await this.documentRepo.findOne({ where: { id: documentId } });
+    if (!document) {
+      throw new NotFoundException('Belge bulunamadı');
+    }
+    // Mahremiyet Duvari: belgenin bagli oldugu islemin sahibi kontrol edilir.
+    await this.findOneOwned(document.transactionId, currentUser);
+    await this.documentRepo.remove(document);
   }
 }
