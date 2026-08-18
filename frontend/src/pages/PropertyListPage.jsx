@@ -50,9 +50,14 @@ export default function PropertyListPage() {
 
   // "+ Hizli Ekle" (ust bar) uzerinden "Yeni Portfoy" secildiginde,
   // bu sayfaya gelir gelmez wizard'i otomatik acar -- ekstra tiklama gerekmez.
+  // Ayrica Danisman Panelindeki "Aktif Portföylerim" karti gibi yerlerden
+  // status on-filtresiyle gelinebilir.
   useEffect(() => {
     if (location.state?.openPropertyWizard) {
       setShowForm(true);
+    }
+    if (location.state?.presetStatus) {
+      setStatus(location.state.presetStatus);
     }
   }, [location.state]);
   const [showFilters, setShowFilters] = useState(false);

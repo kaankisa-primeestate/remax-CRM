@@ -256,13 +256,17 @@ export default function AgentDashboardPage() {
       )}
 
       {/* --- Metrik Kartları --- */}
+      {/* Her karti ilgili sayfaya goturen tiklanabilir bir baglantiya cevirdik
+          (daha once duz div'di, hicbir yere gitmiyordu). React Router'in
+          Link bileseni kullanildigi icin "geri" tusu tarayicinin standart
+          gecmis mekanizmasiyla otomatik olarak bu panele geri doner. */}
       <div className="metric-grid">
-        <div className="metric-card">
+        <Link to="/portfoyler" state={{ presetStatus: 'active' }} className="metric-card metric-card--clickable">
           <div className="metric-card__label">Aktif Portföylerim</div>
           <div className="metric-card__value">{loading ? '…' : activePropertiesCount} İlan</div>
           <div className="metric-card__delta is-muted">Şu an yayında</div>
-        </div>
-        <div className="metric-card">
+        </Link>
+        <Link to="/komisyonlar" className="metric-card metric-card--clickable">
           <div className="metric-card__label">Bu Ayki Hedefim</div>
           {myTarget?.monthlyTarget ? (
             <>
@@ -281,17 +285,17 @@ export default function AgentDashboardPage() {
           ) : (
             <div className="metric-card__value" style={{ color: 'var(--muted)', fontSize: 16 }}>Hedef belirlenmedi</div>
           )}
-        </div>
-        <div className="metric-card">
+        </Link>
+        <Link to="/musteriler" state={{ presetHotOnly: true }} className="metric-card metric-card--clickable">
           <div className="metric-card__label">Sıcak Fırsatlar</div>
           <div className="metric-card__value">{loading ? '…' : hotOpportunitiesCount} Müşteri</div>
           <div className="metric-card__delta is-muted">"Hemen" almak/kiralamak isteyen</div>
-        </div>
-        <div className="metric-card">
+        </Link>
+        <Link to="/takvim" className="metric-card metric-card--clickable">
           <div className="metric-card__label">Bu Haftaki Gösterim</div>
           <div className="metric-card__value">{loading ? '…' : weeklyShowingsCount} Gösterim</div>
           <div className="metric-card__delta is-muted">Bu hafta planlanan</div>
-        </div>
+        </Link>
       </div>
 
       {/* --- Bugünün İş Planı + Akıllı Eşleştirmeler --- */}

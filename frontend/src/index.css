@@ -1124,6 +1124,21 @@ button {
   border-radius: 10px;
   padding: 16px 18px;
 }
+/* Metrik kartlari tiklanabilir Link olarak kullanildiginda (bkz.
+   AgentDashboardPage) -- varsayilan link stillerini sifirlar ve hover'da
+   hafif bir yukselme/vurgu efekti verir. */
+.metric-card--clickable {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.metric-card--clickable:hover {
+  border-color: var(--brass);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
 .metric-card__label {
   font-family: var(--font-mono);
   font-size: 11px;

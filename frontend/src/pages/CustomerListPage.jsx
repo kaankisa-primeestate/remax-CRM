@@ -37,6 +37,12 @@ const filterLabelStyle = {
 
 const rangeInputRowStyle = { display: 'flex', gap: 8, minWidth: 0 };
 
+// "Sicak Firsat" tanimi: AgentDashboardPage'deki ile ayni mantik --
+// Alici/Kiraci/Yatirimci tipinde VE "Ne zaman?" sorusuna "Hemen" diyen
+// musteriler. Backend'de ayri bir filtre parametresi yok, bu yuzden
+// istemci tarafinda (zaten yuklenmis musteri listesi uzerinde) filtreleniyor.
+const HOT_TYPES = ['buyer', 'tenant', 'investor'];
+
 export default function CustomerListPage() {
   const { isBroker } = useAuth();
   const [customers, setCustomers] = useState([]);
@@ -49,13 +55,19 @@ export default function CustomerListPage() {
 
   // "+ Hizli Ekle" (ust bar) uzerinden "Yeni Musteri" secildiginde,
   // bu sayfaya gelir gelmez formu otomatik acar -- ekstra tiklama gerekmez.
+  // Ayrica Danisman Panelindeki "Sıcak Fırsatlar" karti gibi yerlerden
+  // hotOnly on-filtresiyle gelinebilir.
   useEffect(() => {
     if (location.state?.openQuickAdd) {
       setShowQuickAdd(true);
     }
+    if (location.state?.presetHotOnly) {
+      setHotOnly(true);
+    }
   }, [location.state]);
   const [showFilters, setShowFilters] = useState(false);
   const [agents, setAgents] = useState([]);
+  const [hotOnly, setHotOnly] = useState(false);
 
   const [agentId, setAgentId] = useState('');
   const [minBudget, setMinBudget] = useState('');
@@ -109,6 +121,10 @@ export default function CustomerListPage() {
     setKeyword('');
   }
 
+  const displayedCustomers = hotOnly
+    ? customers.filter((c) => HOT_TYPES.includes(c.type) && c.purchaseTimeline === 'immediate')
+    : customers;
+
   const formatBudget = (c) =>
     c.budget != null
       ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: c.budgetCurrency || 'TRY', maximumFractionDigits: 0 }).format(c.budget)
@@ -145,6 +161,27 @@ export default function CustomerListPage() {
             Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? '▲' : '▼'}
           </button>
         </div>
+
+        {hotOnly && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)', fontSize: 12, background: '#fdf3e0', color: '#8a6100',
+                padding: '4px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              🔥 Sıcak Fırsatlar filtresi aktif
+              <button
+                type="button"
+                onClick={() => setHotOnly(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6100', fontWeight: 700, padding: 0, lineHeight: 1 }}
+                aria-label="Filtreyi kaldır"
+              >
+                ✕
+              </button>
+            </span>
+          </div>
+        )}
 
         {showFilters && (
           <div style={filterCardStyle}>
@@ -195,13 +232,15 @@ export default function CustomerListPage() {
 
         {loading ? (
           <div className="empty-state">Yükleniyor…</div>
-        ) : customers.length === 0 ? (
+        ) : displayedCustomers.length === 0 ? (
           <div className="empty-state">
-            Kayıt bulunamadı. Üst menüdeki "+ Hızlı Ekle" ile ilk kaydı oluşturun.
+            {hotOnly
+              ? 'Şu an "Hemen" almak/kiralamak isteyen bir müşteri yok.'
+              : 'Kayıt bulunamadı. Üst menüdeki "+ Hızlı Ekle" ile ilk kaydı oluşturun.'}
           </div>
         ) : (
           <div>
-            {customers.map((c) => (
+            {displayedCustomers.map((c) => (
               <Link to={`/musteriler/${c.id}`} className="record-row" key={c.id}>
                 <StatusBadge type={c.type} />
                 <span className="record-row__name">
