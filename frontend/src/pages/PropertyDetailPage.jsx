@@ -8,6 +8,7 @@ import PropertyShareModal from '../components/PropertyShareModal.jsx';
 import PhotoLightbox from '../components/PhotoLightbox.jsx';
 import QuickStatusSelect from '../components/QuickStatusSelect.jsx';
 import PropertyComments from '../components/PropertyComments.jsx';
+import MatchConfidenceBadge from '../components/MatchConfidenceBadge.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function PropertyDetailPage() {
@@ -226,14 +227,17 @@ export default function PropertyDetailPage() {
                   key={m.customer.id}
                   to={`/musteriler/${m.customer.id}`}
                   className="record-row"
-                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between' }}
+                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}
                 >
                   <span className="record-row__name">
                     {m.customer.firstName} {m.customer.lastName}
                     {m.agentName ? ` (${m.agentName})` : ''}
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
-                    {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                      {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
+                    </span>
+                    <MatchConfidenceBadge match={m} />
                   </span>
                 </Link>
               ))}

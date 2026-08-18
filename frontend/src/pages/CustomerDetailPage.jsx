@@ -10,6 +10,7 @@ import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact.js';
 import { tasksApi } from '../api/tasks';
 import { PIPELINE_STAGES } from '../constants/pipeline.js';
 import { LEAD_SOURCES } from '../constants/leadSources.js';
+import MatchConfidenceBadge from '../components/MatchConfidenceBadge.jsx';
 
 const TIMELINE_LABELS = {
   immediate: 'Hemen',
@@ -257,14 +258,17 @@ export default function CustomerDetailPage() {
                   key={m.property.id}
                   to={`/portfoyler/${m.property.id}`}
                   className="record-row"
-                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between' }}
+                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}
                 >
                   <span className="record-row__name">
                     {m.property.title} — {m.property.district}
                     {m.agentName ? ` (${m.agentName})` : ''}
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
-                    {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                      {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
+                    </span>
+                    <MatchConfidenceBadge match={m} />
                   </span>
                 </Link>
               ))}

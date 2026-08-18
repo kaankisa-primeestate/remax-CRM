@@ -72,6 +72,67 @@ interface MatchResult {
   matchedKeywords: string[];
 }
 
+// --- Bilgi Tamlığı / Eşleşme Güveni ---
+// Anahtar kelime skoru tek başına yanıltıcı olabilir: bos/eksik bir profilde
+// bile şans eseri 1 kelime tutarsa yüksek skor çıkabilir. Bu yüzden, profilin
+// (müşteri VE portföy) ne kadar dolu olduğunu da hesaba katan ayrı bir "güven"
+// göstergesi hesaplıyoruz. Musteri tarafı, CustomerDetailPage.jsx'teki
+// COMPLETION_CHECKLIST deseniyle birebir aynı 8 alanı kullanır (tutarlılık için).
+function customerCompleteness(customer: Customer): number {
+  const checklist = [
+    !!customer.budget,
+    !!customer.propertyInterest,
+    !!(customer.preferredDistricts && customer.preferredDistricts.length),
+    !!customer.purchaseTimeline,
+    !!customer.email,
+    !!customer.address,
+    !!customer.requirements,
+    !!customer.leadSource,
+  ];
+  const filled = checklist.filter(Boolean).length;
+  return Math.round((filled / checklist.length) * 100);
+}
+
+// Portfoy tarafi icin, eslestirme metnine katki saglayan 8 opsiyonel alan
+// (zorunlu alanlar -- baslik, il, ilce, m2, fiyat, tapu durumu -- zaten her
+// zaman dolu oldugu icin tamlik olcumune dahil edilmiyor, ayirt edici degiller).
+function propertyCompleteness(property: Property): number {
+  const checklist = [
+    !!property.rooms,
+    !!property.heatingType,
+    !!property.view,
+    !!property.facade,
+    !!property.notes,
+    !!(property.photoUrls && property.photoUrls.length),
+    !!property.neighborhood,
+    property.buildingAge != null,
+  ];
+  const filled = checklist.filter(Boolean).length;
+  return Math.round((filled / checklist.length) * 100);
+}
+
+type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+interface ConfidenceResult {
+  customerCompleteness: number;
+  propertyCompleteness: number;
+  confidenceScore: number;
+  confidenceLevel: ConfidenceLevel;
+}
+
+// Guven skoru = (musteri tamlik + portfoy tamlik ortalamasi) * eslesme gucu.
+// Eslesme gucu: sadece 1 kelime tuttuysa (kirilgan bir eslesme), tamlik ne
+// kadar yuksek olursa olsun guveni asagi cekiyoruz -- 3+ kelime eslesmesinde
+// tam guc.
+function computeConfidence(customer: Customer, property: Property, matchedCount: number): ConfidenceResult {
+  const custPct = customerCompleteness(customer);
+  const propPct = propertyCompleteness(property);
+  const matchStrengthFactor = Math.min(1, matchedCount / 3);
+  const confidenceScore = Math.round(((custPct + propPct) / 2) * matchStrengthFactor);
+  const confidenceLevel: ConfidenceLevel = confidenceScore >= 70 ? 'high' : confidenceScore >= 40 ? 'medium' : 'low';
+  return { customerCompleteness: custPct, propertyCompleteness: propPct, confidenceScore, confidenceLevel };
+}
+
 function scoreMatch(customer: Customer, property: Property): MatchResult {
   const customerText = [customer.requirements, customer.notes].filter(Boolean).join(' ');
   const keywords = extractKeywords(customerText);
@@ -134,9 +195,11 @@ export class MatchingService {
       .filter((property) => isAffordable(customer, property))
       .map((property) => {
         const match = scoreMatch(customer, property);
+        const confidence = computeConfidence(customer, property, match.matchedCount);
         return {
           property,
           ...match,
+          ...confidence,
           agentName: currentUser.role === 'broker' ? this.nameFor(property.agentId, agentNameById) : undefined,
         };
       })
@@ -165,9 +228,11 @@ export class MatchingService {
       .filter((customer) => isAffordable(customer, property))
       .map((customer) => {
         const match = scoreMatch(customer, property);
+        const confidence = computeConfidence(customer, property, match.matchedCount);
         return {
           customer,
           ...match,
+          ...confidence,
           agentName: currentUser.role === 'broker' ? this.nameFor(customer.agentId, agentNameById) : undefined,
         };
       })
