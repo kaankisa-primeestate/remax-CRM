@@ -326,6 +326,13 @@ export default function AgentsPage() {
           agents.map((agent) => (
             <div className="agent-card" key={agent.id}>
               <div className="agent-card__header">
+                {agent.profilePhotoUrl && (
+                  <img
+                    src={agent.profilePhotoUrl}
+                    alt={agent.name}
+                    style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                )}
                 <div>
                   <div className="agent-card__name">{agent.name}</div>
                   <div className="agent-card__meta">
@@ -344,6 +351,51 @@ export default function AgentsPage() {
                   )}
                 </div>
               </div>
+
+              {/* Mali/Yasal, Calisma Modeli ve Akademi bilgileri + belge linkleri --
+                  "Yeni Danisman Ekle" formunda toplanan bilgilerin geri
+                  gorulebilecegi tek yer burasi. */}
+              {(agent.companyType || agent.mykCertificateNo || agent.realEstateLicenseUrl || agent.commissionShareType || agent.contractStartDate || agent.mentorAgentId || agent.powerStartCompleted) && (
+                <div className="agent-card__profile-info">
+                  {(agent.companyType || agent.taxOffice || agent.mykCertificateNo || agent.realEstateLicenseUrl) && (
+                    <div className="agent-card__info-group">
+                      <div className="agent-card__info-title">Mali ve Yasal</div>
+                      <div className="agent-card__info-text">
+                        {agent.companyType && (COMPANY_TYPES.find((c) => c.value === agent.companyType)?.label || agent.companyType)}
+                        {agent.taxOffice && ` · ${agent.taxOffice}`}
+                        {agent.mykCertificateNo && ` · MYK: ${agent.mykCertificateNo}`}
+                      </div>
+                      {agent.realEstateLicenseUrl && (
+                        <a href={agent.realEstateLicenseUrl} target="_blank" rel="noreferrer" className="agent-card__doc-link">
+                          📎 Taşınmaz Ticareti Yetki Belgesi
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {(agent.officeName || agent.commissionShareType || agent.contractStartDate || agent.mentorAgentId) && (
+                    <div className="agent-card__info-group">
+                      <div className="agent-card__info-title">Çalışma Modeli</div>
+                      <div className="agent-card__info-text">
+                        {agent.officeName}
+                        {agent.commissionShareType && ` · ${COMMISSION_SHARE_TYPES.find((c) => c.value === agent.commissionShareType)?.label || agent.commissionShareType}`}
+                        {agent.commissionSharePercentage != null && ` (%${agent.commissionSharePercentage})`}
+                        {agent.contractStartDate && ` · Sözleşme: ${new Date(agent.contractStartDate).toLocaleDateString('tr-TR')}`}
+                        {agent.mentorAgentId && ` · Mentor: ${agents.find((a) => a.id === agent.mentorAgentId)?.name || '—'}`}
+                      </div>
+                    </div>
+                  )}
+                  {(agent.powerStartCompleted || agent.powerStartCertificateNo) && (
+                    <div className="agent-card__info-group">
+                      <div className="agent-card__info-title">Akademi</div>
+                      <div className="agent-card__info-text">
+                        {agent.powerStartCompleted ? '✅ Power Start Tamamlandı' : '⬜ Power Start Tamamlanmadı'}
+                        {agent.powerStartCertificateNo && ` · Sertifika No: ${agent.powerStartCertificateNo}`}
+                        {agent.powerStartCertificateDate && ` · ${new Date(agent.powerStartCertificateDate).toLocaleDateString('tr-TR')}`}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="agent-card__fields">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
