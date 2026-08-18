@@ -22,6 +22,7 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { AgentDuesModule } from './agent-dues/agent-dues.module';
 import { AgentLedgerModule } from './agent-ledger/agent-ledger.module';
 import { MarketNewsModule } from './market-news/market-news.module';
+import { ValuationsModule } from './valuations/valuations.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { MarketNewsModule } from './market-news/market-news.module';
     AgentDuesModule,
     AgentLedgerModule,
     MarketNewsModule,
+    ValuationsModule,
   ],
   providers: [
     // ThrottlerGuard'ı tüm endpoint'lere global olarak uygular.

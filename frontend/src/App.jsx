@@ -20,6 +20,7 @@ import ReportsPage from './pages/ReportsPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
 import MarketPage from './pages/MarketPage.jsx';
+import ValuationsPage from './pages/ValuationsPage.jsx';
 import AgentDuesPage from './pages/AgentDuesPage.jsx';
 import ContractsPage from './pages/ContractsPage.jsx';
 import LegalPage from './pages/LegalPage.jsx';
@@ -43,6 +44,7 @@ const BROKER_NAV = [
   { to: '/aidatlar', label: 'Danışman Aidatları', icon: '🧾' },
   { to: '/raporlar', label: 'Raporlar', icon: '📊' },
   { to: '/piyasa', label: 'Piyasa', icon: '💹' },
+  { to: '/degerleme', label: 'Piyasa Değer Analizi', icon: '📊' },
   { to: '/sozlesmeler', label: 'Sözleşmeler & Tapu', icon: '📄' },
   { to: '/hukuk', label: 'Hukuk / İhtarname', icon: '⚖️' },
   { to: '/ilan-entegrasyon', label: 'İlan Entegrasyonu', icon: '📣' },
@@ -61,6 +63,7 @@ const AGENT_NAV = [
   { to: '/takvim', label: 'Takvim', icon: '📅' },
   { to: '/gorevler', label: 'Görevler', icon: '✅' },
   { to: '/piyasa', label: 'Piyasa', icon: '💹' },
+  { to: '/degerleme', label: 'Piyasa Değer Analizi', icon: '📊' },
 ];
 
 function Sidebar({ open, onClose }) {
@@ -327,6 +330,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <MarketPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/degerleme"
+              element={
+                <ProtectedRoute>
+                  <ValuationsPage />
                 </ProtectedRoute>
               }
             />
