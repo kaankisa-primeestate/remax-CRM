@@ -26,6 +26,7 @@ import LegalPage from './pages/LegalPage.jsx';
 import ListingSyndicationPage from './pages/ListingSyndicationPage.jsx';
 import OfficeSettingsPage from './pages/OfficeSettingsPage.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
+import GlobalSearch from './components/GlobalSearch.jsx';
 
 // Broker sol menusu -- mockup'taki "Merkez Ofis Yonetici Ekrani" sirasina
 // birebir uygun (Genel Bakis -> Danisman Yonetimi -> Musteri Havuzu ->
@@ -154,15 +155,7 @@ function TopBar({ onToggleSidebar }) {
         <span></span>
         <span></span>
       </button>
-      <div className="app-topbar__search">
-        <span className="app-topbar__search-icon">🔍</span>
-        <input
-          type="text"
-          placeholder="İlan, danışman, müşteri ara…"
-          disabled
-          title="Genel arama yakında aktif olacak"
-        />
-      </div>
+      <GlobalSearch />
       <div className="app-topbar__spacer" />
       <QuickAddMenu />
       <NotificationBell />

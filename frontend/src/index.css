@@ -1347,6 +1347,7 @@ button {
   max-width: 360px;
   width: 100%;
   margin-left: 12px;
+  position: relative;
 }
 .app-topbar__search-icon {
   font-size: 13px;
@@ -1368,6 +1369,72 @@ button {
 @media (max-width: 900px) {
   .app-topbar__search { display: none; }
 }
+
+/* --- Genel Arama: acilir sonuc paneli --- */
+.global-search__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--paper-raised);
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 60vh;
+  overflow-y: auto;
+  z-index: 200;
+  padding: 6px 0;
+}
+.global-search__empty {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.global-search__group {
+  padding: 4px 0;
+}
+.global-search__group + .global-search__group {
+  border-top: 1px solid var(--paper-line);
+}
+.global-search__group-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 6px 16px 4px;
+}
+.global-search__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--slate);
+}
+.global-search__item:hover {
+  background: var(--paper);
+}
+.global-search__item-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.global-search__item-meta {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 
 .quickadd-menu {
   position: relative;
