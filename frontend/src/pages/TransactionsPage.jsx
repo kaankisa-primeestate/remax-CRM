@@ -49,6 +49,8 @@ export default function TransactionsPage() {
   const [offerAmount, setOfferAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [draggedId, setDraggedId] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
   const [detailTx, setDetailTx] = useState(null);
   const [activeDetailTab, setActiveDetailTab] = useState('summary');
   const [notes, setNotes] = useState([]);
@@ -123,6 +125,37 @@ export default function TransactionsPage() {
       alert('Aşama güncellenemedi, sayfa yenileniyor.');
       load();
     }
+  }
+
+  // Surukle-birak ile asama degistirme -- dropdown'a EK bir secenek olarak
+  // eklendi, dropdown kaldirilmadi (dokunmatik ekranlarda surukleme rahat
+  // calismayabiliyor, dropdown guvenli bir yedek olarak kalsin).
+  function handleDragStart(txId) {
+    setDraggedId(txId);
+  }
+
+  function handleDragEnd() {
+    setDraggedId(null);
+    setDragOverStage(null);
+  }
+
+  function handleColumnDragOver(e, stageValue) {
+    e.preventDefault();
+    if (dragOverStage !== stageValue) setDragOverStage(stageValue);
+  }
+
+  function handleColumnDragLeave(stageValue) {
+    setDragOverStage((prev) => (prev === stageValue ? null : prev));
+  }
+
+  function handleColumnDrop(e, stageValue) {
+    e.preventDefault();
+    setDragOverStage(null);
+    if (!draggedId) return;
+    const dragged = transactions.find((t) => t.id === draggedId);
+    setDraggedId(null);
+    if (!dragged || dragged.stage === stageValue) return;
+    handleStageChange(draggedId, stageValue);
   }
 
   async function handleDelete(txId) {
@@ -279,7 +312,13 @@ export default function TransactionsPage() {
               const stageTransactions = transactions.filter((t) => t.stage === stage.value);
               const stageTotal = stageTransactions.reduce((sum, t) => sum + (Number(t.offerAmount) || 0), 0);
               return (
-                <div className="kanban-column" key={stage.value}>
+                <div
+                  className={`kanban-column${dragOverStage === stage.value ? ' kanban-column--drag-over' : ''}`}
+                  key={stage.value}
+                  onDragOver={(e) => handleColumnDragOver(e, stage.value)}
+                  onDragLeave={() => handleColumnDragLeave(stage.value)}
+                  onDrop={(e) => handleColumnDrop(e, stage.value)}
+                >
                   <div className="kanban-column__title">
                     {stage.label} ({stageTransactions.length})
                     {stageTotal > 0 && <div className="kanban-column__total">{money(stageTotal)}</div>}
@@ -297,7 +336,13 @@ export default function TransactionsPage() {
                           ? 'transaction-card transaction-card--stale-warning'
                           : 'transaction-card';
                       return (
-                        <div key={t.id} className={cardClass}>
+                        <div
+                          key={t.id}
+                          className={`${cardClass}${draggedId === t.id ? ' transaction-card--dragging' : ''}`}
+                          draggable
+                          onDragStart={() => handleDragStart(t.id)}
+                          onDragEnd={handleDragEnd}
+                        >
                           {staleness.level !== 'none' && (
                             <div
                               className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'}

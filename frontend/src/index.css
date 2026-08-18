@@ -1230,6 +1230,13 @@ button {
   border-radius: 8px;
   padding: 10px;
   min-height: 100px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+/* Surukle-birak: kart bir kolonun uzerine suruklenirken hedef kolon vurgulanir */
+.kanban-column--drag-over {
+  background: #eef3f9;
+  border-color: var(--accent, #1f3a5f);
+  border-style: dashed;
 }
 .kanban-column__title {
   font-family: var(--font-mono);
@@ -2076,6 +2083,14 @@ button {
   padding: 10px;
   margin-bottom: 8px;
   font-size: 12px;
+  cursor: grab;
+  transition: opacity 0.12s ease;
+}
+/* Surukle-birak: kart suruklenirken soluklastirilir (hangi kartin
+   surukendigini gostermek icin gorsel geri bildirim) */
+.transaction-card--dragging {
+  opacity: 0.4;
+  cursor: grabbing;
 }
 .transaction-card__title {
   font-weight: 700;
