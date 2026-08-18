@@ -4,6 +4,7 @@ import { transactionsApi, TRANSACTION_STAGES, TRANSACTION_DOC_TYPES } from '../a
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { propertiesApi } from '../api/properties';
 import { uploadFile } from '../api/client';
+import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const money = (n) =>
@@ -27,6 +28,7 @@ const DETAIL_TABS = [
   { key: 'financial', label: '💰 Finansal' },
   { key: 'docs', label: '📁 Belgeler' },
   { key: 'timeline', label: '🕐 Zaman Akışı' },
+  { key: 'collab', label: '🤝 İşbirliği' },
 ];
 
 // Islemler: Talep -> Gosterme -> Teklif -> Tapu -> Kapanis Kanban panosu.
@@ -40,6 +42,9 @@ export default function TransactionsPage() {
   const [customers, setCustomers] = useState([]);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [agentRoster, setAgentRoster] = useState([]);
+  const [splitSaving, setSplitSaving] = useState(false);
+  const [splitDraft, setSplitDraft] = useState('');
 
   const [customerMode, setCustomerMode] = useState('system'); // 'system' | 'external'
   const [customerId, setCustomerId] = useState('');
@@ -82,6 +87,14 @@ export default function TransactionsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    usersApi.listAgentRoster().then(setAgentRoster).catch(() => setAgentRoster([]));
+  }, []);
+
+  function agentNameFor(agentId) {
+    return agentRoster.find((a) => a.id === agentId)?.name || 'Bilinmeyen';
+  }
 
   function resetForm() {
     setCustomerMode('system');
@@ -206,6 +219,7 @@ export default function TransactionsPage() {
     setActiveDetailTab('summary');
     setDepositAmount(t.depositAmount != null ? String(t.depositAmount) : '');
     setDepositDate(t.depositDate ? t.depositDate.slice(0, 10) : '');
+    setSplitDraft(t.commissionSplitPercentage != null ? String(t.commissionSplitPercentage) : '50');
     setNotes([]);
     setDocuments([]);
     setNotesLoading(true);
@@ -295,6 +309,41 @@ export default function TransactionsPage() {
     } catch {
       alert('Belge silinemedi, sayfa yenileniyor.');
       if (detailTx) openDetail(detailTx);
+    }
+  }
+
+  // --- Isbirlikli Satis: paylasim orani degistirme + onaylama ---
+
+  async function handleUpdateSplit() {
+    if (!detailTx) return;
+    const pct = Number(splitDraft);
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+      alert('Lütfen 0-100 arasında geçerli bir oran girin.');
+      return;
+    }
+    setSplitSaving(true);
+    try {
+      const updated = await transactionsApi.updateSplit(detailTx.id, pct);
+      setDetailTx(updated);
+      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch {
+      alert('Paylaşım oranı güncellenemedi, tekrar deneyin.');
+    } finally {
+      setSplitSaving(false);
+    }
+  }
+
+  async function handleApproveSplit() {
+    if (!detailTx) return;
+    setSplitSaving(true);
+    try {
+      const updated = await transactionsApi.approveSplit(detailTx.id);
+      setDetailTx(updated);
+      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch {
+      alert('Onaylanamadı, tekrar deneyin.');
+    } finally {
+      setSplitSaving(false);
     }
   }
 
@@ -415,6 +464,19 @@ export default function TransactionsPage() {
                               title="Bu işlem uzun süredir bu aşamada bekliyor"
                             >
                               ⏱ {staleness.days} gündür bu aşamada
+                            </div>
+                          )}
+                          {t.collaboratorAgentId && (
+                            <div
+                              className="staleness-badge"
+                              style={{
+                                background: t.splitFinalizedAt ? '#e6f4ea' : '#eef3f9',
+                                color: t.splitFinalizedAt ? '#1e7a3d' : 'var(--ink-navy)',
+                                marginBottom: 6,
+                              }}
+                              title={t.splitFinalizedAt ? 'Komisyon paylaşımı kesinleşti' : 'Komisyon paylaşımı onay bekliyor'}
+                            >
+                              🤝 İşbirlikli{t.splitFinalizedAt ? '' : ' · onay bekliyor'}
                             </div>
                           )}
                           <div className="transaction-card__title" onClick={() => openDetail(t)} style={{ cursor: 'pointer' }}>
@@ -691,6 +753,88 @@ export default function TransactionsPage() {
                         <span style={{ color: 'var(--muted)', fontSize: 11 }}>{n.authorName}</span>
                       </div>
                     ))
+                  )}
+                </div>
+              )}
+
+              {activeDetailTab === 'collab' && (
+                <div>
+                  {!detailTx?.collaboratorAgentId ? (
+                    <div className="finance-placeholder" style={{ margin: '0 auto' }}>
+                      <div className="finance-placeholder__icon">🤝</div>
+                      <div className="finance-placeholder__title">İşbirlikli Satış Değil</div>
+                      <p className="finance-placeholder__text">
+                        Bu işlemde müşteri ve portföy aynı danışmana ait (ya da biri harici) — işbirliği paylaşımı gerekmiyor.
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 0 }}>
+                        Bu işlemde müşteri ve portföy <strong>farklı danışmanlara</strong> ait olduğu için otomatik olarak işbirlikli işaretlendi. Komisyon paylaşımının kesinleşmesi için <strong>her iki danışmanın da</strong> kendi ekranından onaylaması gerekir.
+                      </p>
+
+                      <div className="agent-card__profile-info" style={{ marginBottom: 16 }}>
+                        <div className="agent-card__info-group">
+                          <div className="agent-card__info-title">Taraflar</div>
+                          <div className="agent-card__info-text">
+                            {agentNameFor(detailTx.agentId)} (işlem sahibi) ↔ {agentNameFor(detailTx.collaboratorAgentId)} (işbirlikçi)
+                          </div>
+                        </div>
+                        <div className="agent-card__info-group">
+                          <div className="agent-card__info-title">Onay Durumu</div>
+                          <div className="agent-card__info-text">
+                            {detailTx.splitFinalizedAt ? (
+                              <span style={{ color: '#1e7a3d', fontWeight: 600 }}>✅ Kesinleşti ({new Date(detailTx.splitFinalizedAt).toLocaleDateString('tr-TR')})</span>
+                            ) : (
+                              <>
+                                {detailTx.splitApprovedByOwner ? '✅' : '⬜'} {agentNameFor(detailTx.agentId)}
+                                {'  ·  '}
+                                {detailTx.splitApprovedByCollaborator ? '✅' : '⬜'} {agentNameFor(detailTx.collaboratorAgentId)}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+                        <div className="form-field" style={{ margin: 0 }}>
+                          <label>{agentNameFor(detailTx.agentId)} Payı (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={splitDraft}
+                            onChange={(e) => setSplitDraft(e.target.value)}
+                            style={{ width: 90 }}
+                          />
+                        </div>
+                        <span style={{ fontSize: 12, color: 'var(--muted)', paddingBottom: 8 }}>
+                          {agentNameFor(detailTx.collaboratorAgentId)} payı: %{splitDraft !== '' && !Number.isNaN(Number(splitDraft)) ? (100 - Number(splitDraft)).toFixed(1) : '—'}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          disabled={splitSaving}
+                          onClick={handleUpdateSplit}
+                        >
+                          Oranı Güncelle
+                        </button>
+                        {!detailTx.splitFinalizedAt && (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={splitSaving}
+                            onClick={handleApproveSplit}
+                          >
+                            {splitSaving ? '…' : 'Kendi Payımı Onayla'}
+                          </button>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>
+                        Not: Oranı değiştirmek, her iki tarafın onayını sıfırlar — taraflar yeni oranı tekrar onaylamalıdır. Bu paylaşım oranı bilgi amaçlıdır; gerçek komisyon kayıtları Finans → Komisyonlar bölümünden ayrıca girilmelidir.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}

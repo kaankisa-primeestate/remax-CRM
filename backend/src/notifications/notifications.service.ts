@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { IsNull, Not, Repository, In } from 'typeorm';
 import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
@@ -31,7 +31,8 @@ export type NotificationType =
   | 'broker_message'
   | 'showing_disclosure'
   | 'announcement'
-  | 'deal_pending_approval';
+  | 'deal_pending_approval'
+  | 'collaborative_split_pending';
 
 export interface NotificationItem {
   id: string;
@@ -258,6 +259,30 @@ export class NotificationsService {
       (a) => !a.targetAgentIds || a.targetAgentIds.length === 0 || a.targetAgentIds.includes(agentId),
     );
 
+    // Isbirlikli Satis: bu danismanin taraf oldugu (sahip VEYA isbirlikci),
+    // henuz paylasim onayi kesinlesmemis islemler -- "harekete gec"
+    // bildirimi niteliginde.
+    const pendingSplits = await this.transactionRepo
+      .createQueryBuilder('t')
+      .where('(t.agentId = :agentId OR t.collaboratorAgentId = :agentId)', { agentId })
+      .andWhere('t.collaboratorAgentId IS NOT NULL')
+      .andWhere('t.splitFinalizedAt IS NULL')
+      .orderBy('t.updatedAt', 'DESC')
+      .take(LIMIT_PER_SOURCE)
+      .getMany();
+    const otherPartyNameFor = (t: Transaction): string => {
+      const otherId = t.agentId === agentId ? t.collaboratorAgentId : t.agentId;
+      // agentName alani bildirimde kimin tetikledigini gostermek icin
+      // kullanildigindan burada karsi tarafi cozmemiz gerekiyor; bunun
+      // icin userRepo'ya ihtiyac var (asagida ayrica cekiliyor).
+      return otherId || '';
+    };
+    const involvedAgentIds = [...new Set(pendingSplits.map((t) => otherPartyNameFor(t)).filter(Boolean))];
+    const involvedUsers = involvedAgentIds.length
+      ? await this.userRepo.find({ where: { id: In(involvedAgentIds) } })
+      : [];
+    const involvedNameById = new Map(involvedUsers.map((u) => [u.id, u.name]));
+
     const items: NotificationItem[] = [
       ...brokerComments.map((c) => ({
         id: `broker-message-${c.id}`,
@@ -274,6 +299,14 @@ export class NotificationsService {
         title: `Duyuru: ${a.title}`,
         agentName: 'Broker',
         occurredAt: a.createdAt,
+        read: false,
+      })),
+      ...pendingSplits.map((t) => ({
+        id: `collab-split-${t.id}-${new Date(t.updatedAt).getTime()}`,
+        type: 'collaborative_split_pending' as const,
+        title: `İşbirlikli satış: komisyon paylaşımını onayla (%${t.commissionSplitPercentage ?? 50})`,
+        agentName: involvedNameById.get(otherPartyNameFor(t)) || 'Diğer danışman',
+        occurredAt: t.updatedAt,
         read: false,
       })),
     ]

@@ -13,6 +13,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { AddNoteDto } from './dto/add-note.dto';
 import { AddDocumentDto } from './dto/add-document.dto';
+import { UpdateSplitDto } from './dto/update-split.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -77,5 +78,25 @@ export class TransactionsController {
   async removeDocument(@Param('documentId') documentId: string, @CurrentUser() user: CurrentUserPayload) {
     await this.transactionsService.removeDocument(documentId, user);
     return { success: true };
+  }
+
+  // --- Isbirlikli Satis ---
+
+  // PATCH /api/transactions/:id/split -- paylasim oranini degistir
+  // (degisiklik her iki onayı da sifirlar, taraflar tekrar onaylamali)
+  @Patch(':id/split')
+  updateSplit(
+    @Param('id') id: string,
+    @Body() dto: UpdateSplitDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.transactionsService.updateSplit(id, dto, user);
+  }
+
+  // POST /api/transactions/:id/split/approve -- cagiran kullanici KENDI
+  // tarafini onaylar, iki taraf da onaylayinca paylasim kesinlesir
+  @Post(':id/split/approve')
+  approveSplit(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.approveSplit(id, user);
   }
 }

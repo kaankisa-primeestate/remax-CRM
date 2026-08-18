@@ -13,7 +13,9 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { AddNoteDto } from './dto/add-note.dto';
 import { AddDocumentDto } from './dto/add-document.dto';
+import { UpdateSplitDto } from './dto/update-split.dto';
 import { Property, PropertyStatus } from '../portfolios/property.entity';
+import { Customer } from '../customers/customer.entity';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
 @Injectable()
@@ -23,10 +25,12 @@ export class TransactionsService {
     @InjectRepository(TransactionNote) private readonly noteRepo: Repository<TransactionNote>,
     @InjectRepository(TransactionDocument) private readonly documentRepo: Repository<TransactionDocument>,
     @InjectRepository(Property) private readonly propertyRepo: Repository<Property>,
+    @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
   ) {}
 
   // Islemler her zaman olusturan danismana aittir -- Mahremiyet Duvari:
-  // Broker tum islemleri gorebilir, Danisman sadece kendisininkini.
+  // Broker tum islemleri gorebilir, Danisman sadece kendisininkini VE
+  // isbirlikli oldugu (collaboratorAgentId) islemleri gorebilir.
   async create(dto: CreateTransactionDto, currentUser: CurrentUserPayload): Promise<Transaction> {
     if (!dto.customerId && !dto.externalCustomerLabel) {
       throw new BadRequestException('Müşteri seçin ya da harici müşteri bilgisi girin');
@@ -40,11 +44,43 @@ export class TransactionsService {
       agentId: currentUser.userId,
       stageChangedAt: new Date(),
     });
+
+    // Isbirlikli Satis tespiti: musteri VE portfoy sistemde kayitliysa
+    // (harici degilse) ve ikisinin sahibi FARKLI danismanlarsa, otomatik
+    // olarak isbirlikli isaretlenir -- varsayilan %50/%50 paylasimla,
+    // henuz hic onaylanmamis halde. Harici musteri/portfoy (baska ofis,
+    // sahibinden vb.) icin isbirlik kavrami anlamsiz, atlanir.
+    if (dto.customerId && dto.propertyId) {
+      const [customer, property] = await Promise.all([
+        this.customerRepo.findOne({ where: { id: dto.customerId } }),
+        this.propertyRepo.findOne({ where: { id: dto.propertyId } }),
+      ]);
+      if (customer?.agentId && property?.agentId && customer.agentId !== property.agentId) {
+        // Isleme "sahip" olan (agentId = currentUser) tarafin KARSISINDAKI
+        // taraf isbirlikci olarak isaretlenir.
+        const collaborator =
+          currentUser.userId === customer.agentId
+            ? property.agentId
+            : currentUser.userId === property.agentId
+              ? customer.agentId
+              : property.agentId; // Broker olusturduysa (ikisi de degilse) varsayilan olarak portfoy sahibi
+        if (collaborator !== currentUser.userId) {
+          transaction.collaboratorAgentId = collaborator;
+          transaction.commissionSplitPercentage = 50;
+          transaction.splitApprovedByOwner = false;
+          transaction.splitApprovedByCollaborator = false;
+        }
+      }
+    }
+
     return this.transactionRepo.save(transaction);
   }
 
   async findAll(currentUser: CurrentUserPayload): Promise<Transaction[]> {
-    const where = currentUser.role === 'agent' ? { agentId: currentUser.userId } : {};
+    const where =
+      currentUser.role === 'agent'
+        ? [{ agentId: currentUser.userId }, { collaboratorAgentId: currentUser.userId }]
+        : {};
     return this.transactionRepo.find({ where, order: { updatedAt: 'DESC' } });
   }
 
@@ -53,10 +89,53 @@ export class TransactionsService {
     if (!transaction) {
       throw new NotFoundException('İşlem bulunamadı');
     }
-    if (currentUser.role === 'agent' && transaction.agentId !== currentUser.userId) {
+    const isParticipant =
+      transaction.agentId === currentUser.userId || transaction.collaboratorAgentId === currentUser.userId;
+    if (currentUser.role === 'agent' && !isParticipant) {
       throw new ForbiddenException('Bu işleme erişim yetkiniz yok');
     }
     return transaction;
+  }
+
+  // --- Isbirlikli Satis: paylasim orani degistirme + onaylama ---
+
+  // Taraflardan biri (agentId sahibi VEYA collaboratorAgentId) orani
+  // degistirebilir. Kosullar degistigi icin GUVENLIK amacli iki onay da
+  // sifirlanir -- taraflar YENI orani tekrar onaylamalidir.
+  async updateSplit(
+    id: string,
+    dto: UpdateSplitDto,
+    currentUser: CurrentUserPayload,
+  ): Promise<Transaction> {
+    const transaction = await this.findOneOwned(id, currentUser);
+    if (!transaction.collaboratorAgentId) {
+      throw new BadRequestException('Bu işlem işbirlikli satış değil');
+    }
+    transaction.commissionSplitPercentage = dto.commissionSplitPercentage;
+    transaction.splitApprovedByOwner = false;
+    transaction.splitApprovedByCollaborator = false;
+    transaction.splitFinalizedAt = null;
+    return this.transactionRepo.save(transaction);
+  }
+
+  // Cagiran kullanici KENDI tarafini onaylar. Iki taraf da onaylayinca
+  // paylasim kesinlesir (splitFinalizedAt doldurulur).
+  async approveSplit(id: string, currentUser: CurrentUserPayload): Promise<Transaction> {
+    const transaction = await this.findOneOwned(id, currentUser);
+    if (!transaction.collaboratorAgentId) {
+      throw new BadRequestException('Bu işlem işbirlikli satış değil');
+    }
+    if (currentUser.userId === transaction.agentId) {
+      transaction.splitApprovedByOwner = true;
+    } else if (currentUser.userId === transaction.collaboratorAgentId) {
+      transaction.splitApprovedByCollaborator = true;
+    } else if (currentUser.role !== 'broker') {
+      throw new ForbiddenException('Bu paylaşımı onaylama yetkiniz yok');
+    }
+    if (transaction.splitApprovedByOwner && transaction.splitApprovedByCollaborator) {
+      transaction.splitFinalizedAt = new Date();
+    }
+    return this.transactionRepo.save(transaction);
   }
 
   async update(

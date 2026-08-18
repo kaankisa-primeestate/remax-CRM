@@ -15,6 +15,7 @@ const TYPE_ICONS = {
   showing_disclosure: '📝',
   announcement: '📢',
   deal_pending_approval: '🏆',
+  collaborative_split_pending: '🤝',
 };
 
 function timeAgo(dateStr) {

@@ -73,6 +73,31 @@ export class Transaction {
   @Column({ type: 'timestamp', nullable: true })
   dealApprovedAt: Date | null;
 
+  // --- Isbirlikli Satis ---
+  // Musteri sahibi danisman ile portfoy sahibi danisman FARKLI oldugunda
+  // otomatik olarak devreye girer (islem olusturulurken tespit edilir).
+  // "agentId" alani islemi olusturan/yoneten danismani gosterir; bu alan
+  // ise ISLEMIN DIGER TARAFINDAKI danismani (isbirlikci) gosterir.
+  @Column({ type: 'uuid', nullable: true })
+  collaboratorAgentId: string | null;
+
+  // agentId tarafinin komisyon payi (%) -- digeri (collaboratorAgentId)
+  // otomatik olarak (100 - bu) alir. Varsayilan 50 (esit paylasim),
+  // taraflardan biri degistirebilir (bu durumda iki onay da sifirlanir).
+  @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
+  commissionSplitPercentage: number | null;
+
+  // Iki tarafin da KENDI ekranindan onaylamasi gerekir -- ikisi de true
+  // olunca paylasim kesinlesir (splitFinalizedAt doldurulur).
+  @Column({ default: false })
+  splitApprovedByOwner: boolean;
+
+  @Column({ default: false })
+  splitApprovedByCollaborator: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  splitFinalizedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

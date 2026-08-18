@@ -4,11 +4,12 @@ import { Transaction } from './transaction.entity';
 import { TransactionNote } from './transaction-note.entity';
 import { TransactionDocument } from './transaction-document.entity';
 import { Property } from '../portfolios/property.entity';
+import { Customer } from '../customers/customer.entity';
 import { TransactionsService } from './transactions.service';
 import { TransactionsController } from './transactions.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Transaction, TransactionNote, TransactionDocument, Property])],
+  imports: [TypeOrmModule.forFeature([Transaction, TransactionNote, TransactionDocument, Property, Customer])],
   providers: [TransactionsService],
   controllers: [TransactionsController],
 })

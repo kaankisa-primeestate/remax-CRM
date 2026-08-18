@@ -10,6 +10,9 @@ export const transactionsApi = {
   getDocuments: (id) => apiClient.get(`/transactions/${id}/documents`).then((r) => r.data),
   addDocument: (id, payload) => apiClient.post(`/transactions/${id}/documents`, payload).then((r) => r.data),
   removeDocument: (documentId) => apiClient.delete(`/transactions/documents/${documentId}`),
+  updateSplit: (id, commissionSplitPercentage) =>
+    apiClient.patch(`/transactions/${id}/split`, { commissionSplitPercentage }).then((r) => r.data),
+  approveSplit: (id) => apiClient.post(`/transactions/${id}/split/approve`).then((r) => r.data),
 };
 
 export const TRANSACTION_STAGES = [
