@@ -1,6 +1,7 @@
 export declare class CreateCommissionDto {
     propertyId?: string;
     customerId?: string;
+    transactionId?: string;
     agentId?: string;
     transactionType: string;
     propertyTitle?: string;

@@ -33,6 +33,18 @@ __decorate([
     __metadata("design:type", Object)
 ], Commission.prototype, "customerId", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Commission.prototype, "transactionId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Commission.prototype, "collaboratorAgentId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 5, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], Commission.prototype, "collaboratorSplitPercent", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'uuid' }),
     __metadata("design:type", String)
 ], Commission.prototype, "agentId", void 0);

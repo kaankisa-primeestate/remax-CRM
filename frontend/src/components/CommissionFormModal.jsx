@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { TRANSACTION_TYPES } from '../api/commissions';
 import { usersApi } from '../api/auth';
+import { transactionsApi } from '../api/transactions';
 import { useAuth } from '../context/AuthContext.jsx';
 import MoneyInput from './MoneyInput.jsx';
 
 const emptyForm = {
   agentId: '',
+  transactionId: '',
   transactionType: 'sale',
   propertyTitle: '',
   transactionAmount: '',
@@ -61,6 +63,8 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [agents, setAgents] = useState([]);
+  const [roster, setRoster] = useState([]);
+  const [transactions, setTransactions] = useState([]);
 
   const isEdit = Boolean(initialValues?.id);
 
@@ -68,7 +72,18 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
     if (isBroker) {
       usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
     }
-  }, [isBroker]);
+    usersApi.listAgentRoster().then(setRoster).catch(() => setRoster([]));
+    // Sadece yeni kayit olustururken islem listesi gerekli -- duzenlemede
+    // (isEdit) isbirlikli paylasim zaten uygulanmis bir kayittir, tekrar
+    // isleme baglamaya gerek yok.
+    if (!isEdit) {
+      transactionsApi.list().then(setTransactions).catch(() => setTransactions([]));
+    }
+  }, [isBroker, isEdit]);
+
+  const selectedTransaction = transactions.find((t) => t.id === form.transactionId) || null;
+  const isCollaborative = Boolean(selectedTransaction?.collaboratorAgentId && selectedTransaction?.splitFinalizedAt);
+  const nameFor = (id) => roster.find((r) => r.id === id)?.name || 'Bilinmeyen';
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -90,7 +105,8 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
         penaltyAmount: Number(form.penaltyAmount) || 0,
         propertyTitle: form.propertyTitle || undefined,
         notes: form.notes || undefined,
-        agentId: form.agentId || undefined,
+        agentId: isCollaborative ? undefined : (form.agentId || undefined),
+        transactionId: form.transactionId || undefined,
       };
 
       await onSubmit(payload);
@@ -118,6 +134,33 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
         <h2>{isEdit ? 'Komisyon Kaydını Düzenle' : 'Yeni Komisyon Kaydı'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
+            {!isEdit && transactions.length > 0 && (
+              <div className="form-field full">
+                <label>İşleme Bağla (opsiyonel)</label>
+                <select
+                  value={form.transactionId}
+                  onChange={(e) => setForm((f) => ({ ...f, transactionId: e.target.value }))}
+                >
+                  <option value="">Bağlanmasın (serbest kayıt)</option>
+                  {transactions.map((t) => {
+                    const label = t.externalPropertyLabel || t.externalCustomerLabel || `İşlem (${t.stage})`;
+                    const collabTag = t.collaboratorAgentId && t.splitFinalizedAt ? ' 🤝' : '';
+                    return (
+                      <option key={t.id} value={t.id}>{label}{collabTag}</option>
+                    );
+                  })}
+                </select>
+                {isCollaborative && (
+                  <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, marginBottom: 0, background: '#eef3f9', padding: '8px 10px', borderRadius: 6 }}>
+                    🤝 Bu işlem <strong>işbirlikli satış</strong> — onaylanmış paylaşıma göre komisyon otomatik olarak iki ayrı kayıt halinde oluşturulacak:{' '}
+                    <strong>{nameFor(selectedTransaction.agentId)}</strong> (%{selectedTransaction.commissionSplitPercentage ?? 50}) ve{' '}
+                    <strong>{nameFor(selectedTransaction.collaboratorAgentId)}</strong> (%{100 - (selectedTransaction.commissionSplitPercentage ?? 50)}).
+                    {' '}Aşağıdaki "Danışman Payı" oranı, bu iki paya bölünecek toplam havuzu belirler.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="form-field">
               <label>İşlem Tipi *</label>
               <select name="transactionType" value={form.transactionType} onChange={handleChange}>
@@ -214,7 +257,7 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
               />
             </div>
 
-            {isBroker && (
+            {isBroker && !isCollaborative && (
               <div className="form-field">
                 <label>Danışman *</label>
                 <select name="agentId" value={form.agentId} onChange={handleChange} required>
@@ -246,8 +289,19 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
             }}
           >
             <span>Brüt Komisyon: {formatMoney(preview.gross)}</span>
-            <span>Danışman Brüt Payı: {formatMoney(preview.agentGross)}</span>
-            <strong>Net Ödenecek: {formatMoney(preview.net)}</strong>
+            <span>Danışman Brüt Payı (havuz): {formatMoney(preview.agentGross)}</span>
+            {isCollaborative ? (
+              <>
+                <span style={{ paddingTop: 4, borderTop: '1px dashed var(--paper-line)' }}>
+                  {nameFor(selectedTransaction.agentId)} payı (%{selectedTransaction.commissionSplitPercentage ?? 50}): {formatMoney((preview.net * (selectedTransaction.commissionSplitPercentage ?? 50)) / 100)}
+                </span>
+                <span>
+                  {nameFor(selectedTransaction.collaboratorAgentId)} payı (%{100 - (selectedTransaction.commissionSplitPercentage ?? 50)}): {formatMoney((preview.net * (100 - (selectedTransaction.commissionSplitPercentage ?? 50))) / 100)}
+                </span>
+              </>
+            ) : (
+              <strong>Net Ödenecek: {formatMoney(preview.net)}</strong>
+            )}
           </div>
 
           {error && <div className="form-error">{error}</div>}

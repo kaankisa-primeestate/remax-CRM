@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Commission } from './commission.entity';
 import { CommissionPayment } from './commission-payment.entity';
 import { BankTransaction } from '../bank-accounts/bank-transaction.entity';
+import { Transaction } from '../transactions/transaction.entity';
 import { CommissionsService } from './commissions.service';
 import { CommissionsController } from './commissions.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Commission, CommissionPayment, BankTransaction])],
+  imports: [TypeOrmModule.forFeature([Commission, CommissionPayment, BankTransaction, Transaction])],
   providers: [CommissionsService],
   controllers: [CommissionsController],
   exports: [CommissionsService],

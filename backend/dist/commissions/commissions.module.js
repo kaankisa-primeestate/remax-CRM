@@ -12,6 +12,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const commission_entity_1 = require("./commission.entity");
 const commission_payment_entity_1 = require("./commission-payment.entity");
 const bank_transaction_entity_1 = require("../bank-accounts/bank-transaction.entity");
+const transaction_entity_1 = require("../transactions/transaction.entity");
 const commissions_service_1 = require("./commissions.service");
 const commissions_controller_1 = require("./commissions.controller");
 let CommissionsModule = class CommissionsModule {
@@ -19,7 +20,7 @@ let CommissionsModule = class CommissionsModule {
 exports.CommissionsModule = CommissionsModule;
 exports.CommissionsModule = CommissionsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([commission_entity_1.Commission, commission_payment_entity_1.CommissionPayment, bank_transaction_entity_1.BankTransaction])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([commission_entity_1.Commission, commission_payment_entity_1.CommissionPayment, bank_transaction_entity_1.BankTransaction, transaction_entity_1.Transaction])],
         providers: [commissions_service_1.CommissionsService],
         controllers: [commissions_controller_1.CommissionsController],
         exports: [commissions_service_1.CommissionsService],

@@ -7,6 +7,9 @@ export declare class Commission {
     id: string;
     propertyId: string | null;
     customerId: string | null;
+    transactionId: string | null;
+    collaboratorAgentId: string | null;
+    collaboratorSplitPercent: number | null;
     agentId: string;
     transactionType: string;
     propertyTitle: string | null;

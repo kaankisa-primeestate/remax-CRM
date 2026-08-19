@@ -20,6 +20,10 @@ export class CreateCommissionDto {
 
   @IsOptional()
   @IsUUID()
+  transactionId?: string;
+
+  @IsOptional()
+  @IsUUID()
   agentId?: string; // Broker başka bir danışman adına girerken kullanır; Danışman kendi girerse otomatik atanır
 
   @IsIn(['sale', 'rent'])

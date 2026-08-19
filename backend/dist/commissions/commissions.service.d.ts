@@ -4,13 +4,15 @@ import { CreateCommissionDto } from './create-commission.dto';
 import { CommissionPayment } from './commission-payment.entity';
 import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
 import { BankTransaction } from '../bank-accounts/bank-transaction.entity';
+import { Transaction } from '../transactions/transaction.entity';
 export declare class CommissionsService {
     private commissionsRepository;
     private paymentsRepository;
     private bankTransactionRepository;
-    constructor(commissionsRepository: Repository<Commission>, paymentsRepository: Repository<CommissionPayment>, bankTransactionRepository: Repository<BankTransaction>);
+    private transactionRepository;
+    constructor(commissionsRepository: Repository<Commission>, paymentsRepository: Repository<CommissionPayment>, bankTransactionRepository: Repository<BankTransaction>, transactionRepository: Repository<Transaction>);
     private calculateAmounts;
-    create(dto: CreateCommissionDto, requestingUserId: string, requestingUserRole: string): Promise<Commission>;
+    create(dto: CreateCommissionDto, requestingUserId: string, requestingUserRole: string): Promise<Commission[]>;
     findAll(requestingUserId: string, requestingUserRole: string, filters: {
         agentId?: string;
         status?: string;

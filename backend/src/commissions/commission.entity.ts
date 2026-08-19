@@ -24,6 +24,22 @@ export class Commission {
   @Column({ type: 'uuid', nullable: true })
   customerId: string | null;
 
+  // Islemler modulundeki Transaction kaydina baglanti -- Isbirlikli Satis
+  // tespiti icin gerekli. Doluysa VE o Transaction'da onaylanmis bir
+  // paylasim varsa, komisyon OTOMATIK OLARAK iki ayri kayit halinde
+  // olusturulur (bkz. CommissionsService.create).
+  @Column({ type: 'uuid', nullable: true })
+  transactionId: string | null;
+
+  // Isbirlikli Satis izleme alanlari (bilgi/gorunum amacli -- gercek
+  // hesaplama zaten agentSharePercent'e uygulanmis olarak gelir, bu
+  // alanlar sadece "bu kayit bir paylasimin parcasi" bilgisini tasir).
+  @Column({ type: 'uuid', nullable: true })
+  collaboratorAgentId: string | null;
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  collaboratorSplitPercent: number | null;
+
   // Bu komisyonun ait olduğu danışman
   @Column({ type: 'uuid' })
   agentId: string;

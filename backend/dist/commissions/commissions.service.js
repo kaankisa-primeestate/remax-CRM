@@ -19,11 +19,13 @@ const typeorm_2 = require("typeorm");
 const commission_entity_1 = require("./commission.entity");
 const commission_payment_entity_1 = require("./commission-payment.entity");
 const bank_transaction_entity_1 = require("../bank-accounts/bank-transaction.entity");
+const transaction_entity_1 = require("../transactions/transaction.entity");
 let CommissionsService = class CommissionsService {
-    constructor(commissionsRepository, paymentsRepository, bankTransactionRepository) {
+    constructor(commissionsRepository, paymentsRepository, bankTransactionRepository, transactionRepository) {
         this.commissionsRepository = commissionsRepository;
         this.paymentsRepository = paymentsRepository;
         this.bankTransactionRepository = bankTransactionRepository;
+        this.transactionRepository = transactionRepository;
     }
     calculateAmounts(dto) {
         const grossCommission = (dto.transactionAmount * dto.commissionRate) / 100;
@@ -39,7 +41,64 @@ let CommissionsService = class CommissionsService {
         if (requestingUserRole === 'agent') {
             agentId = requestingUserId;
         }
-        else if (!agentId) {
+        else if (!agentId && !dto.transactionId) {
+            throw new common_1.ForbiddenException('Broker bir danışman seçmelidir (agentId zorunlu)');
+        }
+        if (dto.transactionId) {
+            const transaction = await this.transactionRepository.findOne({
+                where: { id: dto.transactionId },
+            });
+            if (!transaction) {
+                throw new common_1.NotFoundException('İşlem bulunamadı');
+            }
+            if (transaction.collaboratorAgentId && transaction.splitFinalizedAt) {
+                const ownerAgentId = transaction.agentId;
+                const collaboratorAgentId = transaction.collaboratorAgentId;
+                const ownerSplitPercent = Number(transaction.commissionSplitPercentage ?? 50);
+                const collaboratorSplitPercent = 100 - ownerSplitPercent;
+                const baseSharePercent = Number(dto.agentSharePercent);
+                const ownerDto = {
+                    ...dto,
+                    agentSharePercent: (baseSharePercent * ownerSplitPercent) / 100,
+                };
+                const { grossCommission: g1, agentGrossShare: a1, netPayable: n1 } = this.calculateAmounts(ownerDto);
+                const ownerCommission = this.commissionsRepository.create({
+                    ...dto,
+                    agentId: ownerAgentId,
+                    agentSharePercent: ownerDto.agentSharePercent,
+                    grossCommission: g1,
+                    agentGrossShare: a1,
+                    netPayable: n1,
+                    withholdingTaxPercent: dto.withholdingTaxPercent || 0,
+                    vatPercent: dto.vatPercent || 0,
+                    penaltyAmount: dto.penaltyAmount || 0,
+                    transactionId: transaction.id,
+                    collaboratorAgentId: collaboratorAgentId,
+                    collaboratorSplitPercent: ownerSplitPercent,
+                });
+                const collaboratorDto = {
+                    ...dto,
+                    agentSharePercent: (baseSharePercent * collaboratorSplitPercent) / 100,
+                };
+                const { grossCommission: g2, agentGrossShare: a2, netPayable: n2 } = this.calculateAmounts(collaboratorDto);
+                const collaboratorCommission = this.commissionsRepository.create({
+                    ...dto,
+                    agentId: collaboratorAgentId,
+                    agentSharePercent: collaboratorDto.agentSharePercent,
+                    grossCommission: g2,
+                    agentGrossShare: a2,
+                    netPayable: n2,
+                    withholdingTaxPercent: dto.withholdingTaxPercent || 0,
+                    vatPercent: dto.vatPercent || 0,
+                    penaltyAmount: dto.penaltyAmount || 0,
+                    transactionId: transaction.id,
+                    collaboratorAgentId: ownerAgentId,
+                    collaboratorSplitPercent: collaboratorSplitPercent,
+                });
+                return this.commissionsRepository.save([ownerCommission, collaboratorCommission]);
+            }
+        }
+        if (!agentId) {
             throw new common_1.ForbiddenException('Broker bir danışman seçmelidir (agentId zorunlu)');
         }
         const { grossCommission, agentGrossShare, netPayable } = this.calculateAmounts(dto);
@@ -53,7 +112,8 @@ let CommissionsService = class CommissionsService {
             vatPercent: dto.vatPercent || 0,
             penaltyAmount: dto.penaltyAmount || 0,
         });
-        return this.commissionsRepository.save(commission);
+        const saved = await this.commissionsRepository.save(commission);
+        return [saved];
     }
     async findAll(requestingUserId, requestingUserRole, filters) {
         const query = this.commissionsRepository.createQueryBuilder('commission');
@@ -207,7 +267,9 @@ exports.CommissionsService = CommissionsService = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(commission_entity_1.Commission)),
     __param(1, (0, typeorm_1.InjectRepository)(commission_payment_entity_1.CommissionPayment)),
     __param(2, (0, typeorm_1.InjectRepository)(bank_transaction_entity_1.BankTransaction)),
+    __param(3, (0, typeorm_1.InjectRepository)(transaction_entity_1.Transaction)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository])
 ], CommissionsService);

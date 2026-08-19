@@ -10,6 +10,7 @@ import { CreateCommissionDto } from './create-commission.dto';
 import { CommissionPayment } from './commission-payment.entity';
 import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
+import { Transaction } from '../transactions/transaction.entity';
 
 @Injectable()
 export class CommissionsService {
@@ -20,9 +21,18 @@ export class CommissionsService {
     private paymentsRepository: Repository<CommissionPayment>,
     @InjectRepository(BankTransaction)
     private bankTransactionRepository: Repository<BankTransaction>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
   ) {}
 
-  private calculateAmounts(dto: CreateCommissionDto) {
+  private calculateAmounts(dto: {
+    transactionAmount: number;
+    commissionRate: number;
+    agentSharePercent: number;
+    withholdingTaxPercent?: number;
+    vatPercent?: number;
+    penaltyAmount?: number;
+  }) {
     const grossCommission =
       (dto.transactionAmount * dto.commissionRate) / 100;
     const agentGrossShare =
@@ -42,12 +52,87 @@ export class CommissionsService {
     dto: CreateCommissionDto,
     requestingUserId: string,
     requestingUserRole: string,
-  ) {
+  ): Promise<Commission[]> {
     // Danışman sadece kendi adına kayıt girebilir; Broker istediği danışman adına girebilir
     let agentId = dto.agentId;
     if (requestingUserRole === 'agent') {
       agentId = requestingUserId;
-    } else if (!agentId) {
+    } else if (!agentId && !dto.transactionId) {
+      throw new ForbiddenException(
+        'Broker bir danışman seçmelidir (agentId zorunlu)',
+      );
+    }
+
+    // Isbirlikli Satis kontrolu: bir Transaction'a baglanmis VE o
+    // Transaction'da onaylanmis (splitFinalizedAt dolu) bir paylasim
+    // varsa, komisyon OTOMATIK OLARAK iki ayri kayit halinde olusturulur
+    // -- her danismana kendi payina dusen tutar. agentSharePercent,
+    // orijinal degerin (dto'dan gelen, orn. ofisin danisman payi
+    // politikasi %50) uzerine Transaction'daki paylasim orani
+    // UYGULANARAK hesaplanir -- boylece mevcut hesaplama zincirine
+    // (calculateAmounts) hicbir degisiklik yapmadan dogru sonuc cikar.
+    if (dto.transactionId) {
+      const transaction = await this.transactionRepository.findOne({
+        where: { id: dto.transactionId },
+      });
+      if (!transaction) {
+        throw new NotFoundException('İşlem bulunamadı');
+      }
+      if (transaction.collaboratorAgentId && transaction.splitFinalizedAt) {
+        const ownerAgentId = transaction.agentId;
+        const collaboratorAgentId = transaction.collaboratorAgentId;
+        const ownerSplitPercent = Number(transaction.commissionSplitPercentage ?? 50);
+        const collaboratorSplitPercent = 100 - ownerSplitPercent;
+
+        const baseSharePercent = Number(dto.agentSharePercent);
+
+        const ownerDto = {
+          ...dto,
+          agentSharePercent: (baseSharePercent * ownerSplitPercent) / 100,
+        };
+        const { grossCommission: g1, agentGrossShare: a1, netPayable: n1 } =
+          this.calculateAmounts(ownerDto);
+        const ownerCommission = this.commissionsRepository.create({
+          ...dto,
+          agentId: ownerAgentId,
+          agentSharePercent: ownerDto.agentSharePercent,
+          grossCommission: g1,
+          agentGrossShare: a1,
+          netPayable: n1,
+          withholdingTaxPercent: dto.withholdingTaxPercent || 0,
+          vatPercent: dto.vatPercent || 0,
+          penaltyAmount: dto.penaltyAmount || 0,
+          transactionId: transaction.id,
+          collaboratorAgentId: collaboratorAgentId,
+          collaboratorSplitPercent: ownerSplitPercent,
+        });
+
+        const collaboratorDto = {
+          ...dto,
+          agentSharePercent: (baseSharePercent * collaboratorSplitPercent) / 100,
+        };
+        const { grossCommission: g2, agentGrossShare: a2, netPayable: n2 } =
+          this.calculateAmounts(collaboratorDto);
+        const collaboratorCommission = this.commissionsRepository.create({
+          ...dto,
+          agentId: collaboratorAgentId,
+          agentSharePercent: collaboratorDto.agentSharePercent,
+          grossCommission: g2,
+          agentGrossShare: a2,
+          netPayable: n2,
+          withholdingTaxPercent: dto.withholdingTaxPercent || 0,
+          vatPercent: dto.vatPercent || 0,
+          penaltyAmount: dto.penaltyAmount || 0,
+          transactionId: transaction.id,
+          collaboratorAgentId: ownerAgentId,
+          collaboratorSplitPercent: collaboratorSplitPercent,
+        });
+
+        return this.commissionsRepository.save([ownerCommission, collaboratorCommission]);
+      }
+    }
+
+    if (!agentId) {
       throw new ForbiddenException(
         'Broker bir danışman seçmelidir (agentId zorunlu)',
       );
@@ -67,7 +152,8 @@ export class CommissionsService {
       penaltyAmount: dto.penaltyAmount || 0,
     });
 
-    return this.commissionsRepository.save(commission);
+    const saved = await this.commissionsRepository.save(commission);
+    return [saved];
   }
 
   async findAll(
