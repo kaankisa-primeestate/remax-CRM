@@ -40,10 +40,22 @@ export class Expense {
   @Column({ type: 'uuid', nullable: true })
   bankAccountId: string | null;
 
-  // Bu gideri karsilayan/ilgili danisman (opsiyonel, bilgi amacli --
-  // Cari Hesap asamasi kuruldugunda buraya otomatik baglanti eklenecek)
+  // Bu gideri karsilayan/ilgili danisman (opsiyonel, bilgi amacli).
   @Column({ type: 'uuid', nullable: true })
   agentId: string | null;
+
+  // Masraf Yansitma: agentId doluysa VE bu alan da doluysa (orn. 50 =
+  // %50), gider kaydedilirken otomatik olarak o danismanin Cari
+  // Hesabina bu oranda BORC (debit) yazilir -- danisman ofise bu kadar
+  // borclanir. agentId dolu ama bu alan bos/0 ise sadece "bilgi amacli"
+  // kalir, hicbir cari hareket olusmaz (geriye donuk uyumluluk icin).
+  @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
+  chargebackPercentage: number | null;
+
+  // Bu gider bir Sabit Gider Sablonu'ndan (RecurringExpense) mi olustu --
+  // doluysa, o sablonun "bu donem odendi" isaretlenmesini saglar.
+  @Column({ type: 'uuid', nullable: true })
+  recurringExpenseId: string | null;
 
   // "Sabit Gider" etiketi (orn. kira) -- otomatik tekrar OLUSTURMAZ,
   // sadece raporlarda ayirt etmek icin bir isarettir.

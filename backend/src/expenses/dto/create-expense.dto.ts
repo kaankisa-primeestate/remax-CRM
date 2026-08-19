@@ -35,6 +35,15 @@ export class CreateExpenseDto {
   agentId?: string;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  chargebackPercentage?: number;
+
+  @IsOptional()
+  @IsUUID()
+  recurringExpenseId?: string;
+
+  @IsOptional()
   @IsBoolean()
   isRecurring?: boolean;
 

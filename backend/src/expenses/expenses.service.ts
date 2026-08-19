@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Expense } from './expense.entity';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
+import { AgentLedgerAdjustment, LedgerAdjustmentType } from '../agent-ledger/agent-ledger-adjustment.entity';
 
 @Injectable()
 export class ExpensesService {
   constructor(
     @InjectRepository(Expense) private readonly expenseRepo: Repository<Expense>,
     @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
+    @InjectRepository(AgentLedgerAdjustment) private readonly adjustmentRepo: Repository<AgentLedgerAdjustment>,
   ) {}
 
   async create(dto: CreateExpenseDto): Promise<Expense> {
@@ -33,6 +35,24 @@ export class ExpensesService {
       await this.bankTransactionRepo.save(transaction);
     }
 
+    // Masraf Yansitma: danisman + oran belirtildiyse, o danismanin Cari
+    // Hesabina otomatik bir BORC (debit) kaydi olustur -- danisman ofise
+    // bu tutar kadar borclanir. Gider silinince bu kayit da otomatik
+    // temizlenir (bkz. remove()).
+    if (dto.agentId && dto.chargebackPercentage && dto.chargebackPercentage > 0) {
+      const chargebackAmount = (Number(dto.amount) * Number(dto.chargebackPercentage)) / 100;
+      const adjustment = this.adjustmentRepo.create({
+        agentId: dto.agentId,
+        type: LedgerAdjustmentType.DEBIT,
+        amount: chargebackAmount,
+        description: `Masraf yansıtması (%${dto.chargebackPercentage}): ${dto.title}`,
+        date: dto.date,
+        source: 'expense',
+        sourceId: saved.id,
+      });
+      await this.adjustmentRepo.save(adjustment);
+    }
+
     return saved;
   }
 
@@ -45,9 +65,11 @@ export class ExpensesService {
     if (!expense) {
       throw new NotFoundException('Gider bulunamadı');
     }
-    // Bu gidere bagli otomatik banka hareketi varsa, onu da temizle --
-    // yoksa banka bakiyesi yanlis kalir.
+    // Bu gidere bagli otomatik banka hareketi VE cari hareketi varsa,
+    // onlari da temizle -- yoksa banka bakiyesi ve danisman bakiyesi
+    // yanlis kalir.
     await this.bankTransactionRepo.delete({ source: 'expense', sourceId: id });
+    await this.adjustmentRepo.delete({ source: 'expense', sourceId: id });
     await this.expenseRepo.remove(expense);
   }
 }

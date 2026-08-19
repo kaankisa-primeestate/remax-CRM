@@ -32,6 +32,7 @@ const agent_dues_module_1 = require("./agent-dues/agent-dues.module");
 const agent_ledger_module_1 = require("./agent-ledger/agent-ledger.module");
 const market_news_module_1 = require("./market-news/market-news.module");
 const valuations_module_1 = require("./valuations/valuations.module");
+const recurring_expenses_module_1 = require("./recurring-expenses/recurring-expenses.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -87,6 +88,7 @@ exports.AppModule = AppModule = __decorate([
             agent_ledger_module_1.AgentLedgerModule,
             market_news_module_1.MarketNewsModule,
             valuations_module_1.ValuationsModule,
+            recurring_expenses_module_1.RecurringExpensesModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },
