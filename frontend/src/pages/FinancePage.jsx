@@ -2,12 +2,14 @@ import { useState } from 'react';
 import BankAccountsTab from '../components/finance/BankAccountsTab.jsx';
 import ExpensesTab from '../components/finance/ExpensesTab.jsx';
 import RecurringExpensesTab from '../components/finance/RecurringExpensesTab.jsx';
+import ChequeNotesTab from '../components/finance/ChequeNotesTab.jsx';
 import AgentLedgerTab from '../components/finance/AgentLedgerTab.jsx';
 
 const FINANCE_TABS = [
   { key: 'accounts', label: '🏦 Banka Hesapları' },
   { key: 'expenses', label: '🧾 Giderler' },
   { key: 'recurring', label: '🔁 Sabit Giderler' },
+  { key: 'cheques', label: '📑 Çek/Senet' },
   { key: 'ledger', label: '👤 Danışman Cari Hesapları' },
   { key: 'partners', label: '🤝 Ortaklar' },
   { key: 'summary', label: '📊 Özet' },
@@ -41,6 +43,7 @@ export default function FinancePage() {
         {activeTab === 'accounts' && <BankAccountsTab />}
         {activeTab === 'expenses' && <ExpensesTab />}
         {activeTab === 'recurring' && <RecurringExpensesTab />}
+        {activeTab === 'cheques' && <ChequeNotesTab />}
         {activeTab === 'ledger' && <AgentLedgerTab />}
 
         {activeTab === 'partners' && (
