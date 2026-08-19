@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TRANSACTION_TYPES } from '../api/commissions';
+import { TRANSACTION_TYPES, commissionsApi } from '../api/commissions';
 import { usersApi } from '../api/auth';
 import { transactionsApi } from '../api/transactions';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -58,13 +58,14 @@ function calculatePreview(form) {
 }
 
 export default function CommissionFormModal({ initialValues, onSubmit, onClose }) {
-  const { isBroker } = useAuth();
+  const { isBroker, user } = useAuth();
   const [form, setForm] = useState(() => toFormState(initialValues));
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [agents, setAgents] = useState([]);
   const [roster, setRoster] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [rateSuggestion, setRateSuggestion] = useState(null);
 
   const isEdit = Boolean(initialValues?.id);
 
@@ -84,6 +85,26 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
   const selectedTransaction = transactions.find((t) => t.id === form.transactionId) || null;
   const isCollaborative = Boolean(selectedTransaction?.collaboratorAgentId && selectedTransaction?.splitFinalizedAt);
   const nameFor = (id) => roster.find((r) => r.id === id)?.name || 'Bilinmeyen';
+
+  const effectiveAgentId = isBroker ? form.agentId : user?.id;
+
+  // Kademeli Prim onerisi: agentId + islem tutari belirliyse, danismanin
+  // o yilki cirosuna gore bir oran onerisi cekilir -- form alanini
+  // OTOMATIK DOLDURMAZ, sadece bir bilgi notu olarak gosterilir, "Uygula"
+  // butonuna basinca elle kabul edilir (CMA'daki gibi oneri/onay ayrimi).
+  useEffect(() => {
+    if (isEdit || !effectiveAgentId || !form.transactionAmount || Number(form.transactionAmount) <= 0) {
+      setRateSuggestion(null);
+      return;
+    }
+    const timeout = setTimeout(() => {
+      commissionsApi
+        .suggestRate(effectiveAgentId, Number(form.transactionAmount))
+        .then((data) => setRateSuggestion(data.appliedTier ? data : null))
+        .catch(() => setRateSuggestion(null));
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [effectiveAgentId, form.transactionAmount, isEdit]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -223,6 +244,18 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
                 onChange={handleChange}
                 required
               />
+              {rateSuggestion && (
+                <p style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 0' }}>
+                  💡 Kademeli Prim önerisi: bu yılki ciro ({new Intl.NumberFormat('tr-TR').format(rateSuggestion.ytdVolume)} ₺ + bu işlem) eşiği aştığı için <strong>%{rateSuggestion.appliedTier.rate}</strong> önerilir.{' '}
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, agentSharePercent: String(rateSuggestion.appliedTier.rate) }))}
+                    style={{ background: 'none', border: 'none', color: 'var(--ink-navy)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 11 }}
+                  >
+                    Uygula
+                  </button>
+                </p>
+              )}
             </div>
 
             <div className="form-field">

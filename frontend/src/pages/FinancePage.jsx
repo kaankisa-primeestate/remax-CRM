@@ -4,6 +4,7 @@ import ExpensesTab from '../components/finance/ExpensesTab.jsx';
 import RecurringExpensesTab from '../components/finance/RecurringExpensesTab.jsx';
 import ChequeNotesTab from '../components/finance/ChequeNotesTab.jsx';
 import CashFlowTab from '../components/finance/CashFlowTab.jsx';
+import PartnersTab from '../components/finance/PartnersTab.jsx';
 import AgentLedgerTab from '../components/finance/AgentLedgerTab.jsx';
 
 const FINANCE_TABS = [
@@ -49,15 +50,7 @@ export default function FinancePage() {
         {activeTab === 'cashflow' && <CashFlowTab />}
         {activeTab === 'ledger' && <AgentLedgerTab />}
 
-        {activeTab === 'partners' && (
-          <div className="finance-placeholder">
-            <div className="finance-placeholder__icon">🤝</div>
-            <div className="finance-placeholder__title">Ortaklar</div>
-            <p className="finance-placeholder__text">
-              Bu bölüm sırada: ortakların sermaye giriş/çıkışlarının ve kâr payı hareketlerinin takip edildiği hesaplar burada olacak.
-            </p>
-          </div>
-        )}
+        {activeTab === 'partners' && <PartnersTab />}
 
         {activeTab === 'summary' && (
           <div className="finance-placeholder">

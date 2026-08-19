@@ -28,6 +28,10 @@ export declare class User {
     officeName: string | null;
     commissionShareType: CommissionShareType | null;
     commissionSharePercentage: number | null;
+    tierCommissionRules: {
+        threshold: number;
+        rate: number;
+    }[] | null;
     contractStartDate: string | null;
     mentorAgentId: string | null;
     powerStartCompleted: boolean;

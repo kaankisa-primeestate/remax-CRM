@@ -38,4 +38,15 @@ export declare class CommissionsService {
     getPayments(commissionId: string): Promise<CommissionPayment[]>;
     addPayment(commissionId: string, dto: CreateCommissionPaymentDto, requestingUserRole: string): Promise<CommissionPayment>;
     removePayment(paymentId: string, requestingUserRole: string): Promise<void>;
+    suggestRate(agentId: string, newTransactionAmount: number, tierRules: {
+        threshold: number;
+        rate: number;
+    }[] | null, fallbackRate: number | null): Promise<{
+        suggestedRate: number | null;
+        ytdVolume: number;
+        appliedTier: {
+            threshold: number;
+            rate: number;
+        } | null;
+    }>;
 }

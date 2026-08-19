@@ -98,6 +98,10 @@ __decorate([
     __metadata("design:type", Object)
 ], User.prototype, "commissionSharePercentage", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "tierCommissionRules", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'date', nullable: true }),
     __metadata("design:type", Object)
 ], User.prototype, "contractStartDate", void 0);

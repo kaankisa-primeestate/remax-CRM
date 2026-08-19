@@ -18,9 +18,11 @@ const passport_1 = require("@nestjs/passport");
 const commissions_service_1 = require("./commissions.service");
 const create_commission_dto_1 = require("./create-commission.dto");
 const create_commission_payment_dto_1 = require("./dto/create-commission-payment.dto");
+const users_service_1 = require("../users/users.service");
 let CommissionsController = class CommissionsController {
-    constructor(commissionsService) {
+    constructor(commissionsService, usersService) {
         this.commissionsService = commissionsService;
+        this.usersService = usersService;
     }
     create(dto, req) {
         return this.commissionsService.create(dto, req.user.userId, req.user.role);
@@ -39,6 +41,10 @@ let CommissionsController = class CommissionsController {
             fromDate,
             toDate,
         });
+    }
+    async suggestRate(agentId, transactionAmount) {
+        const agent = await this.usersService.findById(agentId);
+        return this.commissionsService.suggestRate(agentId, Number(transactionAmount) || 0, agent?.tierCommissionRules || null, agent?.commissionSharePercentage != null ? Number(agent.commissionSharePercentage) : null);
     }
     findOne(id, req) {
         return this.commissionsService.findOne(id, req.user.userId, req.user.role);
@@ -89,6 +95,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String, String]),
     __metadata("design:returntype", void 0)
 ], CommissionsController.prototype, "summary", null);
+__decorate([
+    (0, common_1.Get)('suggest-rate'),
+    __param(0, (0, common_1.Query)('agentId')),
+    __param(1, (0, common_1.Query)('transactionAmount')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], CommissionsController.prototype, "suggestRate", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
@@ -141,6 +155,7 @@ __decorate([
 exports.CommissionsController = CommissionsController = __decorate([
     (0, common_1.Controller)('commissions'),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
-    __metadata("design:paramtypes", [commissions_service_1.CommissionsService])
+    __metadata("design:paramtypes", [commissions_service_1.CommissionsService,
+        users_service_1.UsersService])
 ], CommissionsController);
 //# sourceMappingURL=commissions.controller.js.map

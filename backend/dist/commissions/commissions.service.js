@@ -260,6 +260,32 @@ let CommissionsService = class CommissionsService {
             await this.commissionsRepository.save(commission);
         }
     }
+    async suggestRate(agentId, newTransactionAmount, tierRules, fallbackRate) {
+        if (!tierRules || tierRules.length === 0) {
+            return { suggestedRate: fallbackRate, ytdVolume: 0, appliedTier: null };
+        }
+        const yearStart = `${new Date().getFullYear()}-01-01`;
+        const yearEnd = `${new Date().getFullYear()}-12-31`;
+        const ytdCommissions = await this.commissionsRepository
+            .createQueryBuilder('c')
+            .where('c.agentId = :agentId', { agentId })
+            .andWhere('c.dueDate BETWEEN :from AND :to', { from: yearStart, to: yearEnd })
+            .getMany();
+        const ytdVolume = ytdCommissions.reduce((sum, c) => sum + Number(c.transactionAmount), 0);
+        const cumulativeVolume = ytdVolume + Number(newTransactionAmount);
+        const sortedTiers = [...tierRules].sort((a, b) => a.threshold - b.threshold);
+        let appliedTier = null;
+        for (const tier of sortedTiers) {
+            if (cumulativeVolume >= tier.threshold) {
+                appliedTier = tier;
+            }
+        }
+        return {
+            suggestedRate: appliedTier ? appliedTier.rate : fallbackRate,
+            ytdVolume,
+            appliedTier,
+        };
+    }
 };
 exports.CommissionsService = CommissionsService;
 exports.CommissionsService = CommissionsService = __decorate([

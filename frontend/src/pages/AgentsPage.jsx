@@ -36,7 +36,7 @@ const emptyForm = {
   // Sekme 2: Mali ve Yasal Kayıtlar
   companyType: '', companyName: '', taxOffice: '', taxId: '', mykCertificateNo: '', realEstateLicenseUrl: '',
   // Sekme 3: Çalışma Modeli & Hakediş
-  officeName: FIXED_OFFICE_NAME, commissionShareType: '', commissionSharePercentage: '', contractStartDate: '', mentorAgentId: '', monthlyDuesAmount: '',
+  officeName: FIXED_OFFICE_NAME, commissionShareType: '', commissionSharePercentage: '', tierCommissionRules: [], contractStartDate: '', mentorAgentId: '', monthlyDuesAmount: '',
   // Sekme 4: Akademi & Eğitim
   powerStartCompleted: false, powerStartCertificateNo: '', powerStartCertificateDate: '',
   // Ek (şablonda yok, mevcut sistemden korunuyor, opsiyonel)
@@ -158,6 +158,11 @@ export default function AgentsPage() {
         if (form.commissionSharePercentage !== '' && !Number.isNaN(Number(form.commissionSharePercentage))) {
           payload.commissionSharePercentage = Number(form.commissionSharePercentage);
         }
+        if (form.tierCommissionRules.length > 0) {
+          payload.tierCommissionRules = form.tierCommissionRules
+            .filter((r) => r.threshold !== '' && r.rate !== '')
+            .map((r) => ({ threshold: Number(r.threshold), rate: Number(r.rate) }));
+        }
         maybe('contractStartDate', form.contractStartDate);
         // mentorAgentId ozel durum: diger alanlardan farkli olarak, bos
         // birakilip kaydedilmesi "mentoru kaldir" anlamina gelmeli -- bu
@@ -248,6 +253,7 @@ export default function AgentsPage() {
       officeName: agent.officeName || FIXED_OFFICE_NAME,
       commissionShareType: agent.commissionShareType || '',
       commissionSharePercentage: agent.commissionSharePercentage != null ? String(agent.commissionSharePercentage) : '',
+      tierCommissionRules: (agent.tierCommissionRules || []).map((r) => ({ threshold: String(r.threshold), rate: String(r.rate) })),
       contractStartDate: agent.contractStartDate ? agent.contractStartDate.slice(0, 10) : '',
       mentorAgentId: agent.mentorAgentId || '',
       monthlyDuesAmount: agent.monthlyDuesAmount != null ? String(agent.monthlyDuesAmount) : '',
@@ -805,6 +811,60 @@ export default function AgentsPage() {
                   Tip seçince oran otomatik önerilir, farklı anlaşıldıysa (örn. MAXIMUM ama %75) üzerine tıklayıp değiştirebilirsiniz.
                 </p>
               </div>
+
+              {editingAgentId && (
+                <div className="form-field full">
+                  <label>Kademeli Prim (opsiyonel — yıllık ciroya göre otomatik oran önerisi)</label>
+                  <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 8px' }}>
+                    Örn: "0 TL üzeri %50, 500.000 TL üzeri %60" gibi eşikler tanımlarsan, komisyon oluştururken sistem danışmanın o yılki toplam cirosuna göre otomatik bir oran önerir (yine de elle değiştirilebilir).
+                  </p>
+                  {form.tierCommissionRules.map((rule, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>Eşik (TL):</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={rule.threshold}
+                        onChange={(e) => {
+                          const next = [...form.tierCommissionRules];
+                          next[i] = { ...next[i], threshold: e.target.value };
+                          setForm((f) => ({ ...f, tierCommissionRules: next }));
+                        }}
+                        style={{ width: 110 }}
+                      />
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>üzeri oran %:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={rule.rate}
+                        onChange={(e) => {
+                          const next = [...form.tierCommissionRules];
+                          next[i] = { ...next[i], rate: e.target.value };
+                          setForm((f) => ({ ...f, tierCommissionRules: next }));
+                        }}
+                        style={{ width: 70 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ fontSize: 11, padding: '3px 8px' }}
+                        onClick={() => setForm((f) => ({ ...f, tierCommissionRules: f.tierCommissionRules.filter((_, idx) => idx !== i) }))}
+                      >
+                        Kaldır
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: 11, padding: '4px 10px' }}
+                    onClick={() => setForm((f) => ({ ...f, tierCommissionRules: [...f.tierCommissionRules, { threshold: '', rate: '' }] }))}
+                  >
+                    + Kademe Ekle
+                  </button>
+                </div>
+              )}
               <div className="form-field">
                 <label>Sözleşme Başlangıç Tarihi *</label>
                 <input type="date" value={form.contractStartDate} onChange={(e) => setForm((f) => ({ ...f, contractStartDate: e.target.value }))} />

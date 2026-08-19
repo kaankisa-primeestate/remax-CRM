@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CompanyType, CommissionShareType } from '../user.entity';
 
 // Broker, sonradan (danisman olusturulduktan sonra) bu alanlari
@@ -62,6 +62,10 @@ export class UpdateAgentProfileDto {
   @Min(0)
   @Max(100)
   commissionSharePercentage?: number;
+
+  @IsOptional()
+  @IsArray()
+  tierCommissionRules?: { threshold: number; rate: number }[];
 
   @IsOptional()
   @IsDateString()

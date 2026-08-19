@@ -14,11 +14,15 @@ import { AuthGuard } from '@nestjs/passport';
 import { CommissionsService } from './commissions.service';
 import { CreateCommissionDto } from './create-commission.dto';
 import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
+import { UsersService } from '../users/users.service';
 
 @Controller('commissions')
 @UseGuards(AuthGuard('jwt'))
 export class CommissionsController {
-  constructor(private readonly commissionsService: CommissionsService) {}
+  constructor(
+    private readonly commissionsService: CommissionsService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateCommissionDto, @Request() req) {
@@ -53,6 +57,23 @@ export class CommissionsController {
       fromDate,
       toDate,
     });
+  }
+
+  // GET /api/commissions/suggest-rate?agentId=X&transactionAmount=Y --
+  // Kademeli Prim onerisi. Statik route oldugu icin ':id' route'undan
+  // ONCE tanimlanmali (aksi halde 'suggest-rate' bir id gibi yakalanir).
+  @Get('suggest-rate')
+  async suggestRate(
+    @Query('agentId') agentId: string,
+    @Query('transactionAmount') transactionAmount: string,
+  ) {
+    const agent = await this.usersService.findById(agentId);
+    return this.commissionsService.suggestRate(
+      agentId,
+      Number(transactionAmount) || 0,
+      agent?.tierCommissionRules || null,
+      agent?.commissionSharePercentage != null ? Number(agent.commissionSharePercentage) : null,
+    );
   }
 
   @Get(':id')

@@ -11,6 +11,8 @@ export const commissionsApi = {
   getPayments: (id) => apiClient.get(`/commissions/${id}/payments`).then((r) => r.data),
   addPayment: (id, payload) => apiClient.post(`/commissions/${id}/payments`, payload).then((r) => r.data),
   removePayment: (paymentId) => apiClient.delete(`/commissions/payments/${paymentId}`),
+  suggestRate: (agentId, transactionAmount) =>
+    apiClient.get('/commissions/suggest-rate', { params: { agentId, transactionAmount } }).then((r) => r.data),
 };
 // Backend enum'larıyla birebir eşleşir (commission.entity.ts)
 export const TRANSACTION_TYPES = [

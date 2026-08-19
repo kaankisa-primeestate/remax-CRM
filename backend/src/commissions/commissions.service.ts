@@ -275,8 +275,7 @@ export class CommissionsService {
     requestingUserId: string,
     requestingUserRole: string,
     filters: { agentId?: string; fromDate?: string; toDate?: string },
-  ) {
-    const commissions = await this.findAll(
+  ) {    const commissions = await this.findAll(
       requestingUserId,
       requestingUserRole,
       filters,
@@ -380,5 +379,49 @@ export class CommissionsService {
       commission.statusChangedAt = new Date();
       await this.commissionsRepository.save(commission);
     }
+  }
+
+  // --- Kademeli Prim (Sliding Scale) ---
+  // Danismanin O YILKI (1 Ocak'tan bugune) toplam islem hacmine, YENI
+  // islemin tutari da eklenerek, hangi kademeye girdigi hesaplanir ve
+  // o kademenin orani ONERI olarak dondurulur. Bu SADECE bir oneri --
+  // nihai karar (formdaki agentSharePercent alani) her zaman elle
+  // degistirilebilir kalir, CMA'daki "sistem oneri sunar, insan karar
+  // verir" ilkesiyle tutarli.
+  async suggestRate(
+    agentId: string,
+    newTransactionAmount: number,
+    tierRules: { threshold: number; rate: number }[] | null,
+    fallbackRate: number | null,
+  ): Promise<{ suggestedRate: number | null; ytdVolume: number; appliedTier: { threshold: number; rate: number } | null }> {
+    if (!tierRules || tierRules.length === 0) {
+      return { suggestedRate: fallbackRate, ytdVolume: 0, appliedTier: null };
+    }
+
+    const yearStart = `${new Date().getFullYear()}-01-01`;
+    const yearEnd = `${new Date().getFullYear()}-12-31`;
+    const ytdCommissions = await this.commissionsRepository
+      .createQueryBuilder('c')
+      .where('c.agentId = :agentId', { agentId })
+      .andWhere('c.dueDate BETWEEN :from AND :to', { from: yearStart, to: yearEnd })
+      .getMany();
+    const ytdVolume = ytdCommissions.reduce((sum, c) => sum + Number(c.transactionAmount), 0);
+    const cumulativeVolume = ytdVolume + Number(newTransactionAmount);
+
+    // Kademeleri esik degerine gore artan sirala, cumulativeVolume'e
+    // esit veya kucuk en yuksek esigi bul.
+    const sortedTiers = [...tierRules].sort((a, b) => a.threshold - b.threshold);
+    let appliedTier: { threshold: number; rate: number } | null = null;
+    for (const tier of sortedTiers) {
+      if (cumulativeVolume >= tier.threshold) {
+        appliedTier = tier;
+      }
+    }
+
+    return {
+      suggestedRate: appliedTier ? appliedTier.rate : fallbackRate,
+      ytdVolume,
+      appliedTier,
+    };
   }
 }

@@ -95,6 +95,15 @@ export class User {
   @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
   commissionSharePercentage: number | null;
 
+  // Kademeli Prim (Sliding Scale) -- opsiyonel. Doluysa, komisyon
+  // olustururken danismanin O YILKI toplam ciro hacmine gore otomatik
+  // bir oran ONERISI yapilir (yine de elle degistirilebilir -- CMA
+  // mantigindaki gibi, sistem oneri sunar, nihai karar Broker/danismanda
+  // kalir). Orn: [{threshold:0,rate:50},{threshold:500000,rate:60}]
+  // = "0-500.000 TL arasi %50, 500.000 TL uzeri %60".
+  @Column({ type: 'jsonb', nullable: true })
+  tierCommissionRules: { threshold: number; rate: number }[] | null;
+
   @Column({ type: 'date', nullable: true })
   contractStartDate: string | null;
 
