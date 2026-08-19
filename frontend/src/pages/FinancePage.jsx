@@ -3,6 +3,7 @@ import BankAccountsTab from '../components/finance/BankAccountsTab.jsx';
 import ExpensesTab from '../components/finance/ExpensesTab.jsx';
 import RecurringExpensesTab from '../components/finance/RecurringExpensesTab.jsx';
 import ChequeNotesTab from '../components/finance/ChequeNotesTab.jsx';
+import CashFlowTab from '../components/finance/CashFlowTab.jsx';
 import AgentLedgerTab from '../components/finance/AgentLedgerTab.jsx';
 
 const FINANCE_TABS = [
@@ -10,6 +11,7 @@ const FINANCE_TABS = [
   { key: 'expenses', label: '🧾 Giderler' },
   { key: 'recurring', label: '🔁 Sabit Giderler' },
   { key: 'cheques', label: '📑 Çek/Senet' },
+  { key: 'cashflow', label: '📈 Nakit Akış' },
   { key: 'ledger', label: '👤 Danışman Cari Hesapları' },
   { key: 'partners', label: '🤝 Ortaklar' },
   { key: 'summary', label: '📊 Özet' },
@@ -44,6 +46,7 @@ export default function FinancePage() {
         {activeTab === 'expenses' && <ExpensesTab />}
         {activeTab === 'recurring' && <RecurringExpensesTab />}
         {activeTab === 'cheques' && <ChequeNotesTab />}
+        {activeTab === 'cashflow' && <CashFlowTab />}
         {activeTab === 'ledger' && <AgentLedgerTab />}
 
         {activeTab === 'partners' && (

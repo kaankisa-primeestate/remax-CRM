@@ -25,6 +25,7 @@ import { MarketNewsModule } from './market-news/market-news.module';
 import { ValuationsModule } from './valuations/valuations.module';
 import { RecurringExpensesModule } from './recurring-expenses/recurring-expenses.module';
 import { ChequeNotesModule } from './cheque-notes/cheque-notes.module';
+import { CashFlowModule } from './cash-flow/cash-flow.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { ChequeNotesModule } from './cheque-notes/cheque-notes.module';
     ValuationsModule,
     RecurringExpensesModule,
     ChequeNotesModule,
+    CashFlowModule,
   ],
   providers: [
     // ThrottlerGuard'ı tüm endpoint'lere global olarak uygular.
