@@ -21,6 +21,7 @@ import CalendarPage from './pages/CalendarPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
 import MarketPage from './pages/MarketPage.jsx';
 import ValuationsPage from './pages/ValuationsPage.jsx';
+import AgentLedgerStatementPage from './pages/AgentLedgerStatementPage.jsx';
 import AgentDuesPage from './pages/AgentDuesPage.jsx';
 import ContractsPage from './pages/ContractsPage.jsx';
 import LegalPage from './pages/LegalPage.jsx';
@@ -60,6 +61,7 @@ const AGENT_NAV = [
   { to: '/islemler', label: 'İşlemler', icon: '🔄' },
   { to: '/komisyonlar', label: 'Komisyonlar', icon: '💰' },
   { to: '/aidatlar', label: 'Aidatlarım', icon: '🧾' },
+  { to: '/cari-hesabim', label: 'Cari Hesabım', icon: '💳' },
   { to: '/takvim', label: 'Takvim', icon: '📅' },
   { to: '/gorevler', label: 'Görevler', icon: '✅' },
   { to: '/piyasa', label: 'Piyasa', icon: '💹' },
@@ -338,6 +340,22 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ValuationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cari-hesap/:agentId"
+              element={
+                <ProtectedRoute>
+                  <AgentLedgerStatementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cari-hesabim"
+              element={
+                <ProtectedRoute>
+                  <AgentLedgerStatementPage />
                 </ProtectedRoute>
               }
             />

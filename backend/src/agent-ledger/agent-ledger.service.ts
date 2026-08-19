@@ -5,8 +5,26 @@ import { Commission } from '../commissions/commission.entity';
 import { CommissionPayment } from '../commissions/commission-payment.entity';
 import { AgentLedgerAdjustment, LedgerAdjustmentType } from './agent-ledger-adjustment.entity';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
+import { AgentDue } from '../agent-dues/agent-due.entity';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
+
+export interface StatementEntry {
+  date: string;
+  category: 'commission' | 'commission_payment' | 'agent_due' | 'expense_chargeback' | 'manual';
+  label: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface StatementSummary {
+  totalCredit: number; // Toplam Hakediş
+  totalDeductions: number; // Toplam Kesinti/Avans (odeme haric)
+  totalPayments: number; // Yapilan Odeme
+  netBalance: number;
+  entryCount: number;
+}
 
 // Danisman Cari Hesabi: "Ofis danismana ne kadar borclu?" sorusunun
 // cevabini, hicbir yerde SAKLAMADAN, her zaman canli hesaplar:
@@ -25,6 +43,7 @@ export class AgentLedgerService {
     @InjectRepository(CommissionPayment) private readonly paymentRepo: Repository<CommissionPayment>,
     @InjectRepository(AgentLedgerAdjustment) private readonly adjustmentRepo: Repository<AgentLedgerAdjustment>,
     @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
+    @InjectRepository(AgentDue) private readonly agentDueRepo: Repository<AgentDue>,
   ) {}
 
   private assertAccess(agentId: string, currentUser: CurrentUserPayload) {
@@ -43,6 +62,7 @@ export class AgentLedgerService {
       ? await this.paymentRepo.find({ where: { commissionId: In(commissionIds) } })
       : [];
     const adjustments = await this.adjustmentRepo.find({ where: { agentId } });
+    const dues = await this.agentDueRepo.find({ where: { agentId } });
 
     const totalOwed = commissions.reduce((sum, c) => sum + Number(c.netPayable), 0);
     const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -52,8 +72,13 @@ export class AgentLedgerService {
     const totalDebit = adjustments
       .filter((a) => a.type === LedgerAdjustmentType.DEBIT)
       .reduce((sum, a) => sum + Number(a.amount), 0);
+    // Aidatlar odenmis olsun olmasin, tahakkuk ettigi an danismanin
+    // borcu sayilir (Komisyon netPayable'in "onaylaninca hemen alacak
+    // sayilmasi" ile simetrik bir mantik) -- "odendi" isareti sadece
+    // Broker'in kendi takibi icin, bakiyeyi ikinci kez etkilemez.
+    const totalDues = dues.reduce((sum, d) => sum + Number(d.expectedAmount), 0);
 
-    return totalOwed - totalPaid + totalCredit - totalDebit;
+    return totalOwed - totalPaid + totalCredit - totalDebit - totalDues;
   }
 
   // Broker icin: tum danismanlarin bakiyelerini tek seferde dondurur.
@@ -107,6 +132,81 @@ export class AgentLedgerService {
     ];
 
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  // --- Bireysel Cari Ekstre (Statement) ---
+  // getHistory'den farki: kronolojik (eskiden yeniye) sirali, her satirda
+  // YURUYEN BAKIYE (running balance) hesaplanmis, kategorize edilmis
+  // (komisyon/odeme/aidat/masraf yansitmasi/manuel) ve ozet toplamlar
+  // iceren TAM bir ekstre gorunumudur -- "Danisman Ekstre Panosu" icin.
+  async getStatement(
+    agentId: string,
+    currentUser: CurrentUserPayload,
+    fromDate?: string,
+    toDate?: string,
+  ): Promise<{ entries: StatementEntry[]; summary: StatementSummary }> {
+    this.assertAccess(agentId, currentUser);
+
+    const commissions = await this.commissionRepo.find({
+      where: { agentId, status: In(['approved', 'paid']) as any },
+    });
+    const commissionIds = commissions.map((c) => c.id);
+    const payments = commissionIds.length
+      ? await this.paymentRepo.find({ where: { commissionId: In(commissionIds) } })
+      : [];
+    const adjustments = await this.adjustmentRepo.find({ where: { agentId } });
+    const dues = await this.agentDueRepo.find({ where: { agentId } });
+
+    type RawEntry = { date: string; category: StatementEntry['category']; label: string; debit: number; credit: number };
+    const raw: RawEntry[] = [
+      ...commissions.map((c) => ({
+        date: (c.statusChangedAt ? new Date(c.statusChangedAt).toISOString() : c.dueDate).slice(0, 10),
+        category: 'commission' as const,
+        label: `Komisyon hakedişi: ${c.propertyTitle || 'Portföy'} (Toplam: ${Number(c.grossCommission).toLocaleString('tr-TR')} ₺ · Pay: %${c.agentSharePercent})`,
+        debit: 0,
+        credit: Number(c.netPayable),
+      })),
+      ...payments.map((p) => ({
+        date: p.date,
+        category: 'commission_payment' as const,
+        label: 'Ofis ödemesi yapıldı',
+        debit: Number(p.amount),
+        credit: 0,
+      })),
+      ...adjustments.map((a) => ({
+        date: a.date,
+        category: (a.source === 'expense' ? 'expense_chargeback' : 'manual') as StatementEntry['category'],
+        label: a.description,
+        debit: a.type === LedgerAdjustmentType.DEBIT ? Number(a.amount) : 0,
+        credit: a.type === LedgerAdjustmentType.CREDIT ? Number(a.amount) : 0,
+      })),
+      ...dues.map((d) => ({
+        date: `${d.period}-01`,
+        category: 'agent_due' as const,
+        label: `Aylık Ofis Aidatı (${d.period})${d.paid ? ' — ödendi' : ''}`,
+        debit: Number(d.expectedAmount),
+        credit: 0,
+      })),
+    ];
+
+    const filtered = raw.filter((e) => (!fromDate || e.date >= fromDate) && (!toDate || e.date <= toDate));
+    filtered.sort((a, b) => a.date.localeCompare(b.date));
+
+    let running = 0;
+    const entries: StatementEntry[] = filtered.map((e) => {
+      running += e.credit - e.debit;
+      return { ...e, runningBalance: running };
+    });
+
+    const summary: StatementSummary = {
+      totalCredit: entries.filter((e) => e.category === 'commission' || (e.category === 'manual' && e.credit > 0)).reduce((s, e) => s + e.credit, 0),
+      totalDeductions: entries.filter((e) => e.category === 'agent_due' || e.category === 'expense_chargeback' || (e.category === 'manual' && e.debit > 0)).reduce((s, e) => s + e.debit, 0),
+      totalPayments: entries.filter((e) => e.category === 'commission_payment').reduce((s, e) => s + e.debit, 0),
+      netBalance: running,
+      entryCount: entries.length,
+    };
+
+    return { entries, summary };
   }
 
   async createAdjustment(dto: CreateAdjustmentDto, currentUser: CurrentUserPayload): Promise<AgentLedgerAdjustment> {

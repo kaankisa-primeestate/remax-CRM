@@ -41,6 +41,19 @@ export class AgentLedgerController {
     return this.agentLedgerService.getHistory(targetId, user);
   }
 
+  // GET /api/agent-ledger/statement?agentId=...&fromDate=&toDate= --
+  // Bireysel Cari Ekstre (yuruyen bakiye + kategorize hareketler)
+  @Get('statement')
+  getStatement(
+    @Query('agentId') agentId: string,
+    @Query('fromDate') fromDate: string,
+    @Query('toDate') toDate: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const targetId = user.role === 'agent' ? user.userId : agentId;
+    return this.agentLedgerService.getStatement(targetId, user, fromDate || undefined, toDate || undefined);
+  }
+
   @Post('adjustments')
   createAdjustment(@Body() dto: CreateAdjustmentDto, @CurrentUser() user: CurrentUserPayload) {
     return this.agentLedgerService.createAdjustment(dto, user);
