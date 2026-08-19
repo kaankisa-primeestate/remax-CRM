@@ -39,8 +39,28 @@ export class UpdateValuationDto {
   subjectNotes?: string;
 
   @IsOptional()
+  @IsString()
+  subjectParcelNo?: string;
+
+  @IsOptional()
+  @IsString()
+  subjectLandShare?: string;
+
+  @IsOptional()
+  @IsString()
+  subjectDeedType?: string;
+
+  @IsOptional()
+  @IsString()
+  subjectEnvironmentNotes?: string;
+
+  @IsOptional()
   @IsNumber()
   estimatedValueMin?: number;
+
+  @IsOptional()
+  @IsNumber()
+  estimatedValueTarget?: number;
 
   @IsOptional()
   @IsNumber()

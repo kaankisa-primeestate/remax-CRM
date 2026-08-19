@@ -73,6 +73,24 @@ export class ValuationComp {
   @Column({ default: false })
   isAutoMatched: boolean;
 
+  // Wireframe'deki "tik ile dahil et/cikar" ozelligi -- danisman bir
+  // comp'u SILMEDEN analiz disinda birakabilir (orn. "bu ev cok lüks,
+  // hesaba katma" ama veri kaybolmasin, sonra tekrar dahil edebilsin).
+  @Column({ default: true })
+  includedInAnalysis: boolean;
+
+  // --- Fark Duzeltmesi (Adjustment) ---
+  // Bu comp ile subject mulk arasindaki farka gore elle girilen +/- TL
+  // tutari (orn. "Havuzu yok, -50.000TL"). adjustedPrice; price+adjustment
+  // olarak HER ZAMAN frontend'de anlik hesaplanir, ayrica saklanmaz --
+  // tek dogru kaynak (price, adjustmentAmount) ikilisidir, veri
+  // tutarsizligi riskini onler.
+  @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true, default: 0 })
+  adjustmentAmount: number | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  adjustmentReason: string | null;
+
   // Denormalize: kim ekledi -- performans icin kayitla birlikte saklanir.
   @Column()
   addedByName: string;

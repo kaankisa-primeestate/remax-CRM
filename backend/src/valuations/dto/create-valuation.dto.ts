@@ -44,4 +44,20 @@ export class CreateValuationDto {
   @IsOptional()
   @IsString()
   subjectNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  subjectParcelNo?: string;
+
+  @IsOptional()
+  @IsString()
+  subjectLandShare?: string;
+
+  @IsOptional()
+  @IsString()
+  subjectDeedType?: string;
+
+  @IsOptional()
+  @IsString()
+  subjectEnvironmentNotes?: string;
 }

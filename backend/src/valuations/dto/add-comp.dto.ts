@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { CompType } from '../valuation-comp.entity';
 
 export class AddCompDto {
@@ -39,4 +39,12 @@ export class AddCompDto {
   @IsOptional()
   @IsString()
   sourceNote?: string;
+
+  @IsOptional()
+  @IsNumber()
+  adjustmentAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  adjustmentReason?: string;
 }

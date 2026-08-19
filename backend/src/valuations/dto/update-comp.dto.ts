@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { CompType } from '../valuation-comp.entity';
 
 // Otomatik eslenen bir comp'un fiyat/alan gibi bilgilerini danisman elle
@@ -40,4 +40,16 @@ export class UpdateCompDto {
   @IsOptional()
   @IsString()
   sourceNote?: string;
+
+  @IsOptional()
+  @IsNumber()
+  adjustmentAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  adjustmentReason?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  includedInAnalysis?: boolean;
 }

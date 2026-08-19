@@ -396,49 +396,158 @@ export default function ValuationsPage() {
                     </form>
                   )}
 
+                  {(detail.confidence || detail.suggestedValue) && (
+                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+                      {detail.confidence && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '3px 10px',
+                            borderRadius: 999,
+                            background: detail.confidence.level === 'high' ? '#e6f4ea' : detail.confidence.level === 'medium' ? '#fdf3e0' : '#fbeeeb',
+                            color: detail.confidence.level === 'high' ? '#1e7a3d' : detail.confidence.level === 'medium' ? '#8a6100' : 'var(--danger)',
+                          }}
+                          title="Kaç karşılaştırmanın hesaba katıldığına ve tiplerine göre hesaplanır"
+                        >
+                          Güven Skoru: {detail.confidence.level === 'high' ? 'Yüksek' : detail.confidence.level === 'medium' ? 'Orta' : 'Düşük'}
+                        </span>
+                      )}
+                      {detail.suggestedValue != null && (
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          Sistem önerisi (m² ortalamasına göre, sadece referans): <strong>{money(detail.suggestedValue)}</strong>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {detail.comps.length === 0 ? (
                     <div className="empty-state">Henüz karşılaştırma yok. Otomatik eşleşme bulunamadıysa kendi araştırmanızdan elle ekleyin.</div>
                   ) : (
-                    detail.comps.map((c) => (
-                      <div key={c.id} className="ledger-history-item" style={{ flexWrap: 'wrap' }}>
-                        <span style={{ flex: 1, minWidth: 160 }}>
-                          {c.title}
-                          {c.isAutoMatched && <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 6 }}>(otomatik)</span>}
-                        </span>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{c.areaM2 || '—'} m² · {c.rooms || '—'}</span>
-                        <input
-                          type="number"
-                          defaultValue={c.price}
-                          onBlur={(e) => {
-                            const val = Number(e.target.value);
-                            if (val !== Number(c.price)) handleUpdateCompField(c.id, 'price', val);
-                          }}
-                          style={{ width: 100, fontSize: 12 }}
-                        />
-                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>{COMP_TYPES.find((t) => t.value === c.compType)?.label}</span>
-                        <button type="button" className="task-row__delete" onClick={() => handleRemoveComp(c.id)} title="Sil">✕</button>
-                      </div>
-                    ))
+                    detail.comps.map((c) => {
+                      const adjustment = Number(c.adjustmentAmount || 0);
+                      const adjustedPrice = Number(c.price) + adjustment;
+                      const pricePerM2 = c.areaM2 ? Number(c.price) / Number(c.areaM2) : null;
+                      return (
+                        <div key={c.id} className="ledger-history-item" style={{ flexWrap: 'wrap', opacity: c.includedInAnalysis ? 1 : 0.5 }}>
+                          <input
+                            type="checkbox"
+                            checked={c.includedInAnalysis}
+                            onChange={(e) => handleUpdateCompField(c.id, 'includedInAnalysis', e.target.checked)}
+                            title="Analize dahil et / çıkar (silmeden)"
+                            style={{ width: 'auto', flexShrink: 0 }}
+                          />
+                          <span style={{ flex: 1, minWidth: 140 }}>
+                            {c.title}
+                            {c.isAutoMatched && <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 6 }}>(otomatik)</span>}
+                          </span>
+                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{c.areaM2 || '—'} m² · {c.rooms || '—'}</span>
+                          <input
+                            type="number"
+                            defaultValue={c.price}
+                            onBlur={(e) => {
+                              const val = Number(e.target.value);
+                              if (val !== Number(c.price)) handleUpdateCompField(c.id, 'price', val);
+                            }}
+                            style={{ width: 95, fontSize: 12 }}
+                            title="Fiyat"
+                          />
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{pricePerM2 ? `${Math.round(pricePerM2).toLocaleString('tr-TR')}₺/m²` : '—'}</span>
+                          <input
+                            type="number"
+                            defaultValue={c.adjustmentAmount || 0}
+                            onBlur={(e) => {
+                              const val = Number(e.target.value);
+                              if (val !== adjustment) handleUpdateCompField(c.id, 'adjustmentAmount', val);
+                            }}
+                            style={{ width: 80, fontSize: 12 }}
+                            title="Fark düzeltmesi (+/- TL)"
+                          />
+                          <input
+                            type="text"
+                            defaultValue={c.adjustmentReason || ''}
+                            onBlur={(e) => {
+                              if (e.target.value !== (c.adjustmentReason || '')) handleUpdateCompField(c.id, 'adjustmentReason', e.target.value);
+                            }}
+                            placeholder="Düzeltme gerekçesi"
+                            style={{ width: 110, fontSize: 11 }}
+                          />
+                          <span style={{ fontSize: 12, fontWeight: 600 }}>{money(adjustedPrice)}</span>
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{COMP_TYPES.find((t) => t.value === c.compType)?.label}</span>
+                          <button type="button" className="task-row__delete" onClick={() => handleRemoveComp(c.id)} title="Sil">✕</button>
+                        </div>
+                      );
+                    })
                   )}
+
+                  <h4 style={{ fontFamily: 'var(--font-display)', marginTop: 20 }}>Tapu Bilgileri ve Çevre Notları (elle doldurun)</h4>
+                  <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: -4, marginBottom: 10 }}>
+                    Bu bilgiler otomatik çekilmez — TKGM'nin kendi sitesinden ada/parsel sorgulayıp, mahalleyi/çevreyi gözlemleyip buraya elle yazın. Raporun içerik olarak zengin görünmesini sağlar.
+                  </p>
+                  <div className="form-grid" style={{ marginBottom: 14 }}>
+                    <div className="form-field">
+                      <label>Tapu Türü</label>
+                      <input
+                        defaultValue={detail.valuation.subjectDeedType || ''}
+                        onBlur={(e) => handleSaveValuationField('subjectDeedType', e.target.value)}
+                        placeholder="Örn: Kat Mülkiyeti"
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Ada / Parsel</label>
+                      <input
+                        defaultValue={detail.valuation.subjectParcelNo || ''}
+                        onBlur={(e) => handleSaveValuationField('subjectParcelNo', e.target.value)}
+                        placeholder="Örn: 901 / 8"
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Arsa Payı</label>
+                      <input
+                        defaultValue={detail.valuation.subjectLandShare || ''}
+                        onBlur={(e) => handleSaveValuationField('subjectLandShare', e.target.value)}
+                        placeholder="Örn: 24/480"
+                      />
+                    </div>
+                    <div className="form-field full">
+                      <label>Konum ve Çevre Notları (metro/okul/hastane mesafesi vb.)</label>
+                      <textarea
+                        defaultValue={detail.valuation.subjectEnvironmentNotes || ''}
+                        onBlur={(e) => handleSaveValuationField('subjectEnvironmentNotes', e.target.value)}
+                        rows={2}
+                        style={{ width: '100%' }}
+                        placeholder="Örn: Metro istasyonuna 350m (4 dk yürüme), sahil yoluna 1.2km, Bostancı İlkokulu 200m"
+                      />
+                    </div>
+                  </div>
 
                   <h4 style={{ fontFamily: 'var(--font-display)', marginTop: 20 }}>Sonuç</h4>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 10 }}>
                     <div className="form-field" style={{ margin: 0 }}>
-                      <label>Min Değer</label>
+                      <label>Hızlı Satış (Min)</label>
                       <input
                         type="number"
                         defaultValue={detail.valuation.estimatedValueMin || ''}
                         onBlur={(e) => handleSaveValuationField('estimatedValueMin', e.target.value ? Number(e.target.value) : null)}
-                        style={{ width: 130 }}
+                        style={{ width: 120 }}
                       />
                     </div>
                     <div className="form-field" style={{ margin: 0 }}>
-                      <label>Max Değer</label>
+                      <label>Hedeflenen Fiyat</label>
+                      <input
+                        type="number"
+                        defaultValue={detail.valuation.estimatedValueTarget || ''}
+                        onBlur={(e) => handleSaveValuationField('estimatedValueTarget', e.target.value ? Number(e.target.value) : null)}
+                        style={{ width: 120 }}
+                      />
+                    </div>
+                    <div className="form-field" style={{ margin: 0 }}>
+                      <label>Üst Sınır (Max)</label>
                       <input
                         type="number"
                         defaultValue={detail.valuation.estimatedValueMax || ''}
                         onBlur={(e) => handleSaveValuationField('estimatedValueMax', e.target.value ? Number(e.target.value) : null)}
-                        style={{ width: 130 }}
+                        style={{ width: 120 }}
                       />
                     </div>
                     <div className="form-field" style={{ margin: 0 }}>

@@ -68,12 +68,38 @@ export class PropertyValuation {
   @Column({ type: 'varchar', nullable: true })
   subjectNotes: string | null;
 
+  // --- Tapu Bilgileri ve Cevre Notlari ---
+  // Bu bilgiler OTOMATIK CEKILMEZ -- TKGM/Sahibinden gibi kaynaklar bize
+  // acik/ucretsiz API sunmuyor (arastirdik, resmi kurumsal anlasma
+  // gerektiriyor). Danisman kendi arastirmasindan (TKGM'nin kendi
+  // sitesinden ada/parsel sorgulayarak, mahalleyi gezerek vb.) elle
+  // doldurur -- amac raporun ICERIK olarak zengin ve profesyonel
+  // gorunmesi, otomasyon degil.
+  @Column({ type: 'varchar', nullable: true })
+  subjectParcelNo: string | null; // Ada / Parsel No
+
+  @Column({ type: 'varchar', nullable: true })
+  subjectLandShare: string | null; // Arsa Payi, orn. "24/480"
+
+  @Column({ type: 'varchar', nullable: true })
+  subjectDeedType: string | null; // Tapu Turu, orn. "Kat Mulkiyeti"
+
+  // Serbest metin -- metro/okul/hastane mesafesi, mahalle ozellikleri vb.
+  // danismanin kendi gozlemleri.
+  @Column({ type: 'varchar', nullable: true })
+  subjectEnvironmentNotes: string | null;
+
   // --- Sonuc ---
   // Otomatik hesaplanmiyor -- danismanin kendi karari, comps listesine
   // bakarak elle girdigi bir aralik (CMA mantigi: nihai fiyat kanaati
   // her zaman danismana aittir, sistem sadece veri saglar).
   @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
   estimatedValueMin: number | null;
+
+  // "Hedeflenen/Onerilen" fiyat -- min ve max arasinda, danismanin asil
+  // hedefledigi liste fiyati (3'lu profesyonel rapor gorunumu icin).
+  @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
+  estimatedValueTarget: number | null;
 
   @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
   estimatedValueMax: number | null;
