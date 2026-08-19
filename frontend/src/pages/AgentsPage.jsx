@@ -45,32 +45,16 @@ const emptyForm = {
 
 // Her sekmedeki zorunlu alanları kontrol eder; eksik varsa o sekmenin
 // anahtarını + kullanıcıya gösterilecek mesajı döner.
+// HIZLI KAYIT: sadece Ad Soyad, Kurumsal E-posta, Cep Telefonu ve Sifre
+// zorunlu -- geri kalan tum alanlar (T.C. Kimlik No, Profil Fotografi,
+// Mali/Yasal, Calisma Modeli, Akademi) opsiyonel, Broker daha sonra
+// "Duzenle"den tamamlar (bkz. backend create-agent.dto.ts, ayni gevseme).
 function validateAgentForm(form) {
   const errors = [];
   if (!form.name.trim()) errors.push({ tab: 'personal', message: 'Ad Soyad zorunludur' });
-  if (!/^\d{11}$/.test(form.nationalId)) errors.push({ tab: 'personal', message: 'T.C. Kimlik No 11 haneli olmalıdır' });
   if (!form.email.trim()) errors.push({ tab: 'personal', message: 'Kurumsal e-posta zorunludur' });
   if (!form.phone.trim()) errors.push({ tab: 'personal', message: 'Cep telefonu zorunludur' });
-  if (!form.profilePhotoUrl) errors.push({ tab: 'personal', message: 'Profil fotoğrafı zorunludur' });
   if (!form.password || form.password.length < 6) errors.push({ tab: 'personal', message: 'Şifre en az 6 karakter olmalıdır' });
-
-  if (!form.companyType) errors.push({ tab: 'legal', message: 'Şirket türü seçin' });
-  if (!form.companyName.trim()) errors.push({ tab: 'legal', message: 'Şirket unvanı zorunludur' });
-  if (!form.taxOffice.trim()) errors.push({ tab: 'legal', message: 'Vergi dairesi zorunludur' });
-  if (!form.taxId.trim()) errors.push({ tab: 'legal', message: 'Vergi kimlik no zorunludur' });
-  if (!form.mykCertificateNo.trim()) errors.push({ tab: 'legal', message: 'MYK Seviye 5 belge no zorunludur' });
-  if (!form.realEstateLicenseUrl) errors.push({ tab: 'legal', message: 'Taşınmaz Ticareti Yetki Belgesi zorunludur' });
-
-  if (!form.commissionShareType) errors.push({ tab: 'work', message: 'Komisyon paylaşım tipi seçin' });
-  if (form.commissionSharePercentage === '' || Number.isNaN(Number(form.commissionSharePercentage))) {
-    errors.push({ tab: 'work', message: 'Komisyon paylaşım yüzdesi girin' });
-  }
-  if (!form.contractStartDate) errors.push({ tab: 'work', message: 'Sözleşme başlangıç tarihi zorunludur' });
-
-  if (!form.powerStartCompleted) errors.push({ tab: 'academy', message: 'Power Start Eğitimi tamamlandı olarak işaretlenmelidir' });
-  if (!form.powerStartCertificateNo.trim()) errors.push({ tab: 'academy', message: 'Sertifika no zorunludur' });
-  if (!form.powerStartCertificateDate) errors.push({ tab: 'academy', message: 'Sertifika tarihi zorunludur' });
-
   return errors;
 }
 
@@ -199,26 +183,26 @@ export default function AgentsPage() {
     try {
       await usersApi.createAgent({
         name: form.name.trim(),
-        nationalId: form.nationalId,
         email: form.email.trim(),
         phone: form.phone.trim(),
-        profilePhotoUrl: form.profilePhotoUrl,
         password: form.password,
-        companyType: form.companyType,
-        companyName: form.companyName.trim(),
-        taxOffice: form.taxOffice.trim(),
-        taxId: form.taxId.trim(),
-        mykCertificateNo: form.mykCertificateNo.trim(),
-        realEstateLicenseUrl: form.realEstateLicenseUrl,
-        officeName: form.officeName,
-        commissionShareType: form.commissionShareType,
-        commissionSharePercentage: Number(form.commissionSharePercentage),
-        contractStartDate: form.contractStartDate,
+        nationalId: form.nationalId.trim() || undefined,
+        profilePhotoUrl: form.profilePhotoUrl || undefined,
+        companyType: form.companyType || undefined,
+        companyName: form.companyName.trim() || undefined,
+        taxOffice: form.taxOffice.trim() || undefined,
+        taxId: form.taxId.trim() || undefined,
+        mykCertificateNo: form.mykCertificateNo.trim() || undefined,
+        realEstateLicenseUrl: form.realEstateLicenseUrl || undefined,
+        officeName: form.officeName || undefined,
+        commissionShareType: form.commissionShareType || undefined,
+        commissionSharePercentage: form.commissionSharePercentage !== '' ? Number(form.commissionSharePercentage) : undefined,
+        contractStartDate: form.contractStartDate || undefined,
         mentorAgentId: form.mentorAgentId || undefined,
         monthlyDuesAmount: form.monthlyDuesAmount !== '' ? Number(form.monthlyDuesAmount) : undefined,
-        powerStartCompleted: form.powerStartCompleted,
-        powerStartCertificateNo: form.powerStartCertificateNo.trim(),
-        powerStartCertificateDate: form.powerStartCertificateDate,
+        powerStartCompleted: form.powerStartCompleted || undefined,
+        powerStartCertificateNo: form.powerStartCertificateNo.trim() || undefined,
+        powerStartCertificateDate: form.powerStartCertificateDate || undefined,
         address: form.address.trim() || undefined,
         birthDate: form.birthDate || undefined,
       });
@@ -591,7 +575,7 @@ export default function AgentsPage() {
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -8, marginBottom: 16 }}>
           {editingAgentId
             ? 'Değiştirmek istediğin alanları güncelle ve kaydet — boş bıraktığın alanlar mevcut kayıtlı değerleriyle korunur.'
-            : 'Danışmanın giriş bilgilerini, mali/yasal kayıtlarını, çalışma modelini ve eğitim durumunu içeren tam profil kaydı — tüm sekmelerdeki zorunlu alanlar doldurulmadan kaydedilemez.'}
+            : 'Hızlı kayıt: sadece Ad Soyad, Kurumsal E-posta, Cep Telefonu ve Şifre zorunlu — diğer tüm bilgileri (kimlik, mali/yasal, çalışma modeli, akademi) daha sonra "Düzenle" ekranından tamamlayabilirsiniz.'}
         </p>
 
         <div className="folder-tabs" style={{ flexWrap: 'wrap', marginBottom: 0 }}>
@@ -620,7 +604,7 @@ export default function AgentsPage() {
                 />
               </div>
               <div className="form-field">
-                <label>T.C. Kimlik No {!editingAgentId && '*'}</label>
+                <label>T.C. Kimlik No (opsiyonel)</label>
                 <input
                   value={form.nationalId}
                   onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value.replace(/\D/g, '') }))}
@@ -662,7 +646,7 @@ export default function AgentsPage() {
                 </div>
               )}
               <div className="form-field">
-                <label>Profil Fotoğrafı {!editingAgentId && '* '}(JPG/PNG)</label>
+                <label>Profil Fotoğrafı (opsiyonel, JPG/PNG)</label>
                 {form.profilePhotoUrl ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <img src={form.profilePhotoUrl} alt="Profil" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
@@ -697,7 +681,7 @@ export default function AgentsPage() {
           {addAgentTab === 'legal' && (
             <div className="form-grid">
               <div className="form-field">
-                <label>Şirket Türü *</label>
+                <label>Şirket Türü (opsiyonel)</label>
                 <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
                   {COMPANY_TYPES.map((ct) => (
                     <label key={ct.value} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400 }}>
@@ -713,23 +697,23 @@ export default function AgentsPage() {
                 </div>
               </div>
               <div className="form-field">
-                <label>Şirket Unvanı *</label>
+                <label>Şirket Unvanı (opsiyonel)</label>
                 <input value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} placeholder="Örn: Hasan Yılmaz Gayrimenkul" />
               </div>
               <div className="form-field">
-                <label>Vergi Dairesi *</label>
+                <label>Vergi Dairesi (opsiyonel)</label>
                 <input value={form.taxOffice} onChange={(e) => setForm((f) => ({ ...f, taxOffice: e.target.value }))} placeholder="Örn: Kadıköy Vergi Dairesi" />
               </div>
               <div className="form-field">
-                <label>Vergi No *</label>
+                <label>Vergi No (opsiyonel)</label>
                 <input value={form.taxId} onChange={(e) => setForm((f) => ({ ...f, taxId: e.target.value }))} placeholder="10 haneli" maxLength={10} />
               </div>
               <div className="form-field">
-                <label>MYK Seviye 5 Belge No *</label>
+                <label>MYK Seviye 5 Belge No (opsiyonel)</label>
                 <input value={form.mykCertificateNo} onChange={(e) => setForm((f) => ({ ...f, mykCertificateNo: e.target.value }))} placeholder="Belge kodu" />
               </div>
               <div className="form-field">
-                <label>Taşınmaz Ticareti Yetki Belgesi *</label>
+                <label>Taşınmaz Ticareti Yetki Belgesi (opsiyonel)</label>
                 {form.realEstateLicenseUrl ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <a href={form.realEstateLicenseUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>📎 Belgeyi görüntüle</a>
@@ -769,7 +753,7 @@ export default function AgentsPage() {
                 />
               </div>
               <div className="form-field full">
-                <label>Komisyon Paylaşım Tipi *</label>
+                <label>Komisyon Paylaşım Tipi (opsiyonel)</label>
                 <div style={{ display: 'flex', gap: 18, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   {COMMISSION_SHARE_TYPES.map((cs) => (
                     <label key={cs.value} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400 }}>
@@ -866,7 +850,7 @@ export default function AgentsPage() {
                 </div>
               )}
               <div className="form-field">
-                <label>Sözleşme Başlangıç Tarihi *</label>
+                <label>Sözleşme Başlangıç Tarihi (opsiyonel)</label>
                 <input type="date" value={form.contractStartDate} onChange={(e) => setForm((f) => ({ ...f, contractStartDate: e.target.value }))} />
               </div>
               <div className="form-field">
@@ -891,14 +875,14 @@ export default function AgentsPage() {
                   onChange={(e) => setForm((f) => ({ ...f, powerStartCompleted: e.target.checked }))}
                   style={{ width: 'auto' }}
                 />
-                <label htmlFor="powerStartCompleted" style={{ margin: 0 }}>Power Start Eğitimi Tamamlandı *</label>
+                <label htmlFor="powerStartCompleted" style={{ margin: 0 }}>Power Start Eğitimi Tamamlandı (opsiyonel)</label>
               </div>
               <div className="form-field">
-                <label>Sertifika No *</label>
+                <label>Sertifika No (opsiyonel)</label>
                 <input value={form.powerStartCertificateNo} onChange={(e) => setForm((f) => ({ ...f, powerStartCertificateNo: e.target.value }))} />
               </div>
               <div className="form-field">
-                <label>Sertifika Tarihi *</label>
+                <label>Sertifika Tarihi (opsiyonel)</label>
                 <input type="date" value={form.powerStartCertificateDate} onChange={(e) => setForm((f) => ({ ...f, powerStartCertificateDate: e.target.value }))} />
               </div>
             </div>
