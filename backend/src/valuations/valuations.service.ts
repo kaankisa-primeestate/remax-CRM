@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as path from 'path';
 import PDFDocument = require('pdfkit');
 import { PropertyValuation, ValuationStatus } from './valuation.entity';
 import { ValuationComp, CompType } from './valuation-comp.entity';
@@ -281,7 +282,7 @@ export class ValuationsService {
   // pdfkit ile sunucu tarafinda dogrudan olusturulur, disk'e yazmadan
   // bellekte bir Buffer olarak doner (controller bunu HTTP yaniti olarak
   // gonderir). NOT: pdfkit'te ".bold()" diye bir metod YOKTUR -- font
-  // degistirmek icin HER ZAMAN ".font('Helvetica-Bold')" / ".font('Helvetica')"
+  // degistirmek icin HER ZAMAN ".font('Body-Bold')" / ".font('Body')"
   // kullanilir, aksi halde calisma zamaninda hata alinir.
   async generatePdf(id: string, currentUser: CurrentUserPayload): Promise<Buffer> {
     const { valuation, comps, confidence, suggestedValue } = await this.findOne(id, currentUser);
@@ -309,6 +310,16 @@ export class ValuationsService {
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 45, size: 'A4' });
+
+      // Turkce karakterler (g, s, i, ö, ü, c ve buyuk/kucuk harfleri) icin
+      // pdfkit'in yerlesik "Helvetica" fontlari YETERSIZ -- WinAnsi
+      // kodlamasi bu karakterleri desteklemiyor, sonuc olarak metin
+      // bozuk cikiyordu. Bunun yerine Turkce'yi tam destekleyen gercek
+      // bir TrueType font (Roboto) gomulu olarak kullaniliyor.
+      const fontsDir = path.join(__dirname, '../assets/fonts');
+      doc.registerFont('Body', path.join(fontsDir, 'Roboto-Regular.ttf'));
+      doc.registerFont('Body-Bold', path.join(fontsDir, 'Roboto-Bold.ttf'));
+      doc.registerFont('Body-Italic', path.join(fontsDir, 'Roboto-Italic.ttf'));
       const chunks: Buffer[] = [];
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -320,14 +331,14 @@ export class ValuationsService {
       const typeLabels: Record<string, string> = { sold: 'Satıldı', rented: 'Kiralandı', active_listing: 'Aktif İlan' };
 
       // ========== SAYFA 1: KAPAK + ÖZET ==========
-      doc.fontSize(20).font('Helvetica-Bold').text('Piyasa Değer Analizi', { align: 'center' });
-      doc.fontSize(11).font('Helvetica').fillColor('#666666').text('(Karşılaştırmalı Piyasa Analizi — KPA)', { align: 'center' });
+      doc.fontSize(20).font('Body-Bold').text('Piyasa Değer Analizi', { align: 'center' });
+      doc.fontSize(11).font('Body').fillColor('#666666').text('(Karşılaştırmalı Piyasa Analizi — KPA)', { align: 'center' });
       doc.fillColor('#000000');
       doc.moveDown(0.6);
 
-      doc.fontSize(10).font('Helvetica-Bold').text(`Hazırlayan: ${agent?.name || currentUser.name}`, { align: 'center' });
+      doc.fontSize(10).font('Body-Bold').text(`Hazırlayan: ${agent?.name || currentUser.name}`, { align: 'center' });
       if (agent?.phone) {
-        doc.fontSize(9).font('Helvetica').text(agent.phone, { align: 'center' });
+        doc.fontSize(9).font('Body').text(agent.phone, { align: 'center' });
       }
       doc.moveDown(0.8);
 
@@ -343,8 +354,8 @@ export class ValuationsService {
       }
 
       doc.moveDown(0.3);
-      doc.fontSize(13).font('Helvetica-Bold').text(valuation.subjectTitle);
-      doc.fontSize(10).font('Helvetica');
+      doc.fontSize(13).font('Body-Bold').text(valuation.subjectTitle);
+      doc.fontSize(10).font('Body');
       doc.text(
         `${valuation.subjectProvince} / ${valuation.subjectDistrict}${valuation.subjectNeighborhood ? ' / ' + valuation.subjectNeighborhood : ''}`,
       );
@@ -354,15 +365,15 @@ export class ValuationsService {
       doc.moveDown(0.6);
 
       if (valuation.subjectParcelNo || valuation.subjectLandShare || valuation.subjectDeedType) {
-        doc.fontSize(10).font('Helvetica-Bold').text('Tapu Bilgileri');
-        doc.font('Helvetica').fontSize(9.5);
+        doc.fontSize(10).font('Body-Bold').text('Tapu Bilgileri');
+        doc.font('Body').fontSize(9.5);
         if (valuation.subjectDeedType) doc.text(`Tapu Türü: ${valuation.subjectDeedType}`);
         if (valuation.subjectParcelNo) doc.text(`Ada/Parsel: ${valuation.subjectParcelNo}`);
         if (valuation.subjectLandShare) doc.text(`Arsa Payı: ${valuation.subjectLandShare}`);
         doc.moveDown(0.6);
       }
 
-      doc.fontSize(12).font('Helvetica-Bold').text('Fiyat Değerlendirmesi');
+      doc.fontSize(12).font('Body-Bold').text('Fiyat Değerlendirmesi');
       doc.moveDown(0.2);
       const boxTop = doc.y;
       const boxWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -373,46 +384,46 @@ export class ValuationsService {
       for (let i = 0; i < 3; i++) {
         const x = doc.page.margins.left + i * colWidth;
         doc.rect(x, boxTop, colWidth - 6, 50).fill(colColors[i]);
-        doc.fillColor('#333333').fontSize(8.5).font('Helvetica').text(labels[i], x + 8, boxTop + 8, { width: colWidth - 20 });
-        doc.fillColor('#111111').fontSize(11).font('Helvetica-Bold').text(money(values[i] != null ? Number(values[i]) : null), x + 8, boxTop + 24, { width: colWidth - 20 });
+        doc.fillColor('#333333').fontSize(8.5).font('Body').text(labels[i], x + 8, boxTop + 8, { width: colWidth - 20 });
+        doc.fillColor('#111111').fontSize(11).font('Body-Bold').text(money(values[i] != null ? Number(values[i]) : null), x + 8, boxTop + 24, { width: colWidth - 20 });
       }
       doc.fillColor('#000000');
       doc.y = boxTop + 60;
       doc.moveDown(0.4);
 
-      doc.fontSize(9).font('Helvetica-Bold').fillColor(confidenceColor).text(`Güven Skoru: ${confidenceLabel} (${comps.filter((c) => c.includedInAnalysis).length} karşılaştırma baz alındı)`, { align: 'left' });
+      doc.fontSize(9).font('Body-Bold').fillColor(confidenceColor).text(`Güven Skoru: ${confidenceLabel} (${comps.filter((c) => c.includedInAnalysis).length} karşılaştırma baz alındı)`, { align: 'left' });
       doc.fillColor('#000000');
       if (suggestedValue) {
-        doc.fontSize(8.5).font('Helvetica-Oblique').fillColor('#666666').text(`Sistem önerisi (m² ortalamasına göre): ${money(suggestedValue)} — sadece referans amaçlıdır`, { align: 'left' });
+        doc.fontSize(8.5).font('Body-Italic').fillColor('#666666').text(`Sistem önerisi (m² ortalamasına göre): ${money(suggestedValue)} — sadece referans amaçlıdır`, { align: 'left' });
         doc.fillColor('#000000');
       }
       doc.moveDown(0.8);
 
       if (valuation.subjectEnvironmentNotes) {
-        doc.fontSize(11).font('Helvetica-Bold').text('Konum ve Çevre Değerlendirmesi');
+        doc.fontSize(11).font('Body-Bold').text('Konum ve Çevre Değerlendirmesi');
         doc.moveDown(0.2);
-        doc.fontSize(9.5).font('Helvetica').text(valuation.subjectEnvironmentNotes);
+        doc.fontSize(9.5).font('Body').text(valuation.subjectEnvironmentNotes);
         doc.moveDown(0.6);
       }
 
       if (valuation.subjectNotes) {
-        doc.fontSize(11).font('Helvetica-Bold').text('Mülk Notları');
+        doc.fontSize(11).font('Body-Bold').text('Mülk Notları');
         doc.moveDown(0.2);
-        doc.fontSize(9.5).font('Helvetica').text(valuation.subjectNotes);
+        doc.fontSize(9.5).font('Body').text(valuation.subjectNotes);
       }
 
       // ========== SAYFA 2: KARŞILAŞTIRMA TABLOSU + SONUÇ ==========
       doc.addPage();
-      doc.fontSize(14).font('Helvetica-Bold').text('Karşılaştırma Tablosu (Comps)');
+      doc.fontSize(14).font('Body-Bold').text('Karşılaştırma Tablosu (Comps)');
       doc.moveDown(0.4);
 
       const includedComps = comps.filter((c) => c.includedInAnalysis);
       const excludedComps = comps.filter((c) => !c.includedInAnalysis);
 
       if (includedComps.length === 0) {
-        doc.fontSize(10).font('Helvetica-Oblique').text('Henüz karşılaştırma eklenmemiş.');
+        doc.fontSize(10).font('Body-Italic').text('Henüz karşılaştırma eklenmemiş.');
       } else {
-        doc.fontSize(8.5).font('Helvetica-Bold');
+        doc.fontSize(8.5).font('Body-Bold');
         doc.text('Başlık / Konum', 45, doc.y, { continued: true, width: 140 });
         doc.text('m²/Oda', 190, doc.y, { continued: true, width: 55 });
         doc.text('Fiyat', 250, doc.y, { continued: true, width: 70 });
@@ -424,7 +435,7 @@ export class ValuationsService {
         doc.moveTo(45, doc.y).lineTo(565, doc.y).strokeColor('#cccccc').stroke();
         doc.moveDown(0.25);
 
-        doc.font('Helvetica').fontSize(8);
+        doc.font('Body').fontSize(8);
         includedComps.forEach((c) => {
           const startY = doc.y;
           const price = Number(c.price);
@@ -438,8 +449,8 @@ export class ValuationsService {
           doc.text(money(price), 250, startY, { width: 70 });
           doc.text(pricePerM2 ? money(pricePerM2) : '—', 325, startY, { width: 65 });
           doc.text(adjustment ? money(adjustment) : '—', 395, startY, { width: 65 });
-          doc.font('Helvetica-Bold').text(money(adjustedPrice), 465, startY, { width: 60 });
-          doc.font('Helvetica').text(typeLabels[c.compType] || c.compType, 530, startY, { width: 40 });
+          doc.font('Body-Bold').text(money(adjustedPrice), 465, startY, { width: 60 });
+          doc.font('Body').text(typeLabels[c.compType] || c.compType, 530, startY, { width: 40 });
           doc.y = Math.max(afterTitleY, doc.y);
           if (c.adjustmentReason) {
             doc.fontSize(7).fillColor('#888888').text(`↳ ${c.adjustmentReason}`, 45, doc.y, { width: 500 });
@@ -455,7 +466,7 @@ export class ValuationsService {
 
       if (excludedComps.length > 0) {
         doc.moveDown(0.4);
-        doc.fontSize(8.5).font('Helvetica-Oblique').fillColor('#999999').text(
+        doc.fontSize(8.5).font('Body-Italic').fillColor('#999999').text(
           `Analiz dışı bırakılan ${excludedComps.length} karşılaştırma daha var (hesaba katılmadı): ${excludedComps.map((c) => c.title).join(', ')}`,
           { width: 500 },
         );
@@ -463,12 +474,12 @@ export class ValuationsService {
       }
 
       doc.moveDown(1);
-      doc.fontSize(13).font('Helvetica-Bold').text('Sonuç ve Gerekçe');
+      doc.fontSize(13).font('Body-Bold').text('Sonuç ve Gerekçe');
       doc.moveDown(0.3);
       if (valuation.conclusionNotes) {
-        doc.fontSize(10).font('Helvetica').text(valuation.conclusionNotes);
+        doc.fontSize(10).font('Body').text(valuation.conclusionNotes);
       } else {
-        doc.fontSize(9.5).font('Helvetica-Oblique').fillColor('#999999').text('Danışman henüz bir sonuç notu eklememiş.');
+        doc.fontSize(9.5).font('Body-Italic').fillColor('#999999').text('Danışman henüz bir sonuç notu eklememiş.');
         doc.fillColor('#000000');
       }
 
@@ -476,7 +487,7 @@ export class ValuationsService {
       const disclaimerY = doc.y;
       const disclaimerWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
       doc.rect(doc.page.margins.left, disclaimerY, disclaimerWidth, 46).fillAndStroke('#f8fafc', '#cbd5e1');
-      doc.fillColor('#334155').fontSize(7.5).font('Helvetica-Bold').text(
+      doc.fillColor('#334155').fontSize(7.5).font('Body-Bold').text(
         'YASAL UYARI: Bu belge resmi bir SPK Gayrimenkul Değerleme Raporu değildir. Danışmanın piyasa gözlemine ve karşılaştırmalı verilere dayanan gayri resmi bir fiyat analizidir (Karşılaştırmalı Piyasa Analizi / KPA).',
         doc.page.margins.left + 10,
         disclaimerY + 8,
@@ -485,7 +496,7 @@ export class ValuationsService {
       doc.fillColor('#000000');
 
       doc.moveDown(3);
-      doc.fontSize(8).font('Helvetica-Oblique').fillColor('#999999').text(`Rapor tarihi: ${new Date().toLocaleDateString('tr-TR')}`, { align: 'center' });
+      doc.fontSize(8).font('Body-Italic').fillColor('#999999').text(`Rapor tarihi: ${new Date().toLocaleDateString('tr-TR')}`, { align: 'center' });
       doc.fillColor('#000000');
 
       doc.end();
