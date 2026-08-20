@@ -16,10 +16,13 @@ export default function ExpensesTab() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [referenceNo, setReferenceNo] = useState('');
   const [bankAccountId, setBankAccountId] = useState('');
-  const [agentId, setAgentId] = useState('');
-  const [chargebackPercentage, setChargebackPercentage] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // ÇOKLU DANIŞMAN YANSITMA STATE'LERİ
+  const [selectedAgentIds, setSelectedAgentIds] = useState([]);
+  const [splitType, setSplitType] = useState('equal'); // 'equal' | 'custom'
+  const [customAmounts, setCustomAmounts] = useState({}); // { [agentId]: number }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,26 +49,63 @@ export default function ExpensesTab() {
     setDate(new Date().toISOString().slice(0, 10));
     setReferenceNo('');
     setBankAccountId('');
-    setAgentId('');
-    setChargebackPercentage('');
     setIsRecurring(false);
+    setSelectedAgentIds([]);
+    setSplitType('equal');
+    setCustomAmounts({});
+  }
+
+  function handleAgentToggle(id) {
+    if (selectedAgentIds.includes(id)) {
+      setSelectedAgentIds(selectedAgentIds.filter((item) => item !== id));
+      const nextCustom = { ...customAmounts };
+      delete nextCustom[id];
+      setCustomAmounts(nextCustom);
+    } else {
+      setSelectedAgentIds([...selectedAgentIds, id]);
+    }
+  }
+
+  function handleCustomAmountChange(id, val) {
+    setCustomAmounts({
+      ...customAmounts,
+      [id]: val,
+    });
   }
 
   async function handleAdd(e) {
     e.preventDefault();
     if (!title.trim() || !amount || Number(amount) <= 0) return;
     setSaving(true);
+
+    const totalAmount = Number(amount);
+    let chargebacks = [];
+
+    if (selectedAgentIds.length > 0) {
+      if (splitType === 'equal') {
+        const perAgent = Math.round((totalAmount / selectedAgentIds.length) * 100) / 100;
+        chargebacks = selectedAgentIds.map((agentId) => ({
+          agentId,
+          amount: perAgent,
+        }));
+      } else {
+        chargebacks = selectedAgentIds.map((agentId) => ({
+          agentId,
+          amount: Number(customAmounts[agentId]) || 0,
+        }));
+      }
+    }
+
     try {
       await expensesApi.create({
         category,
         title: title.trim(),
-        amount: Number(amount),
+        amount: totalAmount,
         vatRate: vatRate ? Number(vatRate) : undefined,
         date,
         referenceNo: referenceNo.trim() || undefined,
         bankAccountId: bankAccountId || undefined,
-        agentId: agentId || undefined,
-        chargebackPercentage: agentId && chargebackPercentage ? Number(chargebackPercentage) : undefined,
+        chargebacks: chargebacks.length > 0 ? chargebacks : undefined,
         isRecurring,
       });
       resetForm();
@@ -131,42 +171,74 @@ export default function ExpensesTab() {
               ))}
             </select>
           </div>
-          <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
-            <label>Danışman (opsiyonel)</label>
-            <select value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-              <option value="">Seçilmedi</option>
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </div>
-          {agentId && (
-            <div className="form-field" style={{ margin: 0, maxWidth: 170 }}>
-              <label>Yansıtma Oranı %</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={chargebackPercentage}
-                onChange={(e) => setChargebackPercentage(e.target.value)}
-                placeholder="Örn: 50"
-                title="Doldurursan, bu oranda tutar otomatik olarak danışmanın cari hesabına borç yazılır"
-              />
-            </div>
-          )}
+
           <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
             <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} style={{ width: 'auto' }} />
             <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>Sabit Gider (her ay tekrar eden)</label>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={saving || !title.trim() || !amount}>
+
+          {/* ÇOKLU DANIŞMAN MASRAF YANSITMA ALANI */}
+          <div className="form-field full" style={{ marginTop: 10, padding: 12, border: '1px solid var(--paper-line, #e2e8f0)', borderRadius: 6, background: '#f8fafc' }}>
+            <label style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6 }}>👥 Danışmanlara Masraf Yansıt (Opsiyonel)</label>
+            <span style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>Seçtiğiniz danışmanların cari hesaplarına otomatik borç işlenir.</span>
+            
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              {agents.map((ag) => {
+                const isSelected = selectedAgentIds.includes(ag.id);
+                return (
+                  <label key={ag.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 4, background: isSelected ? '#dbeafe' : '#fff', border: isSelected ? '1px solid #3b82f6' : '1px solid #cbd5e1', cursor: 'pointer', fontSize: 12 }}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleAgentToggle(ag.id)}
+                      style={{ width: 'auto' }}
+                    />
+                    {ag.name}
+                  </label>
+                );
+              })}
+            </div>
+
+            {selectedAgentIds.length > 0 && (
+              <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed #cbd5e1' }}>
+                <div style={{ display: 'flex', gap: 15, marginBottom: 8, fontSize: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                    <input type="radio" name="splitType" checked={splitType === 'equal'} onChange={() => setSplitType('equal')} style={{ width: 'auto' }} />
+                    <strong>Eşit Böl</strong> ({amount ? (Number(amount) / selectedAgentIds.length).toFixed(2) : 0} ₺ / kişi)
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                    <input type="radio" name="splitType" checked={splitType === 'custom'} onChange={() => setSplitType('custom')} style={{ width: 'auto' }} />
+                    <strong>Özel Tutar Gir</strong>
+                  </label>
+                </div>
+
+                {splitType === 'custom' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, marginTop: 8 }}>
+                    {selectedAgentIds.map((agId) => {
+                      const agentObj = agents.find((a) => a.id === agId);
+                      return (
+                        <div key={agId} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                          <span style={{ minWidth: 80, fontWeight: 500 }}>{agentObj?.name}:</span>
+                          <input
+                            type="number"
+                            placeholder="₺ Tutar"
+                            value={customAmounts[agId] || ''}
+                            onChange={(e) => handleCustomAmountChange(agId, e.target.value)}
+                            style={{ padding: '2px 6px', fontSize: 12, width: 80 }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button type="submit" className="btn btn-primary" disabled={saving || !title.trim() || !amount} style={{ marginTop: 10 }}>
             {saving ? 'Ekleniyor…' : '+ Gider Ekle'}
           </button>
         </form>
-        {agentId && chargebackPercentage && (
-          <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, marginBottom: 0 }}>
-            Bu gider kaydedildiğinde, {agents.find((a) => a.id === agentId)?.name || 'seçilen danışman'}'ın cari hesabına otomatik olarak <strong>%{chargebackPercentage}</strong> oranında borç yazılacak.
-          </p>
-        )}
       </div>
 
       <div className="folder-panel">
@@ -189,7 +261,6 @@ export default function ExpensesTab() {
               </thead>
               <tbody>
                 {expenses.map((exp) => {
-                  const agent = agents.find((a) => a.id === exp.agentId);
                   const catLabel = EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label;
                   return (
                     <tr key={exp.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
@@ -204,9 +275,22 @@ export default function ExpensesTab() {
                         {exp.vatRate != null && <span style={{ color: 'var(--muted)', fontSize: 11 }}> (KDV %{exp.vatRate})</span>}
                       </td>
                       <td style={{ padding: '8px' }}>
-                        {agent?.name || '—'}
-                        {agent && exp.chargebackPercentage > 0 && (
-                          <span style={{ color: 'var(--muted)', fontSize: 11 }}> (%{exp.chargebackPercentage} yansıtıldı)</span>
+                        {exp.chargebacks && exp.chargebacks.length > 0 ? (
+                          exp.chargebacks.map((cb, idx) => {
+                            const ag = agents.find((a) => a.id === cb.agentId);
+                            return (
+                              <span key={idx} style={{ display: 'inline-block', background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: 3, fontSize: 11, marginRight: 4 }}>
+                                {ag ? ag.name : 'Danışman'}: {formatMoney(cb.amount)}
+                              </span>
+                            );
+                          })
+                        ) : exp.agentId ? (
+                          <span>
+                            {agents.find((a) => a.id === exp.agentId)?.name || 'Danışman'}
+                            {exp.chargebackPercentage > 0 && <span style={{ color: 'var(--muted)', fontSize: 11 }}> (%{exp.chargebackPercentage})</span>}
+                          </span>
+                        ) : (
+                          '—'
                         )}
                       </td>
                       <td style={{ padding: '8px' }}>
