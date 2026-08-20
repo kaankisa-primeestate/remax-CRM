@@ -1,10 +1,19 @@
-import { IsBoolean, IsEnum, IsOptional, IsNumber, IsString, IsUUID } from 'class-validator';
-import { TransactionStage } from '../transaction.entity';
+import { IsEnum, IsOptional, IsString, IsUUID, IsNumber, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { TransactionStage, OfferStatus } from '../transaction.entity';
+
+export class DeedChecklistItemDto {
+  @IsString()
+  key: string;
+
+  @IsString()
+  label: string;
+
+  @IsBoolean()
+  completed: boolean;
+}
 
 export class CreateTransactionDto {
-  // Musteri: ya customerId (sistemde kayitli) ya da externalCustomerLabel
-  // (harici, serbest metin) doldurulur -- ikisi de opsiyonel, en az biri
-  // servis katmaninda kontrol edilir.
   @IsOptional()
   @IsUUID()
   customerId?: string;
@@ -25,9 +34,35 @@ export class CreateTransactionDto {
   @IsEnum(TransactionStage)
   stage?: TransactionStage;
 
+  // Gösterim
+  @IsOptional()
+  @IsString()
+  showingDate?: string;
+
+  @IsOptional()
+  @IsString()
+  showingNote?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  showingFormCreated?: boolean;
+
+  // Teklif
   @IsOptional()
   @IsNumber()
   offerAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  offerValidityDate?: string;
+
+  @IsOptional()
+  @IsEnum(OfferStatus)
+  offerStatus?: OfferStatus;
+
+  @IsOptional()
+  @IsString()
+  offerNote?: string;
 
   @IsOptional()
   @IsNumber()
@@ -37,7 +72,23 @@ export class CreateTransactionDto {
   @IsString()
   depositDate?: string;
 
+  // Tapu Kontrol Listesi
   @IsOptional()
-  @IsBoolean()
-  dealApproved?: boolean;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DeedChecklistItemDto)
+  deedChecklist?: DeedChecklistItemDto[];
+
+  // Komisyon
+  @IsOptional()
+  @IsNumber()
+  totalCommissionAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  agentCommissionAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  officeCommissionAmount?: number;
 }

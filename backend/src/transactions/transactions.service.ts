@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Transaction, TransactionStage } from './transaction.entity';
+import { Transaction, TransactionStage, OfferStatus, DeedChecklistItem } from './transaction.entity';
 import { TransactionNote } from './transaction-note.entity';
 import { TransactionDocument } from './transaction-document.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -18,6 +18,16 @@ import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
+const DEFAULT_DEED_CHECKLIST: DeedChecklistItem[] = [
+  { key: 'identity', label: 'Alıcı & Satıcı Kimlik / Vergi Kimlik Kontrolü', completed: false },
+  { key: 'title_deed', label: 'Tapu Kaydı & Takyidat (Haciz/Ipotek) Kontrolü', completed: false },
+  { key: 'municipality', label: 'Belediye Rayiç Değeri & Borçsuzluk Belgesi', completed: false },
+  { key: 'power_of_attorney', label: 'Vekâletname / Temsil Yetkisi Kontrolü', completed: false },
+  { key: 'dask', label: 'Zorunlu Deprem Sigortası (DASK) Kontrolü', completed: false },
+  { key: 'financials', label: 'Ödeme, Kredi & Bloke Transfer Süreçleri', completed: false },
+  { key: 'deed_appointment', label: 'Web-Tapu Başvurusu & Randevu Onayı', completed: false },
+];
+
 @Injectable()
 export class TransactionsService {
   constructor(
@@ -28,42 +38,30 @@ export class TransactionsService {
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
   ) {}
 
-  // Islemler her zaman olusturan danismana aittir -- Mahremiyet Duvari:
-  // Broker tum islemleri gorebilir, Danisman sadece kendisininkini VE
-  // isbirlikli oldugu (collaboratorAgentId) islemleri gorebilir.
   async create(dto: CreateTransactionDto, currentUser: CurrentUserPayload): Promise<Transaction> {
     if (!dto.customerId && !dto.externalCustomerLabel) {
       throw new BadRequestException('Müşteri seçin ya da harici müşteri bilgisi girin');
     }
-    // Portfoy BILEREK zorunlu tutulmuyor -- bir Talep, henuz hicbir
-    // portfoy belirlenmeden acilabilir (senaryo: "Kadikoy 3+1 ariyor"
-    // gibi sadece kriter bilgisiyle baslar, portfoy sureç ilerledikce
-    // eslesir/eklenir).
+
     const transaction = this.transactionRepo.create({
       ...dto,
       agentId: currentUser.userId,
       stageChangedAt: new Date(),
+      deedChecklist: dto.deedChecklist || DEFAULT_DEED_CHECKLIST,
     });
 
-    // Isbirlikli Satis tespiti: musteri VE portfoy sistemde kayitliysa
-    // (harici degilse) ve ikisinin sahibi FARKLI danismanlarsa, otomatik
-    // olarak isbirlikli isaretlenir -- varsayilan %50/%50 paylasimla,
-    // henuz hic onaylanmamis halde. Harici musteri/portfoy (baska ofis,
-    // sahibinden vb.) icin isbirlik kavrami anlamsiz, atlanir.
     if (dto.customerId && dto.propertyId) {
       const [customer, property] = await Promise.all([
         this.customerRepo.findOne({ where: { id: dto.customerId } }),
         this.propertyRepo.findOne({ where: { id: dto.propertyId } }),
       ]);
       if (customer?.agentId && property?.agentId && customer.agentId !== property.agentId) {
-        // Isleme "sahip" olan (agentId = currentUser) tarafin KARSISINDAKI
-        // taraf isbirlikci olarak isaretlenir.
         const collaborator =
           currentUser.userId === customer.agentId
             ? property.agentId
             : currentUser.userId === property.agentId
               ? customer.agentId
-              : property.agentId; // Broker olusturduysa (ikisi de degilse) varsayilan olarak portfoy sahibi
+              : property.agentId;
         if (collaborator !== currentUser.userId) {
           transaction.collaboratorAgentId = collaborator;
           transaction.commissionSplitPercentage = 50;
@@ -97,11 +95,6 @@ export class TransactionsService {
     return transaction;
   }
 
-  // --- Isbirlikli Satis: paylasim orani degistirme + onaylama ---
-
-  // Taraflardan biri (agentId sahibi VEYA collaboratorAgentId) orani
-  // degistirebilir. Kosullar degistigi icin GUVENLIK amacli iki onay da
-  // sifirlanir -- taraflar YENI orani tekrar onaylamalidir.
   async updateSplit(
     id: string,
     dto: UpdateSplitDto,
@@ -118,8 +111,6 @@ export class TransactionsService {
     return this.transactionRepo.save(transaction);
   }
 
-  // Cagiran kullanici KENDI tarafini onaylar. Iki taraf da onaylayinca
-  // paylasim kesinlesir (splitFinalizedAt doldurulur).
   async approveSplit(id: string, currentUser: CurrentUserPayload): Promise<Transaction> {
     const transaction = await this.findOneOwned(id, currentUser);
     if (!transaction.collaboratorAgentId) {
@@ -145,9 +136,6 @@ export class TransactionsService {
   ): Promise<Transaction> {
     const transaction = await this.findOneOwned(id, currentUser);
 
-    // Tapu Onay Akisi: sadece Broker "dealApproved: true" ayarlayabilir,
-    // ve sadece islem "Kapanis" asamasindaysa (asama da ayni istekte
-    // degisiyor olabilir, o yuzden sonucu hesaplayip kontrol ediyoruz).
     if (dto.dealApproved === true && currentUser.role !== 'broker') {
       throw new ForbiddenException('Bu işlemi sadece Broker onaylayabilir');
     }
@@ -169,10 +157,6 @@ export class TransactionsService {
     }
     const saved = await this.transactionRepo.save(transaction);
 
-    // Kapanis'a gecince, baglantili (harici OLMAYAN) portfoyu otomatik
-    // Satildi/Kiralandi yap -- danismanin elle guncellemeyi unutma
-    // riskini ortadan kaldirir. Harici portfoylerde (externalPropertyLabel)
-    // bizim sistemimizde bir Property kaydi olmadigi icin bu adim atlanir.
     if (justClosed && saved.propertyId) {
       const property = await this.propertyRepo.findOne({ where: { id: saved.propertyId } });
       if (property) {
@@ -191,8 +175,6 @@ export class TransactionsService {
     await this.documentRepo.delete({ transactionId: id });
     await this.transactionRepo.remove(transaction);
   }
-
-  // --- Zaman Akisi: tarihli not gecmisi ---
 
   async getNotes(transactionId: string, currentUser: CurrentUserPayload): Promise<TransactionNote[]> {
     await this.findOneOwned(transactionId, currentUser);
@@ -214,11 +196,6 @@ export class TransactionsService {
     return this.noteRepo.save(note);
   }
 
-  // --- Belgeler: kontrol listesi + dosya yukleme ---
-  // Her "ekleme" yeni bir satir olusturur (gecmis/denetim izi korunur --
-  // eski satirlar silinmez, sadece elle silinirse gider). Bir turun guncel
-  // durumu, o tur icin en son eklenen satira bakilarak belirlenir.
-
   async getDocuments(
     transactionId: string,
     currentUser: CurrentUserPayload,
@@ -233,8 +210,6 @@ export class TransactionsService {
     currentUser: CurrentUserPayload,
   ): Promise<TransactionDocument> {
     await this.findOneOwned(transactionId, currentUser);
-    // Dosya yuklenmisse otomatik olarak "tamamlandi" sayilir; dosyasiz
-    // eklemede completed degeri elle verilen deger ne ise odur (varsayilan false).
     const completed = dto.fileUrl ? true : !!dto.completed;
     const document = this.documentRepo.create({
       transactionId,
@@ -253,7 +228,6 @@ export class TransactionsService {
     if (!document) {
       throw new NotFoundException('Belge bulunamadı');
     }
-    // Mahremiyet Duvari: belgenin bagli oldugu islemin sahibi kontrol edilir.
     await this.findOneOwned(document.transactionId, currentUser);
     await this.documentRepo.remove(document);
   }
