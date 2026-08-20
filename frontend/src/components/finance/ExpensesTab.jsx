@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { expensesApi, EXPENSE_CATEGORIES } from '../../api/expenses';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 import { usersApi } from '../../api/auth';
@@ -19,10 +19,13 @@ export default function ExpensesTab() {
   const [isRecurring, setIsRecurring] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // ÇOKLU DANIŞMAN YANSITMA STATE'LERİ
+  // ÇOKLU DANIŞMAN YANSITMA VE ARAMA STATE'LERİ
   const [selectedAgentIds, setSelectedAgentIds] = useState([]);
   const [splitType, setSplitType] = useState('equal'); // 'equal' | 'custom'
-  const [customAmounts, setCustomAmounts] = useState({}); // { [agentId]: number }
+  const [customAmounts, setCustomAmounts] = useState({});
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
+  const [isAgentMenuOpen, setIsAgentMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +44,17 @@ export default function ExpensesTab() {
     load();
   }, [load]);
 
+  // Menü dışına tıklandığında açılır menüyü kapat
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsAgentMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   function resetForm() {
     setCategory('rent');
     setTitle('');
@@ -53,6 +67,7 @@ export default function ExpensesTab() {
     setSelectedAgentIds([]);
     setSplitType('equal');
     setCustomAmounts({});
+    setAgentSearchQuery('');
   }
 
   function handleAgentToggle(id) {
@@ -72,6 +87,10 @@ export default function ExpensesTab() {
       [id]: val,
     });
   }
+
+  const filteredAgents = agents.filter((ag) =>
+    ag.name.toLowerCase().includes(agentSearchQuery.toLowerCase())
+  );
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -177,30 +196,77 @@ export default function ExpensesTab() {
             <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>Sabit Gider (her ay tekrar eden)</label>
           </div>
 
-          {/* ÇOKLU DANIŞMAN MASRAF YANSITMA ALANI */}
-          <div className="form-field full" style={{ marginTop: 10, padding: 12, border: '1px solid var(--paper-line, #e2e8f0)', borderRadius: 6, background: '#f8fafc' }}>
-            <label style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6 }}>👥 Danışmanlara Masraf Yansıt (Opsiyonel)</label>
-            <span style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 8 }}>Seçtiğiniz danışmanların cari hesaplarına otomatik borç işlenir.</span>
+          {/* ARAMALI VE AÇILIR MENÜLÜ ÇOKLU DANIŞMAN YANSITMA ALANI */}
+          <div className="form-field full" ref={menuRef} style={{ marginTop: 10, padding: 12, border: '1px solid var(--paper-line, #e2e8f0)', borderRadius: 6, background: '#f8fafc', position: 'relative' }}>
+            <label style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'block' }}>👥 Danışmanlara Masraf Yansıt (Opsiyonel)</label>
             
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-              {agents.map((ag) => {
-                const isSelected = selectedAgentIds.includes(ag.id);
-                return (
-                  <label key={ag.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 4, background: isSelected ? '#dbeafe' : '#fff', border: isSelected ? '1px solid #3b82f6' : '1px solid #cbd5e1', cursor: 'pointer', fontSize: 12 }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleAgentToggle(ag.id)}
-                      style={{ width: 'auto' }}
-                    />
-                    {ag.name}
-                  </label>
-                );
-              })}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIsAgentMenuOpen(!isAgentMenuOpen)}
+                style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: 4, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <span>🔍 Danışman Seç / Ara</span>
+                {selectedAgentIds.length > 0 && (
+                  <span style={{ background: '#2563eb', color: '#fff', padding: '1px 6px', borderRadius: 10, fontSize: 11, fontWeight: 'bold' }}>
+                    {selectedAgentIds.length} Seçildi
+                  </span>
+                )}
+                <span style={{ fontSize: 10 }}>▼</span>
+              </button>
+
+              {/* Seçilen Danışmanların Rozetleri */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {selectedAgentIds.map((id) => {
+                  const ag = agents.find((a) => a.id === id);
+                  return (
+                    <span key={id} style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 4, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {ag?.name}
+                      <b onClick={() => handleAgentToggle(id)} style={{ cursor: 'pointer', marginLeft: 2, color: '#ef4444' }}>✕</b>
+                    </span>
+                  );
+                })}
+              </div>
             </div>
 
+            {/* AÇILIR LİSTE (DROPDOWN MODAL) */}
+            {isAgentMenuOpen && (
+              <div style={{ position: 'absolute', top: '100%', left: 12, zIndex: 100, width: 320, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', padding: 10, marginTop: 4 }}>
+                <input
+                  type="text"
+                  placeholder="Danışman adı ara..."
+                  value={agentSearchQuery}
+                  onChange={(e) => setAgentSearchQuery(e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: 4, border: '1px solid #cbd5e1', fontSize: 12, marginBottom: 8 }}
+                  autoFocus
+                />
+
+                <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {filteredAgents.length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#94a3b8', padding: 6, textAlign: 'center' }}>Danışman bulunamadı</div>
+                  ) : (
+                    filteredAgents.map((ag) => {
+                      const isSelected = selectedAgentIds.includes(ag.id);
+                      return (
+                        <label key={ag.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 4, background: isSelected ? '#f1f5f9' : 'transparent', cursor: 'pointer', fontSize: 13 }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleAgentToggle(ag.id)}
+                            style={{ width: 'auto' }}
+                          />
+                          {ag.name}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* BÖLÜŞTÜRME HESAPLAMA ALANI */}
             {selectedAgentIds.length > 0 && (
-              <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed #cbd5e1' }}>
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
                 <div style={{ display: 'flex', gap: 15, marginBottom: 8, fontSize: 12 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
                     <input type="radio" name="splitType" checked={splitType === 'equal'} onChange={() => setSplitType('equal')} style={{ width: 'auto' }} />
