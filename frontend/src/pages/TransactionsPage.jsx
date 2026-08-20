@@ -10,9 +10,6 @@ import { useAuth } from '../context/AuthContext.jsx';
 const money = (n) =>
   n ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : null;
 
-// Hareketsizlik uyarısı: bir işlem son aşama değişiminden bu yana kaç
-// gündür bekliyor -- 7-14 gün "warning" (sarı), 15+ gün "danger" (kırmızı).
-// Kapanış + Broker onaylanmış işlemler tamamlanmış sayılır, uyarı gösterilmez.
 function getStaleness(t) {
   if (t.stage === 'closed' && t.dealApproved) return { level: 'none', days: 0 };
   const since = t.stageChangedAt || t.createdAt;
@@ -25,16 +22,15 @@ function getStaleness(t) {
 
 const DETAIL_TABS = [
   { key: 'summary', label: '📋 Özet' },
-  { key: 'financial', label: '💰 Finansal' },
+  { key: 'showing', label: '👁️ Gösterim' },
+  { key: 'offer', label: '🏷️ Teklif' },
+  { key: 'deed_checklist', label: '📑 Tapu Kontrol' },
+  { key: 'financial', label: '💰 Kapanış & Komisyon' },
   { key: 'docs', label: '📁 Belgeler' },
   { key: 'timeline', label: '🕐 Zaman Akışı' },
   { key: 'collab', label: '🤝 İşbirliği' },
 ];
 
-// Islemler: Talep -> Gosterme -> Teklif -> Tapu -> Kapanis Kanban panosu.
-// Musteri/Portfoy artik OPSIYONEL -- sistemde kayitli olabilir YA DA
-// "harici" (ofis disi) bir taraf icin serbest metin girilebilir. Bir
-// karta tiklaninca 4 sekmeli detay paneli acilir.
 export default function TransactionsPage() {
   const { isBroker, user } = useAuth();
   const navigate = useNavigate();
@@ -43,10 +39,9 @@ export default function TransactionsPage() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [agentRoster, setAgentRoster] = useState([]);
-  const [splitSaving, setSplitSaving] = useState(false);
-  const [splitDraft, setSplitDraft] = useState('');
 
-  const [customerMode, setCustomerMode] = useState('system'); // 'system' | 'external'
+  // Form States
+  const [customerMode, setCustomerMode] = useState('system');
   const [customerId, setCustomerId] = useState('');
   const [externalCustomerLabel, setExternalCustomerLabel] = useState('');
   const [propertyMode, setPropertyMode] = useState('system');
@@ -55,21 +50,41 @@ export default function TransactionsPage() {
   const [offerAmount, setOfferAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Kanban / Drag
   const [draggedId, setDraggedId] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
+
+  // Detail Modal
   const [detailTx, setDetailTx] = useState(null);
   const [activeDetailTab, setActiveDetailTab] = useState('summary');
   const [notes, setNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
-  const [depositAmount, setDepositAmount] = useState('');
-  const [depositDate, setDepositDate] = useState('');
-  const [savingDeposit, setSavingDeposit] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
-  const [uploadingType, setUploadingType] = useState(null); // hangi kalem icin yukleme devam ediyor
+  const [uploadingType, setUploadingType] = useState(null);
   const [otherLabel, setOtherLabel] = useState('');
+
+  // Flow States
+  const [showingDate, setShowingDate] = useState('');
+  const [showingNote, setShowingNote] = useState('');
+  const [savingShowing, setSavingShowing] = useState(false);
+
+  const [offerValidityDate, setOfferValidityDate] = useState('');
+  const [offerStatus, setOfferStatus] = useState('pending');
+  const [offerNote, setOfferNote] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositDate, setDepositDate] = useState('');
+  const [savingOffer, setSavingOffer] = useState(false);
+
+  const [totalCommission, setTotalCommission] = useState('');
+  const [agentCommission, setAgentCommission] = useState('');
+  const [officeCommission, setOfficeCommission] = useState('');
+  const [savingCommission, setSavingCommission] = useState(false);
+
+  const [splitDraft, setSplitDraft] = useState('50');
+  const [splitSaving, setSplitSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,8 +128,6 @@ export default function TransactionsPage() {
       alert(customerMode === 'system' ? 'Lütfen bir müşteri seçin.' : 'Lütfen harici müşteri bilgisi girin.');
       return;
     }
-    // Portfoy BILEREK opsiyonel -- bir Talep, henuz portfoy belirlenmeden
-    // (sadece "ne ariyor" bilgisiyle) acilabilir.
     const hasProperty = propertyMode === 'system' ? !!propertyId : !!externalPropertyLabel.trim();
     setSaving(true);
     try {
@@ -139,33 +152,16 @@ export default function TransactionsPage() {
     setTransactions((prev) => prev.map((t) => (t.id === txId ? { ...t, stage: newStage } : t)));
     try {
       await transactionsApi.update(txId, { stage: newStage });
-    } catch (err) {
+    } catch {
       alert('Aşama güncellenemedi, sayfa yenileniyor.');
       load();
     }
   }
 
-  // Surukle-birak ile asama degistirme -- dropdown'a EK bir secenek olarak
-  // eklendi, dropdown kaldirilmadi (dokunmatik ekranlarda surukleme rahat
-  // calismayabiliyor, dropdown guvenli bir yedek olarak kalsin).
-  function handleDragStart(txId) {
-    setDraggedId(txId);
-  }
-
-  function handleDragEnd() {
-    setDraggedId(null);
-    setDragOverStage(null);
-  }
-
-  function handleColumnDragOver(e, stageValue) {
-    e.preventDefault();
-    if (dragOverStage !== stageValue) setDragOverStage(stageValue);
-  }
-
-  function handleColumnDragLeave(stageValue) {
-    setDragOverStage((prev) => (prev === stageValue ? null : prev));
-  }
-
+  function handleDragStart(txId) { setDraggedId(txId); }
+  function handleDragEnd() { setDraggedId(null); setDragOverStage(null); }
+  function handleColumnDragOver(e, stageValue) { e.preventDefault(); if (dragOverStage !== stageValue) setDragOverStage(stageValue); }
+  function handleColumnDragLeave(stageValue) { setDragOverStage((prev) => (prev === stageValue ? null : prev)); }
   function handleColumnDrop(e, stageValue) {
     e.preventDefault();
     setDragOverStage(null);
@@ -179,17 +175,9 @@ export default function TransactionsPage() {
   async function handleDelete(txId) {
     if (!confirm('Bu işlem silinsin mi?')) return;
     setTransactions((prev) => prev.filter((t) => t.id !== txId));
-    try {
-      await transactionsApi.remove(txId);
-    } catch {
-      alert('İşlem silinemedi, sayfa yenileniyor.');
-      load();
-    }
+    try { await transactionsApi.remove(txId); } catch { load(); }
   }
 
-  // Tapu Onay Akisi: Broker onaylayinca (SADECE Kapanis asamasindaki
-  // islemler icin), bu bilgilerle ON-DOLDURULMUS bir Komisyon formu
-  // acilsin diye Komisyonlar sayfasina yonlendiriyoruz.
   async function handleApproveDeal(t) {
     try {
       await transactionsApi.update(t.id, { dealApproved: true });
@@ -217,9 +205,24 @@ export default function TransactionsPage() {
   async function openDetail(t) {
     setDetailTx(t);
     setActiveDetailTab('summary');
+
+    // Load flow states
+    setShowingDate(t.showingDate ? new Date(t.showingDate).toISOString().slice(0, 16) : '');
+    setShowingNote(t.showingNote || '');
+
+    setOfferAmount(t.offerAmount != null ? String(t.offerAmount) : '');
+    setOfferValidityDate(t.offerValidityDate ? t.offerValidityDate.slice(0, 10) : '');
+    setOfferStatus(t.offerStatus || 'pending');
+    setOfferNote(t.offerNote || '');
     setDepositAmount(t.depositAmount != null ? String(t.depositAmount) : '');
     setDepositDate(t.depositDate ? t.depositDate.slice(0, 10) : '');
+
+    setTotalCommission(t.totalCommissionAmount != null ? String(t.totalCommissionAmount) : '');
+    setAgentCommission(t.agentCommissionAmount != null ? String(t.agentCommissionAmount) : '');
+    setOfficeCommission(t.officeCommissionAmount != null ? String(t.officeCommissionAmount) : '');
+
     setSplitDraft(t.commissionSplitPercentage != null ? String(t.commissionSplitPercentage) : '50');
+
     setNotes([]);
     setDocuments([]);
     setNotesLoading(true);
@@ -227,24 +230,89 @@ export default function TransactionsPage() {
     try {
       const list = await transactionsApi.getNotes(t.id);
       setNotes(list);
-    } catch {
-      setNotes([]);
-    } finally {
-      setNotesLoading(false);
-    }
+    } catch { setNotes([]); } finally { setNotesLoading(false); }
+
     try {
       const docs = await transactionsApi.getDocuments(t.id);
       setDocuments(docs);
-    } catch {
-      setDocuments([]);
-    } finally {
-      setDocumentsLoading(false);
-    }
+    } catch { setDocuments([]); } finally { setDocumentsLoading(false); }
   }
 
-  function closeDetail() {
-    setDetailTx(null);
-    setNewNote('');
+  function closeDetail() { setDetailTx(null); setNewNote(''); }
+
+  // --- FAZ 1 AKIŞ YÖNETİMİ METOTLARI ---
+
+  async function handleSaveShowing() {
+    if (!detailTx) return;
+    setSavingShowing(true);
+    try {
+      const updated = await transactionsApi.update(detailTx.id, {
+        showingDate: showingDate ? new Date(showingDate).toISOString() : undefined,
+        showingNote: showingNote || undefined,
+        stage: 'showing',
+      });
+      setDetailTx(updated);
+      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      alert('Gösterim bilgileri kaydedildi ve aşama Gösterme olarak güncellendi.');
+    } catch { alert('Gösterim kaydedilemedi.'); } finally { setSavingShowing(false); }
+  }
+
+  function handleSendWhatsAppShowing() {
+    if (!detailTx) return;
+    const cust = customers.find((c) => c.id === detailTx.customerId);
+    const prop = properties.find((p) => p.id === detailTx.propertyId);
+    const phone = cust?.phone?.replace(/\D/g, '');
+    if (!phone) return alert('Müşterinin telefon numarası bulunamadı.');
+
+    const msg = encodeURIComponent(`Merhaba ${cust?.firstName}, ${prop?.title || 'portföyümüz'} için gösterim randevunuz oluşturulmuştur. Tarih: ${showingDate ? new Date(showingDate).toLocaleString('tr-TR') : 'Belirtilmedi'}. İyi günler dileriz.`);
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+  }
+
+  async function handleSaveOffer() {
+    if (!detailTx) return;
+    setSavingOffer(true);
+    try {
+      const updated = await transactionsApi.update(detailTx.id, {
+        offerAmount: offerAmount ? Number(offerAmount) : undefined,
+        offerValidityDate: offerValidityDate || undefined,
+        offerStatus,
+        offerNote: offerNote || undefined,
+        depositAmount: depositAmount ? Number(depositAmount) : undefined,
+        depositDate: depositDate || undefined,
+        stage: 'offer',
+      });
+      setDetailTx(updated);
+      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      alert('Teklif detayları başarıyla kaydedildi.');
+    } catch { alert('Teklif bilgisi kaydedilemedi.'); } finally { setSavingOffer(false); }
+  }
+
+  async function handleToggleDeedChecklist(key) {
+    if (!detailTx || !detailTx.deedChecklist) return;
+    const updatedList = detailTx.deedChecklist.map((item) =>
+      item.key === key ? { ...item, completed: !item.completed } : item
+    );
+    try {
+      const updated = await transactionsApi.update(detailTx.id, { deedChecklist: updatedList });
+      setDetailTx(updated);
+      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch { alert('Kontrol maddesi güncellenemedi.'); }
+  }
+
+  async function handleSaveCommissionAndClose() {
+    if (!detailTx) return;
+    setSavingCommission(true);
+    try {
+      const updated = await transactionsApi.update(detailTx.id, {
+        totalCommissionAmount: totalCommission ? Number(totalCommission) : undefined,
+        agentCommissionAmount: agentCommission ? Number(agentCommission) : undefined,
+        officeCommissionAmount: officeCommission ? Number(officeCommission) : undefined,
+        stage: 'closed',
+      });
+      setDetailTx(updated);
+      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      alert('Kapanış & Komisyon dökümü kaydedildi. İşlem Broker onayına gönderildi.');
+    } catch { alert('Komisyon kaydedilemedi.'); } finally { setSavingCommission(false); }
   }
 
   async function handleAddNote() {
@@ -254,19 +322,10 @@ export default function TransactionsPage() {
       const saved = await transactionsApi.addNote(detailTx.id, newNote.trim());
       setNotes((prev) => [saved, ...prev]);
       setNewNote('');
-    } catch {
-      alert('Not eklenemedi, tekrar deneyin.');
-    } finally {
-      setSavingNote(false);
-    }
+    } catch { alert('Not eklenemedi.'); } finally { setSavingNote(false); }
   }
 
-  // Belgeler: bir kontrol listesi kaleminin en son eklenen satiri, o kalemin
-  // guncel durumunu gosterir (yeni satir eskisinin "uzerine" yazar, gecmis
-  // silinmez).
-  function latestDocFor(docType) {
-    return documents.find((d) => d.docType === docType) || null; // documents zaten createdAt DESC sirali geliyor
-  }
+  function latestDocFor(docType) { return documents.find((d) => d.docType === docType) || null; }
 
   async function handleUploadDocument(docType, file, label) {
     if (!detailTx || !file) return;
@@ -281,11 +340,7 @@ export default function TransactionsPage() {
       });
       setDocuments((prev) => [saved, ...prev]);
       if (docType === 'other') setOtherLabel('');
-    } catch {
-      alert('Dosya yüklenemedi, tekrar deneyin.');
-    } finally {
-      setUploadingType(null);
-    }
+    } catch { alert('Dosya yüklenemedi.'); } finally { setUploadingType(null); }
   }
 
   async function handleMarkDocumentDone(docType) {
@@ -294,43 +349,25 @@ export default function TransactionsPage() {
     try {
       const saved = await transactionsApi.addDocument(detailTx.id, { docType, completed: true });
       setDocuments((prev) => [saved, ...prev]);
-    } catch {
-      alert('İşaretlenemedi, tekrar deneyin.');
-    } finally {
-      setUploadingType(null);
-    }
+    } catch { alert('İşaretlenemedi.'); } finally { setUploadingType(null); }
   }
 
   async function handleDeleteDocument(documentId) {
     if (!confirm('Bu belge silinsin mi?')) return;
     setDocuments((prev) => prev.filter((d) => d.id !== documentId));
-    try {
-      await transactionsApi.removeDocument(documentId);
-    } catch {
-      alert('Belge silinemedi, sayfa yenileniyor.');
-      if (detailTx) openDetail(detailTx);
-    }
+    try { await transactionsApi.removeDocument(documentId); } catch { if (detailTx) openDetail(detailTx); }
   }
-
-  // --- Isbirlikli Satis: paylasim orani degistirme + onaylama ---
 
   async function handleUpdateSplit() {
     if (!detailTx) return;
     const pct = Number(splitDraft);
-    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
-      alert('Lütfen 0-100 arasında geçerli bir oran girin.');
-      return;
-    }
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) return alert('Geçerli oran girin.');
     setSplitSaving(true);
     try {
       const updated = await transactionsApi.updateSplit(detailTx.id, pct);
       setDetailTx(updated);
       setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-    } catch {
-      alert('Paylaşım oranı güncellenemedi, tekrar deneyin.');
-    } finally {
-      setSplitSaving(false);
-    }
+    } catch { alert('Güncellenemedi.'); } finally { setSplitSaving(false); }
   }
 
   async function handleApproveSplit() {
@@ -340,28 +377,7 @@ export default function TransactionsPage() {
       const updated = await transactionsApi.approveSplit(detailTx.id);
       setDetailTx(updated);
       setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-    } catch {
-      alert('Onaylanamadı, tekrar deneyin.');
-    } finally {
-      setSplitSaving(false);
-    }
-  }
-
-  async function handleSaveDeposit() {
-    if (!detailTx) return;
-    setSavingDeposit(true);
-    try {
-      const updated = await transactionsApi.update(detailTx.id, {
-        depositAmount: depositAmount ? Number(depositAmount) : undefined,
-        depositDate: depositDate || undefined,
-      });
-      setDetailTx(updated);
-      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-    } catch {
-      alert('Kaparo bilgisi kaydedilemedi, tekrar deneyin.');
-    } finally {
-      setSavingDeposit(false);
-    }
+    } catch { alert('Onaylanamadı.'); } finally { setSplitSaving(false); }
   }
 
   const detailCustomer = detailTx ? customers.find((c) => c.id === detailTx.customerId) : null;
@@ -369,7 +385,7 @@ export default function TransactionsPage() {
 
   return (
     <div>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>İşlemler</h2>
+      <h2 className="dossier__name" style={{ marginBottom: 16 }}>İşlemler (Uçtan Uca Takip)</h2>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni İşlem Başlat</h3>
@@ -388,11 +404,11 @@ export default function TransactionsPage() {
                 ))}
               </select>
             ) : (
-              <input value={externalCustomerLabel} onChange={(e) => setExternalCustomerLabel(e.target.value)} placeholder="Örn: Zeynep Hanım (0555...) - başka ofis" />
+              <input value={externalCustomerLabel} onChange={(e) => setExternalCustomerLabel(e.target.value)} placeholder="Örn: Zeynep Hanım (0555...)" />
             )}
           </div>
           <div className="form-field" style={{ margin: 0, minWidth: 200 }}>
-            <label>Portföy (opsiyonel — henüz belirlenmemişse boş bırakabilirsin)</label>
+            <label>Portföy (opsiyonel)</label>
             <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
               <button type="button" className={propertyMode === 'system' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setPropertyMode('system')}>Sistemde Kayıtlı</button>
               <button type="button" className={propertyMode === 'external' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setPropertyMode('external')}>Harici</button>
@@ -405,7 +421,7 @@ export default function TransactionsPage() {
                 ))}
               </select>
             ) : (
-              <input value={externalPropertyLabel} onChange={(e) => setExternalPropertyLabel(e.target.value)} placeholder="Örn: Sahibinden ilanı - Kadıköy 3+1" />
+              <input value={externalPropertyLabel} onChange={(e) => setExternalPropertyLabel(e.target.value)} placeholder="Örn: Kadıköy 3+1 Daire" />
             )}
           </div>
           <div className="form-field" style={{ margin: 0 }}>
@@ -459,36 +475,22 @@ export default function TransactionsPage() {
                           onDragEnd={handleDragEnd}
                         >
                           {staleness.level !== 'none' && (
-                            <div
-                              className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'}
-                              title="Bu işlem uzun süredir bu aşamada bekliyor"
-                            >
-                              ⏱ {staleness.days} gündür bu aşamada
+                            <div className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'}>
+                              ⏱ {staleness.days} gündür bekliyor
                             </div>
                           )}
                           {t.collaboratorAgentId && (
-                            <div
-                              className="staleness-badge"
-                              style={{
-                                background: t.splitFinalizedAt ? '#e6f4ea' : '#eef3f9',
-                                color: t.splitFinalizedAt ? '#1e7a3d' : 'var(--ink-navy)',
-                                marginBottom: 6,
-                              }}
-                              title={t.splitFinalizedAt ? 'Komisyon paylaşımı kesinleşti' : 'Komisyon paylaşımı onay bekliyor'}
-                            >
+                            <div className="staleness-badge" style={{ background: t.splitFinalizedAt ? '#e6f4ea' : '#eef3f9', color: t.splitFinalizedAt ? '#1e7a3d' : 'var(--ink-navy)', marginBottom: 6 }}>
                               🤝 İşbirlikli{t.splitFinalizedAt ? '' : ' · onay bekliyor'}
                             </div>
                           )}
                           <div className="transaction-card__title" onClick={() => openDetail(t)} style={{ cursor: 'pointer' }}>
-                            {property ? property.title : (t.externalPropertyLabel || (t.propertyId ? 'Portföy silinmiş' : '📋 Portföy henüz belirlenmedi'))}
-                            {!property && t.externalPropertyLabel && <span className="external-tag"> harici</span>}
+                            {property ? property.title : (t.externalPropertyLabel || '📋 Portföy Belirlenmedi')}
                           </div>
                           <div className="transaction-card__meta">
                             {customer ? (
                               <Link to={`/musteriler/${customer.id}`}>{customer.firstName} {customer.lastName}</Link>
-                            ) : (t.externalCustomerLabel || 'Müşteri silinmiş')}
-                            {!customer && t.externalCustomerLabel && <span className="external-tag"> harici</span>}
-                            {customer && ` · ${CUSTOMER_TYPES.find((ct) => ct.value === customer.type)?.label}`}
+                            ) : (t.externalCustomerLabel || 'Müşteri Silinmiş')}
                           </div>
                           {t.offerAmount && (
                             <div className="transaction-card__offer">{money(t.offerAmount)}</div>
@@ -499,21 +501,12 @@ export default function TransactionsPage() {
                             </div>
                           )}
                           {t.stage === 'closed' && !t.dealApproved && isBroker && (
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }}
-                              onClick={() => handleApproveDeal(t)}
-                            >
+                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }} onClick={() => handleApproveDeal(t)}>
                               ✓ Onayla ve Komisyon Aç
                             </button>
                           )}
                           <div className="transaction-card__actions">
-                            <select
-                              value={t.stage}
-                              onChange={(e) => handleStageChange(t.id, e.target.value)}
-                              className="transaction-card__stage-select"
-                            >
+                            <select value={t.stage} onChange={(e) => handleStageChange(t.id, e.target.value)} className="transaction-card__stage-select">
                               {TRANSACTION_STAGES.map((s) => (
                                 <option key={s.value} value={s.value}>{s.label}</option>
                               ))}
@@ -532,309 +525,198 @@ export default function TransactionsPage() {
         )}
       </div>
 
+      {/* DETAY VE SÜREÇ YÖNETİMİ MODAL PANELİ */}
       {detailTx && (
         <div className="modal-backdrop" onClick={closeDetail}>
-          <div className="modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: 700 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ margin: 0 }}>{detailProperty?.title || detailTx.externalPropertyLabel || 'İşlem Detayı'}</h2>
+              <h2 style={{ margin: 0 }}>{detailProperty?.title || detailTx.externalPropertyLabel || 'İşlem Yönetimi'}</h2>
               <button type="button" className="office-modal__close" onClick={closeDetail}>✕</button>
             </div>
 
             <div className="folder-tabs" style={{ flexWrap: 'wrap' }}>
-              {DETAIL_TABS.map((tab) => {
-                let label = tab.label;
-                if (tab.key === 'docs' && documents.length > 0) {
-                  const doneCount = TRANSACTION_DOC_TYPES.filter((dt) => latestDocFor(dt.value)?.completed).length;
-                  label = `${tab.label} (${doneCount}/${TRANSACTION_DOC_TYPES.length})`;
-                }
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    className={`folder-tab${activeDetailTab === tab.key ? ' active' : ''}`}
-                    onClick={() => setActiveDetailTab(tab.key)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+              {DETAIL_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`folder-tab${activeDetailTab === tab.key ? ' active' : ''}`}
+                  onClick={() => setActiveDetailTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-            <div className="finance-tab-content" style={{ maxHeight: '55vh', overflowY: 'auto', paddingTop: 16 }}>
+            <div className="finance-tab-content" style={{ maxHeight: '60vh', overflowY: 'auto', paddingTop: 16 }}>
+              {/* ÖZET SEKMESİ */}
               {activeDetailTab === 'summary' && (
                 <div>
-                  <h4 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Müşteri / Alıcı</h4>
-                  {detailCustomer ? (
-                    <p style={{ fontSize: 14 }}>
-                      <Link to={`/musteriler/${detailCustomer.id}`}>{detailCustomer.firstName} {detailCustomer.lastName}</Link>
-                      {detailCustomer.phone && ` · ${detailCustomer.phone}`}
-                    </p>
-                  ) : (
-                    <p style={{ fontSize: 14, color: 'var(--muted)' }}>{detailTx.externalCustomerLabel || '—'} (harici)</p>
-                  )}
-
-                  <h4 style={{ fontFamily: 'var(--font-display)' }}>Portföy</h4>
-                  {detailProperty ? (
-                    <p style={{ fontSize: 14 }}>
-                      <Link to={`/portfoyler/${detailProperty.id}`}>{detailProperty.title}</Link>
-                      {' · '}{detailProperty.district}
-                    </p>
-                  ) : (
-                    <p style={{ fontSize: 14, color: 'var(--muted)' }}>
-                      {detailTx.externalPropertyLabel ? `${detailTx.externalPropertyLabel} (harici)` : 'Henüz belirlenmedi — süreç ilerledikçe eklenebilir.'}
-                    </p>
-                  )}
-
-                  {detailProperty && (detailProperty.ownerName || detailProperty.ownerPhone) && (
-                    <>
-                      <h4 style={{ fontFamily: 'var(--font-display)' }}>Satıcı / Mülk Sahibi</h4>
-                      <p style={{ fontSize: 14 }}>
-                        {detailProperty.ownerName || '—'}
-                        {detailProperty.ownerPhone && ` · ${detailProperty.ownerPhone}`}
-                      </p>
-                    </>
-                  )}
+                  <h4 style={{ marginTop: 0 }}>Müşteri: {detailCustomer ? `${detailCustomer.firstName} ${detailCustomer.lastName}` : (detailTx.externalCustomerLabel || '—')}</h4>
+                  <h4>Portföy: {detailProperty ? detailProperty.title : (detailTx.externalPropertyLabel || '—')}</h4>
+                  <p>Mevcut Aşama: <strong>{TRANSACTION_STAGES.find((s) => s.value === detailTx.stage)?.label}</strong></p>
                 </div>
               )}
 
-              {activeDetailTab === 'financial' && (
+              {/* GÖSTERİM SEKMESİ (7.2) */}
+              {activeDetailTab === 'showing' && (
                 <div>
-                  <h4 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Teklif Tutarı</h4>
-                  <p style={{ fontSize: 18, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{money(detailTx.offerAmount) || '—'}</p>
+                  <h4>👁️ Yer Gösterme & Buluşma Detayları</h4>
+                  <div className="form-field" style={{ marginBottom: 10 }}>
+                    <label>Gösterim Tarihi & Saati</label>
+                    <input type="datetime-local" value={showingDate} onChange={(e) => setShowingDate(e.target.value)} />
+                  </div>
+                  <div className="form-field" style={{ marginBottom: 10 }}>
+                    <label>Gösterim Notları & Geri Bildirim</label>
+                    <textarea rows="3" value={showingNote} onChange={(e) => setShowingNote(e.target.value)} placeholder="Müşteri beğendi mi? Fiyat hakkında ne düşündü?" style={{ width: '100%', padding: 8 }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveShowing} disabled={savingShowing}>
+                      {savingShowing ? 'Kaydediliyor…' : 'Gösterim Bilgisini Kaydet'}
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={handleSendWhatsAppShowing}>
+                      💬 WhatsApp Randevu Mesajı Gönder
+                    </button>
+                  </div>
+                </div>
+              )}
 
-                  <h4 style={{ fontFamily: 'var(--font-display)' }}>Kaparo / Depozito</h4>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                    <div className="form-field" style={{ margin: 0 }}>
-                      <label>Tutar</label>
-                      <input type="number" min="0" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} style={{ width: 130 }} />
+              {/* TEKLİF SEKMESİ (7.3) */}
+              {activeDetailTab === 'offer' && (
+                <div>
+                  <h4>🏷️ Teklif & Kaparo Yönetimi</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                    <div className="form-field">
+                      <label>Teklif Tutarı (TL)</label>
+                      <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} placeholder="0.00" />
                     </div>
-                    <div className="form-field" style={{ margin: 0 }}>
-                      <label>Tarih</label>
+                    <div className="form-field">
+                      <label>Teklif Geçerlilik Tarihi</label>
+                      <input type="date" value={offerValidityDate} onChange={(e) => setOfferValidityDate(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="form-field" style={{ marginBottom: 10 }}>
+                    <label>Teklif Durumu</label>
+                    <select value={offerStatus} onChange={(e) => setOfferStatus(e.target.value)}>
+                      <option value="pending">⏳ Beklemede</option>
+                      <option value="accepted">✅ Kabul Edildi</option>
+                      <option value="rejected">❌ Reddedildi</option>
+                      <option value="withdrawn">↩️ Geri Çekildi</option>
+                    </select>
+                  </div>
+                  <div className="form-field" style={{ marginBottom: 10 }}>
+                    <label>Teklif Açıklaması / Notlar</label>
+                    <input type="text" value={offerNote} onChange={(e) => setOfferNote(e.target.value)} placeholder="Örn: Mutfak dolaplarının yapılması şartıyla teklif verildi" />
+                  </div>
+
+                  <h5 style={{ marginTop: 15, marginBottom: 5 }}>Kaparo / Depozito</h5>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                    <div className="form-field">
+                      <label>Kaparo Tutarı (TL)</label>
+                      <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="0.00" />
+                    </div>
+                    <div className="form-field">
+                      <label>Kaparo Tarihi</label>
                       <input type="date" value={depositDate} onChange={(e) => setDepositDate(e.target.value)} />
                     </div>
-                    <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} disabled={savingDeposit} onClick={handleSaveDeposit}>
-                      {savingDeposit ? 'Kaydediliyor…' : 'Kaydet'}
-                    </button>
                   </div>
-                  <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 14 }}>
-                    Komisyon oranı ve payı, işlem Kapanış aşamasına geldiğinde Komisyonlar sayfasında belirlenir.
-                  </p>
+
+                  <button type="button" className="btn btn-primary" onClick={handleSaveOffer} disabled={savingOffer}>
+                    {savingOffer ? 'Kaydediliyor…' : 'Teklif & Kaparo Bilgilerini Kaydet'}
+                  </button>
                 </div>
               )}
 
+              {/* TAPU KONTROL LİSTESİ (7.4) */}
+              {activeDetailTab === 'deed_checklist' && (
+                <div>
+                  <h4>📑 Tapu Öncesi Kontrol Listesi</h4>
+                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>Satış/Kapanış öncesinde tamamlanması gereken resmi adımları işaretleyin:</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+                    {detailTx.deedChecklist?.map((item) => (
+                      <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: item.completed ? '#e6f4ea' : '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={item.completed}
+                          onChange={() => handleToggleDeedChecklist(item.key)}
+                          style={{ width: 'auto' }}
+                        />
+                        <span style={{ fontSize: 13, fontWeight: item.completed ? 'bold' : 'normal', color: item.completed ? '#1e7a3d' : 'inherit' }}>
+                          {item.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* KAPANIS VE KOMISYON (7.5) */}
+              {activeDetailTab === 'financial' && (
+                <div>
+                  <h4>💰 Kapanış & Komisyon Dökümü</h4>
+                  <div className="form-field" style={{ marginBottom: 10 }}>
+                    <label>Toplam Hizmet Bedeli / Komisyon (TL)</label>
+                    <input type="number" value={totalCommission} onChange={(e) => setTotalCommission(e.target.value)} placeholder="0.00" />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                    <div className="form-field">
+                      <label>Danışman Payı (TL)</label>
+                      <input type="number" value={agentCommission} onChange={(e) => setAgentCommission(e.target.value)} placeholder="0.00" />
+                    </div>
+                    <div className="form-field">
+                      <label>Ofis Payı (TL)</label>
+                      <input type="number" value={officeCommission} onChange={(e) => setOfficeCommission(e.target.value)} placeholder="0.00" />
+                    </div>
+                  </div>
+                  <button type="button" className="btn btn-primary" onClick={handleSaveCommissionAndClose} disabled={savingCommission} style={{ marginTop: 10 }}>
+                    {savingCommission ? 'İşlem Onaya Gönderiliyor…' : '✓ Kapanışı Yap & Broker Onayına Gönder'}
+                  </button>
+                </div>
+              )}
+
+              {/* BELGELER SEKMESİ */}
               {activeDetailTab === 'docs' && (
                 <div>
-                  {documentsLoading ? (
-                    <div className="empty-state">Yükleniyor…</div>
-                  ) : (
-                    <>
-                      <div className="doc-checklist">
-                        {TRANSACTION_DOC_TYPES.map((docType) => {
-                          const latest = latestDocFor(docType.value);
-                          const isDone = !!latest?.completed;
-                          const isUploading = uploadingType === docType.value;
-                          return (
-                            <div key={docType.value} className={`doc-checklist__item${isDone ? ' doc-checklist__item--done' : ''}`}>
-                              <div className="doc-checklist__header">
-                                <span className="doc-checklist__check">{isDone ? '✅' : '⬜'}</span>
-                                <span className="doc-checklist__title">{docType.label}</span>
-                              </div>
-                              {latest?.fileUrl ? (
-                                <a href={latest.fileUrl} target="_blank" rel="noreferrer" className="doc-checklist__file">
-                                  📎 {latest.fileName || 'Dosyayı görüntüle'}
-                                </a>
-                              ) : (
-                                <div className="doc-checklist__actions">
-                                  <label className="btn btn-secondary doc-checklist__upload-btn">
-                                    {isUploading ? 'Yükleniyor…' : '📎 Dosya Yükle'}
-                                    <input
-                                      type="file"
-                                      style={{ display: 'none' }}
-                                      disabled={isUploading}
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleUploadDocument(docType.value, file);
-                                        e.target.value = '';
-                                      }}
-                                    />
-                                  </label>
-                                  {!isDone && (
-                                    <button
-                                      type="button"
-                                      className="btn btn-secondary"
-                                      style={{ fontSize: 11, padding: '4px 8px' }}
-                                      disabled={isUploading}
-                                      onClick={() => handleMarkDocumentDone(docType.value)}
-                                    >
-                                      Dosyasız Tamamlandı İşaretle
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                              {latest && (
-                                <button
-                                  type="button"
-                                  className="doc-checklist__remove"
-                                  onClick={() => handleDeleteDocument(latest.id)}
-                                >
-                                  Kaldır
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <h4 style={{ fontFamily: 'var(--font-display)', marginTop: 18 }}>Diğer Belgeler</h4>
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                        <div className="form-field" style={{ margin: 0, flex: 1, minWidth: 160 }}>
-                          <label>Belge Adı</label>
-                          <input value={otherLabel} onChange={(e) => setOtherLabel(e.target.value)} placeholder="Örn: Vekaletname, Ekspertiz Raporu" />
-                        </div>
-                        <label className={`btn btn-primary doc-checklist__upload-btn${!otherLabel.trim() ? ' is-disabled' : ''}`}>
-                          {uploadingType === 'other' ? 'Yükleniyor…' : '+ Dosya Ekle'}
-                          <input
-                            type="file"
-                            style={{ display: 'none' }}
-                            disabled={!otherLabel.trim() || uploadingType === 'other'}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file && otherLabel.trim()) handleUploadDocument('other', file, otherLabel.trim());
-                              e.target.value = '';
-                            }}
-                          />
+                  {TRANSACTION_DOC_TYPES.map((dt) => {
+                    const latest = latestDocFor(dt.value);
+                    return (
+                      <div key={dt.value} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
+                        <span>{dt.label} {latest?.completed ? '✅' : '⬜'}</span>
+                        <label className="btn btn-secondary" style={{ fontSize: 11 }}>
+                          Yükle <input type="file" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleUploadDocument(dt.value, e.target.files[0])} />
                         </label>
                       </div>
-                      {documents.filter((d) => d.docType === 'other').length === 0 ? (
-                        <div className="empty-state">Henüz ek belge eklenmemiş.</div>
-                      ) : (
-                        documents.filter((d) => d.docType === 'other').map((d) => (
-                          <div key={d.id} className="ledger-history-item">
-                            <span style={{ flex: 1 }}>{d.label || 'Diğer Belge'}</span>
-                            {d.fileUrl && (
-                              <a href={d.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>
-                                📎 {d.fileName || 'Görüntüle'}
-                              </a>
-                            )}
-                            <button type="button" className="task-row__delete" onClick={() => handleDeleteDocument(d.id)} title="Sil">✕</button>
-                          </div>
-                        ))
-                      )}
-                    </>
-                  )}
+                    );
+                  })}
                 </div>
               )}
 
+              {/* ZAMAN AKIŞI SEKMESİ */}
               {activeDetailTab === 'timeline' && (
                 <div>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                    <input
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      placeholder="Örn: Müşteri 9.500.000 teklif etti"
-                      style={{ flex: 1 }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                    />
-                    <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '6px 14px' }} disabled={savingNote || !newNote.trim()} onClick={handleAddNote}>
-                      {savingNote ? '…' : 'Ekle'}
-                    </button>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                    <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="İşlem notu..." style={{ flex: 1 }} />
+                    <button type="button" className="btn btn-primary" onClick={handleAddNote}>Ekle</button>
                   </div>
-                  {notesLoading ? (
-                    <div className="empty-state">Yükleniyor…</div>
-                  ) : notes.length === 0 ? (
-                    <div className="empty-state">Henüz not eklenmemiş.</div>
-                  ) : (
-                    notes.map((n) => (
-                      <div key={n.id} className="ledger-history-item">
-                        <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 12, whiteSpace: 'nowrap' }}>
-                          {new Date(n.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                        </span>
-                        <span style={{ flex: 1 }}>{n.text}</span>
-                        <span style={{ color: 'var(--muted)', fontSize: 11 }}>{n.authorName}</span>
-                      </div>
-                    ))
-                  )}
+                  {notes.map((n) => (
+                    <div key={n.id} style={{ fontSize: 12, borderBottom: '1px solid #eee', padding: '4px 0' }}>
+                      <strong>{n.authorName}:</strong> {n.text}
+                    </div>
+                  ))}
                 </div>
               )}
 
+              {/* İŞBİRLİĞİ SEKMESİ */}
               {activeDetailTab === 'collab' && (
                 <div>
-                  {!detailTx?.collaboratorAgentId ? (
-                    <div className="finance-placeholder" style={{ margin: '0 auto' }}>
-                      <div className="finance-placeholder__icon">🤝</div>
-                      <div className="finance-placeholder__title">İşbirlikli Satış Değil</div>
-                      <p className="finance-placeholder__text">
-                        Bu işlemde müşteri ve portföy aynı danışmana ait (ya da biri harici) — işbirliği paylaşımı gerekmiyor.
-                      </p>
+                  {detailTx?.collaboratorAgentId ? (
+                    <div>
+                      <p>Müşteri & Portföy sahibi farklı danışmanlardır. İşbirlikli satış aktiftir.</p>
+                      <input type="number" value={splitDraft} onChange={(e) => setSplitDraft(e.target.value)} style={{ width: 80 }} /> % Pay
+                      <button type="button" className="btn btn-secondary" onClick={handleUpdateSplit} disabled={splitSaving}>Güncelle</button>
+                      <button type="button" className="btn btn-primary" onClick={handleApproveSplit} disabled={splitSaving}>Onayla</button>
                     </div>
                   ) : (
-                    <div>
-                      <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 0 }}>
-                        Bu işlemde müşteri ve portföy <strong>farklı danışmanlara</strong> ait olduğu için otomatik olarak işbirlikli işaretlendi. Komisyon paylaşımının kesinleşmesi için <strong>her iki danışmanın da</strong> kendi ekranından onaylaması gerekir.
-                      </p>
-
-                      <div className="agent-card__profile-info" style={{ marginBottom: 16 }}>
-                        <div className="agent-card__info-group">
-                          <div className="agent-card__info-title">Taraflar</div>
-                          <div className="agent-card__info-text">
-                            {agentNameFor(detailTx.agentId)} (işlem sahibi) ↔ {agentNameFor(detailTx.collaboratorAgentId)} (işbirlikçi)
-                          </div>
-                        </div>
-                        <div className="agent-card__info-group">
-                          <div className="agent-card__info-title">Onay Durumu</div>
-                          <div className="agent-card__info-text">
-                            {detailTx.splitFinalizedAt ? (
-                              <span style={{ color: '#1e7a3d', fontWeight: 600 }}>✅ Kesinleşti ({new Date(detailTx.splitFinalizedAt).toLocaleDateString('tr-TR')})</span>
-                            ) : (
-                              <>
-                                {detailTx.splitApprovedByOwner ? '✅' : '⬜'} {agentNameFor(detailTx.agentId)}
-                                {'  ·  '}
-                                {detailTx.splitApprovedByCollaborator ? '✅' : '⬜'} {agentNameFor(detailTx.collaboratorAgentId)}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
-                        <div className="form-field" style={{ margin: 0 }}>
-                          <label>{agentNameFor(detailTx.agentId)} Payı (%)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={splitDraft}
-                            onChange={(e) => setSplitDraft(e.target.value)}
-                            style={{ width: 90 }}
-                          />
-                        </div>
-                        <span style={{ fontSize: 12, color: 'var(--muted)', paddingBottom: 8 }}>
-                          {agentNameFor(detailTx.collaboratorAgentId)} payı: %{splitDraft !== '' && !Number.isNaN(Number(splitDraft)) ? (100 - Number(splitDraft)).toFixed(1) : '—'}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          disabled={splitSaving}
-                          onClick={handleUpdateSplit}
-                        >
-                          Oranı Güncelle
-                        </button>
-                        {!detailTx.splitFinalizedAt && (
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            disabled={splitSaving}
-                            onClick={handleApproveSplit}
-                          >
-                            {splitSaving ? '…' : 'Kendi Payımı Onayla'}
-                          </button>
-                        )}
-                      </div>
-                      <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>
-                        Not: Oranı değiştirmek, her iki tarafın onayını sıfırlar — taraflar yeni oranı tekrar onaylamalıdır. Bu paylaşım oranı bilgi amaçlıdır; gerçek komisyon kayıtları Finans → Komisyonlar bölümünden ayrıca girilmelidir.
-                      </p>
-                    </div>
+                    <p>İşbirlikli satış değil.</p>
                   )}
                 </div>
               )}
