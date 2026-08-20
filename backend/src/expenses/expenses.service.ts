@@ -18,10 +18,6 @@ export class ExpensesService {
     const expense = this.expenseRepo.create(dto);
     const saved = await this.expenseRepo.save(expense);
 
-    // Banka hesabi secildiyse, o hesaptan otomatik bir "cikis" hareketi
-    // olustur -- boylece banka bakiyesi elle tekrar girmeye gerek kalmadan
-    // senkron kalir. Kaynak olarak 'expense' + bu gideri isaretliyoruz,
-    // ki gider silinince ayni hareket de silinsin.
     if (dto.bankAccountId) {
       const transaction = this.bankTransactionRepo.create({
         bankAccountId: dto.bankAccountId,
@@ -35,17 +31,28 @@ export class ExpensesService {
       await this.bankTransactionRepo.save(transaction);
     }
 
-    // Masraf Yansitma: danisman + oran belirtildiyse, o danismanin Cari
-    // Hesabina otomatik bir BORC (debit) kaydi olustur -- danisman ofise
-    // bu tutar kadar borclanir. Gider silinince bu kayit da otomatik
-    // temizlenir (bkz. remove()).
-    if (dto.agentId && dto.chargebackPercentage && dto.chargebackPercentage > 0) {
+    if (dto.chargebacks && dto.chargebacks.length > 0) {
+      for (const cb of dto.chargebacks) {
+        if (cb.agentId && Number(cb.amount) > 0) {
+          const adjustment = this.adjustmentRepo.create({
+            agentId: cb.agentId,
+            type: LedgerAdjustmentType.DEBIT,
+            amount: cb.amount,
+            description: `Masraf Yansıtması: ${dto.title}`,
+            date: dto.date,
+            source: 'expense',
+            sourceId: saved.id,
+          });
+          await this.adjustmentRepo.save(adjustment);
+        }
+      }
+    } else if (dto.agentId && dto.chargebackPercentage && dto.chargebackPercentage > 0) {
       const chargebackAmount = (Number(dto.amount) * Number(dto.chargebackPercentage)) / 100;
       const adjustment = this.adjustmentRepo.create({
         agentId: dto.agentId,
         type: LedgerAdjustmentType.DEBIT,
         amount: chargebackAmount,
-        description: `Masraf yansıtması (%${dto.chargebackPercentage}): ${dto.title}`,
+        description: `Masraf Yansıtması (%${dto.chargebackPercentage}): ${dto.title}`,
         date: dto.date,
         source: 'expense',
         sourceId: saved.id,
@@ -65,9 +72,7 @@ export class ExpensesService {
     if (!expense) {
       throw new NotFoundException('Gider bulunamadı');
     }
-    // Bu gidere bagli otomatik banka hareketi VE cari hareketi varsa,
-    // onlari da temizle -- yoksa banka bakiyesi ve danisman bakiyesi
-    // yanlis kalir.
+
     await this.bankTransactionRepo.delete({ source: 'expense', sourceId: id });
     await this.adjustmentRepo.delete({ source: 'expense', sourceId: id });
     await this.expenseRepo.remove(expense);

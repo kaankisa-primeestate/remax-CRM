@@ -1,25 +1,34 @@
-import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsEnum, IsString, IsNumber, IsOptional, IsDateString, IsUUID, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ExpenseCategory } from '../expense.entity';
 
+export class ExpenseChargebackDto {
+  @IsUUID()
+  agentId: string;
+
+  @IsNumber()
+  amount: number;
+
+  @IsOptional()
+  @IsNumber()
+  percentage?: number;
+}
+
 export class CreateExpenseDto {
-  @IsNotEmpty()
   @IsEnum(ExpenseCategory)
   category: ExpenseCategory;
 
-  @IsNotEmpty()
   @IsString()
   title: string;
 
   @IsNumber()
-  @Min(0.01)
   amount: number;
 
   @IsOptional()
   @IsNumber()
   vatRate?: number;
 
-  @IsNotEmpty()
-  @IsString()
+  @IsDateString()
   date: string;
 
   @IsOptional()
@@ -36,8 +45,13 @@ export class CreateExpenseDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   chargebackPercentage?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ExpenseChargebackDto)
+  chargebacks?: ExpenseChargebackDto[];
 
   @IsOptional()
   @IsUUID()
