@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { transactionsApi, TRANSACTION_STAGES, TRANSACTION_DOC_TYPES } from '../api/transactions';
+import { commissionsApi } from '../api/commissions';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { propertiesApi } from '../api/properties';
 import { uploadFile } from '../api/client';
@@ -81,6 +82,7 @@ export default function TransactionsPage() {
   const [totalCommission, setTotalCommission] = useState('');
   const [agentCommission, setAgentCommission] = useState('');
   const [officeCommission, setOfficeCommission] = useState('');
+  const [saleAmount, setSaleAmount] = useState('');
   const [savingCommission, setSavingCommission] = useState(false);
 
   const [splitDraft, setSplitDraft] = useState('50');
@@ -220,6 +222,7 @@ export default function TransactionsPage() {
     setTotalCommission(t.totalCommissionAmount != null ? String(t.totalCommissionAmount) : '');
     setAgentCommission(t.agentCommissionAmount != null ? String(t.agentCommissionAmount) : '');
     setOfficeCommission(t.officeCommissionAmount != null ? String(t.officeCommissionAmount) : '');
+    setSaleAmount(t.offerAmount != null ? String(t.offerAmount) : '');
 
     setSplitDraft(t.commissionSplitPercentage != null ? String(t.commissionSplitPercentage) : '50');
 
@@ -301,18 +304,57 @@ export default function TransactionsPage() {
 
   async function handleSaveCommissionAndClose() {
     if (!detailTx) return;
+    const saleAmountNum = Number(saleAmount);
+    const totalCommissionNum = Number(totalCommission);
+    const agentCommissionNum = Number(agentCommission);
+    if (!saleAmountNum || !totalCommissionNum || !agentCommissionNum) {
+      alert('Satış/Kira bedeli, toplam komisyon ve danışman payı doldurulmalıdır.');
+      return;
+    }
     setSavingCommission(true);
     try {
+      // 1) Islemin kendi gorunum alanlarini guncelle (Kapanis sekmesi
+      // tekrar acildiginda ayni degerlerin gorunmesi icin) ve asamayi
+      // Kapanis'a tasi.
       const updated = await transactionsApi.update(detailTx.id, {
-        totalCommissionAmount: totalCommission ? Number(totalCommission) : undefined,
-        agentCommissionAmount: agentCommission ? Number(agentCommission) : undefined,
+        totalCommissionAmount: totalCommissionNum,
+        agentCommissionAmount: agentCommissionNum,
         officeCommissionAmount: officeCommission ? Number(officeCommission) : undefined,
         stage: 'closed',
       });
       setDetailTx(updated);
       setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-      alert('Kapanış & Komisyon dökümü kaydedildi. İşlem Broker onayına gönderildi.');
-    } catch { alert('Komisyon kaydedilemedi.'); } finally { setSavingCommission(false); }
+
+      // 2) GERCEK komisyon kaydini olustur -- bu, Cari Hesap ve Komisyonlar
+      // listesinin besledigi TEK dogru kaynak. transactionId gonderildigi
+      // icin backend, islem isbirlikliyse (collaboratorAgentId +
+      // splitFinalizedAt doluysa) payi OTOMATIK olarak iki danismana
+      // bolerek iki ayri kayit olusturur -- burada ekstra bir sey
+      // yapmamiza gerek yok, ayni cagriyla hallediliyor.
+      const property = properties.find((p) => p.id === detailTx.propertyId);
+      await commissionsApi.create({
+        transactionId: detailTx.id,
+        propertyId: detailTx.propertyId || undefined,
+        customerId: detailTx.customerId || undefined,
+        propertyTitle: property?.title,
+        transactionType: property?.listingType || 'sale',
+        transactionAmount: saleAmountNum,
+        commissionRate: (totalCommissionNum / saleAmountNum) * 100,
+        agentSharePercent: (agentCommissionNum / totalCommissionNum) * 100,
+        dueDate: new Date().toISOString().slice(0, 10),
+        notes: 'İşlemler ekranından (Kapanış & Komisyon) otomatik oluşturuldu.',
+      });
+
+      alert(
+        detailTx.collaboratorAgentId && detailTx.splitFinalizedAt
+          ? 'Kapanış & Komisyon dökümü kaydedildi. İşbirlikli paylaşıma göre iki ayrı komisyon kaydı oluşturuldu ve işlem Broker onayına gönderildi.'
+          : 'Kapanış & Komisyon dökümü kaydedildi. Komisyon kaydı oluşturuldu ve işlem Broker onayına gönderildi.',
+      );
+    } catch {
+      alert('Komisyon kaydedilemedi.');
+    } finally {
+      setSavingCommission(false);
+    }
   }
 
   async function handleAddNote() {
@@ -653,6 +695,26 @@ export default function TransactionsPage() {
               {activeDetailTab === 'financial' && (
                 <div>
                   <h4>💰 Kapanış & Komisyon Dökümü</h4>
+                  {detailTx?.collaboratorAgentId && (
+                    <div
+                      style={{
+                        background: detailTx.splitFinalizedAt ? '#e6f4ea' : '#fdf3e0',
+                        borderRadius: 6,
+                        padding: '10px 12px',
+                        marginBottom: 14,
+                        fontSize: 12.5,
+                      }}
+                    >
+                      🤝 Bu işlem <strong>işbirlikli</strong> — komisyon otomatik olarak{' '}
+                      <strong>{agentNameFor(detailTx.agentId)} (%{detailTx.commissionSplitPercentage ?? 50})</strong> ve{' '}
+                      <strong>{agentNameFor(detailTx.collaboratorAgentId)} (%{100 - (detailTx.commissionSplitPercentage ?? 50)})</strong> arasında bölünecek.
+                      {!detailTx.splitFinalizedAt && ' ⚠️ Paylaşım henüz iki taraftan da onaylanmadı — komisyon kaydı yine de oluşturulur, ama pay oranı bu son onaylı haline göre hesaplanır.'}
+                    </div>
+                  )}
+                  <div className="form-field" style={{ marginBottom: 10 }}>
+                    <label>Satış / Kira Bedeli (TL)</label>
+                    <input type="number" value={saleAmount} onChange={(e) => setSaleAmount(e.target.value)} placeholder="0.00" />
+                  </div>
                   <div className="form-field" style={{ marginBottom: 10 }}>
                     <label>Toplam Hizmet Bedeli / Komisyon (TL)</label>
                     <input type="number" value={totalCommission} onChange={(e) => setTotalCommission(e.target.value)} placeholder="0.00" />
@@ -667,6 +729,9 @@ export default function TransactionsPage() {
                       <input type="number" value={officeCommission} onChange={(e) => setOfficeCommission(e.target.value)} placeholder="0.00" />
                     </div>
                   </div>
+                  <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: -4, marginBottom: 10 }}>
+                    Bu ekran, gerçek bir komisyon kaydı oluşturur — Cari Hesabına ve Komisyonlar listene otomatik yansır.
+                  </p>
                   <button type="button" className="btn btn-primary" onClick={handleSaveCommissionAndClose} disabled={savingCommission} style={{ marginTop: 10 }}>
                     {savingCommission ? 'İşlem Onaya Gönderiliyor…' : '✓ Kapanışı Yap & Broker Onayına Gönder'}
                   </button>
