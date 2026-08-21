@@ -7,6 +7,7 @@ import { AnnouncementDismissal } from './announcement-dismissal.entity';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { RespondAnnouncementDto } from './dto/respond-announcement.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
+import { User, UserRole } from '../users/user.entity';
 
 @Injectable()
 export class AnnouncementsService {
@@ -14,6 +15,7 @@ export class AnnouncementsService {
     @InjectRepository(Announcement) private readonly announcementRepo: Repository<Announcement>,
     @InjectRepository(AnnouncementResponse) private readonly responseRepo: Repository<AnnouncementResponse>,
     @InjectRepository(AnnouncementDismissal) private readonly dismissalRepo: Repository<AnnouncementDismissal>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
   ) {}
 
   // Sadece Broker olusturabilir (controller'da @Roles ile de korunuyor,
@@ -167,5 +169,47 @@ export class AnnouncementsService {
       throw new ForbiddenException('Sadece Broker duyuru silebilir');
     }
     await this.announcementRepo.remove(announcement);
+  }
+
+  // --- Broker Raporu: "Kim Okudu / Kapattı?" ---
+  // Hedef kitledeki (targetAgentIds doluysa onlar, bosta TUM danismanlar)
+  // her danisman icin okundu/kapatildi zaman damgasini dondurur. Hic
+  // etkilesime girmemis danismanlar da listede gorunur (readAt/dismissedAt
+  // null olarak) -- "hala gormedi" bilgisini de acikca gostermek icin.
+  async getReadStatus(
+    announcementId: string,
+    currentUser: CurrentUserPayload,
+  ): Promise<{ agentId: string; agentName: string; readAt: Date | null; dismissedAt: Date | null }[]> {
+    if (currentUser.role !== 'broker') {
+      throw new ForbiddenException('Sadece Broker görüntüleyebilir');
+    }
+    const announcement = await this.announcementRepo.findOne({ where: { id: announcementId } });
+    if (!announcement) {
+      throw new NotFoundException('Duyuru bulunamadı');
+    }
+
+    const targetAgents =
+      announcement.targetAgentIds && announcement.targetAgentIds.length > 0
+        ? await this.userRepo.find({ where: { id: In(announcement.targetAgentIds) } })
+        : await this.userRepo.find({ where: { role: UserRole.AGENT } });
+
+    if (targetAgents.length === 0) return [];
+
+    const dismissals = await this.dismissalRepo.find({
+      where: { announcementId, agentId: In(targetAgents.map((a) => a.id)) },
+    });
+    const dismissalByAgentId = new Map(dismissals.map((d) => [d.agentId, d]));
+
+    return targetAgents
+      .map((agent) => {
+        const d = dismissalByAgentId.get(agent.id);
+        return {
+          agentId: agent.id,
+          agentName: agent.name,
+          readAt: d?.readAt ?? null,
+          dismissedAt: d?.dismissedAt ?? null,
+        };
+      })
+      .sort((a, b) => a.agentName.localeCompare(b.agentName, 'tr'));
   }
 }

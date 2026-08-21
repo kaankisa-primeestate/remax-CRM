@@ -54,6 +54,13 @@ export class AnnouncementsController {
     return this.announcementsService.respond(id, dto, user);
   }
 
+  // GET /api/announcements/:id/read-status -- Sadece Broker, "kim okudu/kapattı" raporu
+  @Get(':id/read-status')
+  @Roles(UserRole.BROKER)
+  getReadStatus(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.announcementsService.getReadStatus(id, user);
+  }
+
   // DELETE /api/announcements/:id -- Sadece Broker
   @Delete(':id')
   @Roles(UserRole.BROKER)

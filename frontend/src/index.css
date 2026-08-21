@@ -172,6 +172,22 @@ button {
   display: flex;
   flex-direction: column;
 }
+.notif-bell__archive-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 10px 14px;
+  border: none;
+  border-top: 1px solid var(--paper-line);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-navy);
+  cursor: pointer;
+}
+.notif-bell__archive-link:hover {
+  background: var(--paper);
+}
 .notif-bell__item {
   display: flex;
   gap: 10px;

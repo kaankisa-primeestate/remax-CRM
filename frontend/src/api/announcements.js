@@ -8,4 +8,5 @@ export const announcementsApi = {
   respond: (id, payload) => apiClient.post(`/announcements/${id}/respond`, payload).then((r) => r.data),
   markRead: (id) => apiClient.post(`/announcements/${id}/read`).then((r) => r.data),
   dismiss: (id) => apiClient.post(`/announcements/${id}/dismiss`).then((r) => r.data),
+  getReadStatus: (id) => apiClient.get(`/announcements/${id}/read-status`).then((r) => r.data),
 };

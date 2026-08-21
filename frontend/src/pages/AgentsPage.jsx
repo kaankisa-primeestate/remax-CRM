@@ -83,6 +83,9 @@ export default function AgentsPage() {
   const [selectedAgentIds, setSelectedAgentIds] = useState([]);
   const [announceSaving, setAnnounceSaving] = useState(false);
   const [recentAnnouncements, setRecentAnnouncements] = useState([]);
+  const [readStatusOpenId, setReadStatusOpenId] = useState(null); // hangi duyurunun "kim okudu" raporu acik
+  const [readStatusById, setReadStatusById] = useState({});
+  const [readStatusLoading, setReadStatusLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -327,6 +330,28 @@ export default function AgentsPage() {
     } catch {
       alert('Duyuru silinemedi, sayfa yenileniyor.');
       load();
+    }
+  }
+
+  // "Kim Okudu?" raporunu ac/kapat -- ilk acilista arka uctan ceker,
+  // sonraki acilislarda cache'den gosterir (tekrar tekrar sorgu atmasin).
+  async function handleToggleReadStatus(announcementId) {
+    if (readStatusOpenId === announcementId) {
+      setReadStatusOpenId(null);
+      return;
+    }
+    setReadStatusOpenId(announcementId);
+    if (!readStatusById[announcementId]) {
+      setReadStatusLoading(true);
+      try {
+        const data = await announcementsApi.getReadStatus(announcementId);
+        setReadStatusById((prev) => ({ ...prev, [announcementId]: data }));
+      } catch {
+        alert('Okuma durumu alınamadı, tekrar deneyin.');
+        setReadStatusOpenId(null);
+      } finally {
+        setReadStatusLoading(false);
+      }
     }
   }
 
@@ -969,6 +994,34 @@ export default function AgentsPage() {
                           {r.status === 'yes' ? '✓' : '✕'} {r.agentName}
                         </span>
                       ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: 11, padding: '3px 10px', marginTop: 6 }}
+                    onClick={() => handleToggleReadStatus(a.id)}
+                  >
+                    {readStatusOpenId === a.id ? '▲' : '▼'} 👁 Kim Okudu?
+                  </button>
+                  {readStatusOpenId === a.id && (
+                    <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--paper)', borderRadius: 6 }}>
+                      {readStatusLoading && !readStatusById[a.id] ? (
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>Yükleniyor…</span>
+                      ) : (
+                        (readStatusById[a.id] || []).map((r) => (
+                          <div key={r.agentId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0' }}>
+                            <span>{r.agentName}</span>
+                            <span style={{ color: r.dismissedAt ? '#1e7a3d' : r.readAt ? '#8a6100' : 'var(--muted)' }}>
+                              {r.dismissedAt
+                                ? `✓ Okudu ve kapattı (${new Date(r.dismissedAt).toLocaleDateString('tr-TR')})`
+                                : r.readAt
+                                  ? `👁 Sadece okudu (${new Date(r.readAt).toLocaleDateString('tr-TR')})`
+                                  : '— Henüz görmedi'}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
