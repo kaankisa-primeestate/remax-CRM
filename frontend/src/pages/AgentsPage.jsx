@@ -939,11 +939,22 @@ export default function AgentsPage() {
             <label>Mesaj</label>
             <textarea rows={3} value={announceMessage} onChange={(e) => setAnnounceMessage(e.target.value)} placeholder="Örn: 16'sında saat 10:00'da ofiste toplantımız var, lütfen katılın." />
           </div>
-          <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <input type="checkbox" checked={announceType === 'celebration'} onChange={(e) => setAnnounceType(e.target.checked ? 'celebration' : 'general')} style={{ width: 'auto' }} />
-            <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 14 }}>
-              🎉 Kutlama Mesajı (doğum günü, satış/kiralama tebriği vb. — özel görsel efektle gösterilir)
-            </label>
+          <div className="form-field full" style={{ marginBottom: 4 }}>
+            <label>Duyuru Türü</label>
+            <div style={{ display: 'flex', gap: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400, textTransform: 'none' }}>
+                <input type="radio" checked={announceType === 'general'} onChange={() => setAnnounceType('general')} />
+                📢 Genel Duyuru
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400, textTransform: 'none' }}>
+                <input type="radio" checked={announceType === 'celebration'} onChange={() => setAnnounceType('celebration')} />
+                🎉 Kutlama
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400, textTransform: 'none' }}>
+                <input type="radio" checked={announceType === 'meeting'} onChange={() => setAnnounceType('meeting')} />
+                📅 Toplantı / Anket (katılım onayı istenir)
+              </label>
+            </div>
           </div>
           <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={sendToAll} onChange={(e) => setSendToAll(e.target.checked)} style={{ width: 'auto' }} />

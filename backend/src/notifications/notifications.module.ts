@@ -11,10 +11,11 @@ import { PropertyComment } from '../property-comments/property-comment.entity';
 import { Appointment } from '../appointments/appointment.entity';
 import { Announcement } from '../announcements/announcement.entity';
 import { AnnouncementDismissal } from '../announcements/announcement-dismissal.entity';
+import { NotificationDismissal } from './notification-dismissal.entity';
 import { Transaction } from '../transactions/transaction.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, PropertyComment, Appointment, Announcement, AnnouncementDismissal, Transaction])],
+  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, PropertyComment, Appointment, Announcement, AnnouncementDismissal, NotificationDismissal, Transaction])],
   controllers: [NotificationsController],
   providers: [NotificationsService],
 })

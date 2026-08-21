@@ -10,6 +10,7 @@ import { PropertyComment } from '../property-comments/property-comment.entity';
 import { Appointment } from '../appointments/appointment.entity';
 import { Announcement } from '../announcements/announcement.entity';
 import { AnnouncementDismissal } from '../announcements/announcement-dismissal.entity';
+import { NotificationDismissal } from './notification-dismissal.entity';
 import { Transaction } from '../transactions/transaction.entity';
 
 const PROPERTY_STATUS_LABELS: Record<string, string> = {
@@ -64,6 +65,7 @@ export class NotificationsService {
     @InjectRepository(Appointment) private readonly appointmentRepo: Repository<Appointment>,
     @InjectRepository(Announcement) private readonly announcementRepo: Repository<Announcement>,
     @InjectRepository(AnnouncementDismissal) private readonly dismissalRepo: Repository<AnnouncementDismissal>,
+    @InjectRepository(NotificationDismissal) private readonly notifDismissalRepo: Repository<NotificationDismissal>,
     @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
   ) {}
 
@@ -253,6 +255,17 @@ export class NotificationsService {
           .take(LIMIT_PER_SOURCE)
           .getMany()
       : [];
+    // Broker mesajlari da (portfoy yorumlari) duyurular gibi kisisel
+    // olarak "okundu/kapatildi" takip edilir -- yoksa zil listesinde
+    // sonsuza kadar birikirler (yorum zaten ilgili portfoy sayfasinda
+    // KALICI olarak duruyor, zil sadece "yeni bir sey var" bildirimidir).
+    const commentKeys = brokerComments.map((c) => `broker-message-${c.id}`);
+    const commentDismissals = commentKeys.length
+      ? await this.notifDismissalRepo.find({ where: { notificationKey: In(commentKeys), agentId } })
+      : [];
+    const dismissedCommentKeys = new Set(commentDismissals.filter((d) => d.dismissedAt).map((d) => d.notificationKey));
+    const readCommentKeys = new Set(commentDismissals.filter((d) => d.readAt).map((d) => d.notificationKey));
+    const visibleBrokerComments = brokerComments.filter((c) => !dismissedCommentKeys.has(`broker-message-${c.id}`));
 
     // Broker'dan gelen duyurular (tumune ya da sadece bu danismana
     // gonderilenler) -- basit olcekte tum kayitlari cekip JS'te filtreliyoruz,
@@ -298,13 +311,13 @@ export class NotificationsService {
     const involvedNameById = new Map(involvedUsers.map((u) => [u.id, u.name]));
 
     const items: NotificationItem[] = [
-      ...brokerComments.map((c) => ({
+      ...visibleBrokerComments.map((c) => ({
         id: `broker-message-${c.id}`,
         type: 'broker_message' as const,
         title: `Broker mesaj gönderdi: ${titleById.get(c.propertyId) || 'Portföy'}`,
         agentName: c.authorName,
         occurredAt: c.createdAt,
-        read: false,
+        read: readCommentKeys.has(`broker-message-${c.id}`),
         propertyId: c.propertyId,
       })),
       ...myAnnouncements.map((a) => ({
@@ -340,5 +353,23 @@ export class NotificationsService {
 
   async markSeen(userId: string): Promise<void> {
     await this.userRepo.update(userId, { lastNotificationsSeenAt: new Date() });
+  }
+
+  // --- Genel bildirim okundu/kapatma (duyuru DISINDAKI turler icin,
+  // orn. broker_message). Ayni upsert deseni -- gecen seferki yaris
+  // durumu (race condition) hatasindan ders alindi. ---
+  async markNotificationRead(notificationKey: string, agentId: string): Promise<void> {
+    await this.notifDismissalRepo.upsert(
+      { notificationKey, agentId, readAt: new Date() },
+      ['notificationKey', 'agentId'],
+    );
+  }
+
+  async dismissNotification(notificationKey: string, agentId: string): Promise<void> {
+    const now = new Date();
+    await this.notifDismissalRepo.upsert(
+      { notificationKey, agentId, readAt: now, dismissedAt: now },
+      ['notificationKey', 'agentId'],
+    );
   }
 }

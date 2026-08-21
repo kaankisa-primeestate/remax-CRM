@@ -159,11 +159,15 @@ export default function NotificationBell() {
 
   function handleItemClick(item) {
     // 'broker_message' turu dogrudan ilgili portfoye goturur (icerigi zaten
-    // orada gorunur) -- diger turler (orn. 'announcement') icin bir detay
-    // popup'i acilir, cunku gidilecek ayri bir sayfalari yok.
+    // orada, kalici olarak duruyor) -- bu yuzden ayri bir popup/Sil
+    // adimina gerek yok, tiklaninca otomatik olarak zil listesinden
+    // kaldirilir (kapatilir). Diger turler (orn. 'announcement') icin
+    // bir detay popup'i acilir, cunku gidilecek ayri bir sayfalari yok.
     if (item.type === 'broker_message' && item.propertyId) {
       setOpen(false);
       navigate(`/portfoyler/${item.propertyId}`);
+      notificationsApi.dismiss(item.id).catch(() => {});
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
       return;
     }
     setDetailItem(item);
@@ -410,8 +414,9 @@ export default function NotificationBell() {
               <div className="form-field" style={{ marginBottom: 10 }}>
                 <label>Tür</label>
                 <select value={composeType} onChange={(e) => setComposeType(e.target.value)}>
-                  <option value="general">Genel Duyuru</option>
+                  <option value="general">📢 Genel Duyuru</option>
                   <option value="celebration">🎉 Kutlama</option>
+                  <option value="meeting">📅 Toplantı / Anket (katılım onayı istenir)</option>
                 </select>
               </div>
               <div style={{ display: 'flex', gap: 14, marginBottom: 10 }}>

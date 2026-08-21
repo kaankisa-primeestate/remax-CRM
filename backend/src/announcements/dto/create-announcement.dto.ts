@@ -15,6 +15,6 @@ export class CreateAnnouncementDto {
   targetAgentIds?: string[];
 
   @IsOptional()
-  @IsIn(['general', 'celebration'])
-  type?: 'general' | 'celebration';
+  @IsIn(['general', 'celebration', 'meeting'])
+  type?: 'general' | 'celebration' | 'meeting';
 }

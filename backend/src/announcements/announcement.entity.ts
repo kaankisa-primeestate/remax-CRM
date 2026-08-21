@@ -22,8 +22,12 @@ export class Announcement {
 
   // general = normal duyuru, celebration = kutlama mesaji (dogum gunu,
   // satis/kiralama tebrigi vb.) -- frontend'de ozel gorsel efekt icin.
+  // general = normal duyuru (sadece bilgilendirme, katilim yaniti YOK),
+  // celebration = kutlama mesaji (dogum gunu vb., yanit YOK),
+  // meeting = toplanti daveti / anket (Katilacagim/Katilamayacagim
+  // yaniti GEREKLI) -- ucu de frontend'de farkli davranir.
   @Column({ type: 'varchar', default: 'general' })
-  type: 'general' | 'celebration';
+  type: 'general' | 'celebration' | 'meeting';
 
   @CreateDateColumn()
   createdAt: Date;

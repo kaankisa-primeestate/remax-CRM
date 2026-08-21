@@ -189,7 +189,7 @@ export default function AgentDashboardPage() {
       </div>
 
       {announcements.length > 0 && (() => {
-        const pendingCount = announcements.filter((a) => a.type !== 'celebration' && !a.myResponse).length;
+        const pendingCount = announcements.filter((a) => a.type === 'meeting' && !a.myResponse).length;
         const hasCelebration = announcements.some((a) => a.type === 'celebration');
         return (
           <button
@@ -233,7 +233,7 @@ export default function AgentDashboardPage() {
                   <div className="announcement-feed__item-title">{a.type === 'celebration' ? '🎉 ' : ''}{a.title}</div>
                   <div className="announcement-feed__item-message">{a.message}</div>
                   <div className="announcement-feed__item-date">{new Date(a.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</div>
-                  {a.type !== 'celebration' && (
+                  {a.type === 'meeting' && (
                     <div className="announcement-feed__response">
                       {a.myResponse ? (
                         <span className={`announcement-feed__response-badge announcement-feed__response-badge--${a.myResponse.status}`}>
