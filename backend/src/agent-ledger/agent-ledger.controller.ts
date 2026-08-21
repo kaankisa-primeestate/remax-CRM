@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { AgentLedgerService } from './agent-ledger.service';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -52,6 +53,27 @@ export class AgentLedgerController {
   ) {
     const targetId = user.role === 'agent' ? user.userId : agentId;
     return this.agentLedgerService.getStatement(targetId, user, fromDate || undefined, toDate || undefined);
+  }
+
+  // GET /api/agent-ledger/statement/pdf?agentId=...&fromDate=&toDate= --
+  // Gercek, indirilebilir PDF raporu (Piyasa Degeri Analizi ile ayni
+  // pdfkit deseni) -- eskiden sadece tarayici yazdirmasi vardi.
+  @Get('statement/pdf')
+  async downloadStatementPdf(
+    @Query('agentId') agentId: string,
+    @Query('fromDate') fromDate: string,
+    @Query('toDate') toDate: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Res() res: Response,
+  ) {
+    const targetId = user.role === 'agent' ? user.userId : agentId;
+    const buffer = await this.agentLedgerService.generateStatementPdf(targetId, user, fromDate || undefined, toDate || undefined);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="cari-ekstre-${targetId}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
   }
 
   @Post('adjustments')

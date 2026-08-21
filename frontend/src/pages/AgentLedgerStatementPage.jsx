@@ -49,6 +49,7 @@ export default function AgentLedgerStatementPage() {
   const [adjDescription, setAdjDescription] = useState('');
   const [adjDate, setAdjDate] = useState(today());
   const [adjSaving, setAdjSaving] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,10 +73,30 @@ export default function AgentLedgerStatementPage() {
         .listAgents()
         .then((agents) => setAgentInfo(agents.find((a) => a.id === paramAgentId) || null))
         .catch(() => setAgentInfo(null));
+    } else if (isOwnStatement) {
+      // Kendi ekstremi goruntulerken de Prim Modeli rozetini gosterebilmek
+      // icin kendi tam profilimi cekiyoruz (login yanitinda sadece
+      // ad/email/rol var, komisyon bilgisi yok).
+      usersApi.getMe().then(setAgentInfo).catch(() => setAgentInfo(null));
     }
-  }, [isBroker, paramAgentId, user?.id]);
+  }, [isBroker, paramAgentId, user?.id, isOwnStatement]);
 
   const displayName = agentInfo?.name || (isOwnStatement ? user?.name : 'Danışman');
+
+  const commissionModelLabel = (() => {
+    if (!agentInfo) return null;
+    if (agentInfo.tierCommissionRules && agentInfo.tierCommissionRules.length > 0) {
+      const rates = agentInfo.tierCommissionRules.map((t) => `%${t.rate}`).join(' – ');
+      return `Kademeli (${rates})`;
+    }
+    if (agentInfo.commissionShareType === 'percentage' && agentInfo.commissionSharePercentage != null) {
+      return `Sabit Oran (%${agentInfo.commissionSharePercentage})`;
+    }
+    if (agentInfo.commissionShareType) {
+      return agentInfo.commissionShareType;
+    }
+    return null;
+  })();
 
   function resetAdjForm() {
     setAdjType('debit');
@@ -105,6 +126,17 @@ export default function AgentLedgerStatementPage() {
     }
   }
 
+  async function handleDownloadPdf() {
+    setPdfDownloading(true);
+    try {
+      await agentLedgerApi.downloadStatementPdf(agentId, fromDate, toDate, `cari-ekstre-${displayName.replace(/\s+/g, '-')}`);
+    } catch {
+      alert('PDF indirilemedi, tekrar deneyin.');
+    } finally {
+      setPdfDownloading(false);
+    }
+  }
+
   function handleWhatsApp() {
     if (!agentInfo?.phone || !statement) return;
     const text = `Sayın ${displayName}, ${new Date().toLocaleDateString('tr-TR')} itibarıyla hesabınızda ${money(statement.summary.totalCredit)} hakediş, ${money(statement.summary.totalDeductions)} kesinti/avans ve ${money(statement.summary.totalPayments)} ödeme kaydı bulunmaktadır. Net bakiyeniz: ${money(statement.summary.netBalance)}.`;
@@ -122,11 +154,11 @@ export default function AgentLedgerStatementPage() {
         ← Geri Dön
       </button>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
         <h2 className="dossier__name" style={{ margin: 0 }}>💳 Cari Hesap Ekstresi: {displayName}</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
-            🖨️ Yazdır / PDF Kaydet
+          <button type="button" className="btn btn-secondary" disabled={pdfDownloading} onClick={handleDownloadPdf}>
+            {pdfDownloading ? 'Hazırlanıyor…' : '📄 PDF İndir'}
           </button>
           {isBroker && agentInfo?.phone && (
             <button type="button" className="btn btn-secondary" onClick={handleWhatsApp}>
@@ -140,6 +172,22 @@ export default function AgentLedgerStatementPage() {
           )}
         </div>
       </div>
+      {commissionModelLabel && (
+        <div style={{ marginBottom: 16 }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              background: '#eef3f9',
+              color: 'var(--ink-navy)',
+              borderRadius: 999,
+              padding: '4px 10px',
+            }}
+          >
+            📊 Prim Modeli: {commissionModelLabel}
+          </span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 16 }}>
         <div className="form-field" style={{ margin: 0 }}>

@@ -1,11 +1,14 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import * as path from 'path';
+import PDFDocument = require('pdfkit');
 import { Commission } from '../commissions/commission.entity';
 import { CommissionPayment } from '../commissions/commission-payment.entity';
 import { AgentLedgerAdjustment, LedgerAdjustmentType } from './agent-ledger-adjustment.entity';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 import { AgentDue } from '../agent-dues/agent-due.entity';
+import { User } from '../users/user.entity';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -44,6 +47,7 @@ export class AgentLedgerService {
     @InjectRepository(AgentLedgerAdjustment) private readonly adjustmentRepo: Repository<AgentLedgerAdjustment>,
     @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
     @InjectRepository(AgentDue) private readonly agentDueRepo: Repository<AgentDue>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
   ) {}
 
   private assertAccess(agentId: string, currentUser: CurrentUserPayload) {
@@ -247,5 +251,132 @@ export class AgentLedgerService {
     }
     await this.bankTransactionRepo.delete({ source: 'agent_ledger_adjustment', sourceId: id });
     await this.adjustmentRepo.remove(adjustment);
+  }
+
+  // --- PDF Ekstre Raporu ---
+  // Piyasa Degeri Analizi raporuyla AYNI desen (pdfkit + gomulu Roboto
+  // fontu -- Turkce karakterler icin pdfkit'in yerlesik Helvetica'si
+  // yetersiz kaliyordu). Onceden sadece tarayici yazdirmasi vardi, artik
+  // sunucu tarafinda gercek, indirilebilir bir PDF uretiliyor.
+  async generateStatementPdf(
+    agentId: string,
+    currentUser: CurrentUserPayload,
+    fromDate?: string,
+    toDate?: string,
+  ): Promise<Buffer> {
+    const { entries, summary } = await this.getStatement(agentId, currentUser, fromDate, toDate);
+    const agent = await this.userRepo.findOne({ where: { id: agentId } });
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 45, size: 'A4' });
+
+      const fontsDir = path.join(__dirname, '../assets/fonts');
+      doc.registerFont('Body', path.join(fontsDir, 'Roboto-Regular.ttf'));
+      doc.registerFont('Body-Bold', path.join(fontsDir, 'Roboto-Bold.ttf'));
+      doc.registerFont('Body-Italic', path.join(fontsDir, 'Roboto-Italic.ttf'));
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const money = (n: number) => `${Math.round(Number(n)).toLocaleString('tr-TR')} ₺`;
+      const dateLabel = (d: string) => new Date(d).toLocaleDateString('tr-TR');
+      const CATEGORY_LABELS: Record<string, string> = {
+        commission: 'Komisyon Hakedişi',
+        commission_payment: 'Ofis Ödemesi',
+        agent_due: 'Aylık Ofis Aidatı',
+        expense_chargeback: 'Masraf Yansıtma',
+        manual: 'Manuel Kayıt',
+      };
+
+      // ========== BASLIK ==========
+      doc.fontSize(18).font('Body-Bold').text('Cari Hesap Ekstresi', { align: 'center' });
+      doc.fontSize(10).font('Body').fillColor('#666666').text('RE/MAX Bostancı', { align: 'center' });
+      doc.fillColor('#000000');
+      doc.moveDown(0.8);
+
+      doc.fontSize(11).font('Body-Bold').text(`Danışman: ${agent?.name || 'Danışman'}`);
+      doc.fontSize(9).font('Body').fillColor('#666666');
+      const rangeLabel = fromDate && toDate ? `${dateLabel(fromDate)} — ${dateLabel(toDate)}` : 'Tüm Zamanlar';
+      doc.text(`Dönem: ${rangeLabel}`);
+      doc.text(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+      doc.fillColor('#000000');
+      doc.moveDown(0.8);
+
+      // ========== OZET KARTLARI ==========
+      const summaryY = doc.y;
+      const boxW = 122;
+      const boxes = [
+        { label: 'Toplam Hakediş', value: money(summary.totalCredit), color: '#1e7a3d' },
+        { label: 'Kesinti / Avans', value: money(summary.totalDeductions), color: '#8a6100' },
+        { label: 'Yapılan Ödeme', value: money(summary.totalPayments), color: '#1f3a5f' },
+        {
+          label: 'Net Bakiye',
+          value: `${summary.netBalance >= 0 ? 'Ofis Borçlu' : 'Danışman Borçlu'}: ${money(Math.abs(summary.netBalance))}`,
+          color: summary.netBalance >= 0 ? '#1e7a3d' : '#b3261e',
+        },
+      ];
+      boxes.forEach((b, i) => {
+        const x = 45 + i * (boxW + 6);
+        doc.rect(x, summaryY, boxW, 46).fillAndStroke('#f7f5ee', '#e3dfd2');
+        doc.fontSize(7).font('Body').fillColor('#666666').text(b.label.toUpperCase(), x + 8, summaryY + 7, { width: boxW - 16 });
+        doc.fontSize(9).font('Body-Bold').fillColor(b.color).text(b.value, x + 8, summaryY + 20, { width: boxW - 16 });
+      });
+      doc.fillColor('#000000');
+      doc.y = summaryY + 58;
+      doc.moveDown(0.5);
+
+      // ========== HAREKET TABLOSU ==========
+      doc.fontSize(11).font('Body-Bold').text('Hareket Dökümü');
+      doc.moveDown(0.3);
+
+      const colX = { date: 45, label: 105, debit: 340, credit: 415, balance: 490 };
+      function drawHeader() {
+        const y = doc.y;
+        doc.fontSize(8).font('Body-Bold').fillColor('#666666');
+        doc.text('TARİH', colX.date, y, { width: 55 });
+        doc.text('AÇIKLAMA', colX.label, y, { width: 230 });
+        doc.text('BORÇ', colX.debit, y, { width: 70, align: 'right' });
+        doc.text('ALACAK', colX.credit, y, { width: 70, align: 'right' });
+        doc.text('BAKİYE', colX.balance, y, { width: 65, align: 'right' });
+        doc.fillColor('#000000');
+        doc.moveDown(0.4);
+        doc.moveTo(45, doc.y).lineTo(555, doc.y).strokeColor('#cccccc').stroke();
+        doc.moveDown(0.3);
+      }
+      drawHeader();
+
+      if (entries.length === 0) {
+        doc.fontSize(9).font('Body-Italic').fillColor('#666666').text('Bu dönemde hareket bulunmuyor.');
+        doc.fillColor('#000000');
+      }
+
+      entries.forEach((e) => {
+        if (doc.y > 760) {
+          doc.addPage();
+          drawHeader();
+        }
+        const y = doc.y;
+        doc.fontSize(8).font('Body');
+        doc.text(dateLabel(e.date), colX.date, y, { width: 55 });
+        doc.text(`${CATEGORY_LABELS[e.category] || e.category}: ${e.label}`, colX.label, y, { width: 230 });
+        doc.fillColor(e.debit ? '#b3261e' : '#999999').text(e.debit ? money(e.debit) : '—', colX.debit, y, { width: 70, align: 'right' });
+        doc.fillColor(e.credit ? '#1e7a3d' : '#999999').text(e.credit ? money(e.credit) : '—', colX.credit, y, { width: 70, align: 'right' });
+        doc.fillColor(e.runningBalance >= 0 ? '#1e7a3d' : '#b3261e').font('Body-Bold');
+        doc.text(`${e.runningBalance >= 0 ? '+' : '−'}${money(Math.abs(e.runningBalance))}`, colX.balance, y, { width: 65, align: 'right' });
+        doc.fillColor('#000000').font('Body');
+        doc.moveDown(0.5);
+      });
+
+      doc.fontSize(7).font('Body-Italic').fillColor('#999999');
+      doc.text(
+        'Bu ekstre, sistemdeki kayıtlı hareketlerden otomatik oluşturulmuştur ve resmi bir muhasebe belgesi yerine geçmez.',
+        45,
+        780,
+        { width: 510, align: 'center' },
+      );
+
+      doc.end();
+    });
   }
 }

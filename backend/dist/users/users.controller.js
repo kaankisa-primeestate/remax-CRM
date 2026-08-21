@@ -33,6 +33,13 @@ let UsersController = class UsersController {
     findAgentRoster() {
         return this.usersService.findAgentRoster();
     }
+    async findMe(user) {
+        const found = await this.usersService.findById(user.userId);
+        if (!found)
+            return null;
+        const { passwordHash, ...safe } = found;
+        return safe;
+    }
     createAgent(dto) {
         return this.usersService.createAgent(dto);
     }
@@ -64,6 +71,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "findAgentRoster", null);
+__decorate([
+    (0, common_1.Get)('me'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "findMe", null);
 __decorate([
     (0, common_1.Post)('agents'),
     (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),

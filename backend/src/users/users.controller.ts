@@ -28,6 +28,18 @@ export class UsersController {
     return this.usersService.findAgentRoster();
   }
 
+  // GET /api/users/me — HERKESE acik, kendi tam profilini doner (sifre
+  // haric). Orn. Cari Ekstre sayfasinda kendi Prim Modeli rozetini
+  // gostermek icin -- Broker'in listAgents'i gibi zengin veri lazim ama
+  // Danisman kendi kendine bunu cagirabilmeli.
+  @Get('me')
+  async findMe(@CurrentUser() user: CurrentUserPayload) {
+    const found = await this.usersService.findById(user.userId);
+    if (!found) return null;
+    const { passwordHash, ...safe } = found;
+    return safe;
+  }
+
   // POST /api/users/agents — Broker yeni bir danışman hesabı oluşturur
   @Post('agents')
   @Roles(UserRole.BROKER)

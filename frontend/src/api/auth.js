@@ -7,6 +7,7 @@ export const authApi = {
 
 export const usersApi = {
   listAgents: () => apiClient.get('/users/agents').then((r) => r.data),
+  getMe: () => apiClient.get('/users/me').then((r) => r.data),
   createAgent: (payload) =>
     apiClient.post('/users/agents', payload).then((r) => r.data),
   changePassword: (payload) =>
