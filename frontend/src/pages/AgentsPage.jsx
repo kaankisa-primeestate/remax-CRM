@@ -335,23 +335,24 @@ export default function AgentsPage() {
 
   // "Kim Okudu?" raporunu ac/kapat -- ilk acilista arka uctan ceker,
   // sonraki acilislarda cache'den gosterir (tekrar tekrar sorgu atmasin).
+  // "Kim Okudu?" raporunu ac/kapat -- HER acilista guncel veri ceker
+  // (onbellek TUTMUYORUZ kasti olarak -- danisman az once okumus/kapatmis
+  // olabilir, Broker'in eski/bayat bir durum gormesi yanlis bilgi verir).
   async function handleToggleReadStatus(announcementId) {
     if (readStatusOpenId === announcementId) {
       setReadStatusOpenId(null);
       return;
     }
     setReadStatusOpenId(announcementId);
-    if (!readStatusById[announcementId]) {
-      setReadStatusLoading(true);
-      try {
-        const data = await announcementsApi.getReadStatus(announcementId);
-        setReadStatusById((prev) => ({ ...prev, [announcementId]: data }));
-      } catch {
-        alert('Okuma durumu alınamadı, tekrar deneyin.');
-        setReadStatusOpenId(null);
-      } finally {
-        setReadStatusLoading(false);
-      }
+    setReadStatusLoading(true);
+    try {
+      const data = await announcementsApi.getReadStatus(announcementId);
+      setReadStatusById((prev) => ({ ...prev, [announcementId]: data }));
+    } catch {
+      alert('Okuma durumu alınamadı, tekrar deneyin.');
+      setReadStatusOpenId(null);
+    } finally {
+      setReadStatusLoading(false);
     }
   }
 
@@ -1006,7 +1007,7 @@ export default function AgentsPage() {
                   </button>
                   {readStatusOpenId === a.id && (
                     <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--paper)', borderRadius: 6 }}>
-                      {readStatusLoading && !readStatusById[a.id] ? (
+                      {readStatusLoading ? (
                         <span style={{ fontSize: 12, color: 'var(--muted)' }}>Yükleniyor…</span>
                       ) : (
                         (readStatusById[a.id] || []).map((r) => (

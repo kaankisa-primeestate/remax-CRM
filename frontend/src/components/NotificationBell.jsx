@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../api/notifications';
 import { announcementsApi } from '../api/announcements';
+import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const TYPE_ICONS = {
@@ -32,7 +33,7 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationBell() {
-  const { user } = useAuth();
+  const { user, isBroker } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -42,29 +43,55 @@ export default function NotificationBell() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveItems, setArchiveItems] = useState([]);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [soundPermission, setSoundPermission] = useState(() =>
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
+  );
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeAgents, setComposeAgents] = useState([]);
+  const [composeTitle, setComposeTitle] = useState('');
+  const [composeMessage, setComposeMessage] = useState('');
+  const [composeType, setComposeType] = useState('general');
+  const [composeSendToAll, setComposeSendToAll] = useState(true);
+  const [composeSelectedAgentIds, setComposeSelectedAgentIds] = useState([]);
+  const [composeSaving, setComposeSaving] = useState(false);
   const wrapperRef = useRef(null);
   const prevUnreadCountRef = useRef(null); // ilk yuklemede ses calmamak icin null ile basliyor
-  const hasInteractedRef = useRef(false); // tarayicilarin otomatik ses engeline karsi
+  const audioCtxRef = useRef(null); // tek, yeniden kullanilan ses baglami
 
-  // Tarayicilar, kullanici sayfa ile hic etkilesime girmeden otomatik ses
-  // calinmasini engeller -- sayfadaki ilk tiklama/tus basisiyla "izin"
-  // kazanilmis olur, sonraki bildirim sesleri sorunsuz calar.
-  useEffect(() => {
-    function markInteracted() {
-      hasInteractedRef.current = true;
+  function getAudioContext() {
+    if (!audioCtxRef.current) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtxRef.current = new Ctx();
     }
-    document.addEventListener('click', markInteracted, { once: true });
-    document.addEventListener('keydown', markInteracted, { once: true });
-    return () => {
-      document.removeEventListener('click', markInteracted);
-      document.removeEventListener('keydown', markInteracted);
-    };
-  }, []);
+    return audioCtxRef.current;
+  }
+
+  // Tarayicinin GERCEK bildirim izni istemini kullaniyoruz (Notification
+  // API) -- bu, kullanicinin acikca "Izin Ver / Engelle" secebilecegi
+  // resmi bir tarayici diyalogu acar. Ayni tiklama icinde ses baglamini
+  // da "kilidini ac"iyoruz (kullanici jesti sayesinde), boylece sonraki
+  // otomatik bildirim sesleri tarayici tarafindan engellenmez.
+  async function handleRequestSoundPermission() {
+    if (typeof Notification === 'undefined') {
+      alert('Tarayıcınız bildirim izni özelliğini desteklemiyor.');
+      return;
+    }
+    try {
+      const result = await Notification.requestPermission();
+      setSoundPermission(result);
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') await ctx.resume();
+    } catch {
+      // yoksay
+    }
+  }
 
   function playNotificationSound() {
-    if (!hasInteractedRef.current) return;
+    if (soundPermission !== 'granted') return; // izin verilmediyse HIC calma
+    const ctx = getAudioContext();
+    if (!ctx) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
       oscillator.connect(gainNode);
@@ -76,7 +103,7 @@ export default function NotificationBell() {
       oscillator.start(ctx.currentTime);
       oscillator.stop(ctx.currentTime + 0.35);
     } catch {
-      // Web Audio API desteklenmiyor ya da tarayici engelledi -- sessizce gec
+      // Web Audio API desteklenmiyor -- sessizce gec
     }
   }
 
@@ -193,6 +220,46 @@ export default function NotificationBell() {
     });
   }
 
+  // Hizli Duyuru: Broker'in Danisman Yonetimi -> Duyurular sekmesine
+  // gitmeden, herhangi bir sayfadan (zil paneli uzerinden) hizlica
+  // duyuru gonderebilmesi icin. Ayni backend endpoint'ini kullanir.
+  async function handleOpenCompose() {
+    setOpen(false);
+    setComposeOpen(true);
+    if (composeAgents.length === 0) {
+      try {
+        const data = await usersApi.listAgents();
+        setComposeAgents(data);
+      } catch {
+        setComposeAgents([]);
+      }
+    }
+  }
+
+  async function handleSubmitCompose(e) {
+    e.preventDefault();
+    if (!composeTitle.trim() || !composeMessage.trim()) return;
+    setComposeSaving(true);
+    try {
+      await announcementsApi.create({
+        title: composeTitle.trim(),
+        message: composeMessage.trim(),
+        type: composeType,
+        targetAgentIds: composeSendToAll ? undefined : composeSelectedAgentIds,
+      });
+      setComposeOpen(false);
+      setComposeTitle('');
+      setComposeMessage('');
+      setComposeType('general');
+      setComposeSendToAll(true);
+      setComposeSelectedAgentIds([]);
+    } catch {
+      alert('Duyuru gönderilemedi, tekrar deneyin.');
+    } finally {
+      setComposeSaving(false);
+    }
+  }
+
   if (!user) return null;
 
   return (
@@ -210,7 +277,30 @@ export default function NotificationBell() {
       </button>
       {open && (
         <div className="notif-bell__panel">
-          <div className="notif-bell__header">İşlemler</div>
+          <div className="notif-bell__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>İşlemler</span>
+            {isBroker && (
+              <button
+                type="button"
+                onClick={handleOpenCompose}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-navy)', background: 'transparent', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}
+              >
+                + Duyuru
+              </button>
+            )}
+          </div>
+          {soundPermission === 'default' && (
+            <div style={{ padding: '8px 14px', background: '#eef3f9', borderBottom: '1px solid var(--paper-line)', fontSize: 11, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span>🔔 Yeni bildirim geldiğinde ses çalsın mı?</span>
+              <button
+                type="button"
+                onClick={handleRequestSoundPermission}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: 'var(--ink-navy)', color: 'white', border: 'none', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
+              >
+                İzin Ver
+              </button>
+            </div>
+          )}
           {items.length === 0 ? (
             <div className="notif-bell__empty">Henüz işlem yok.</div>
           ) : (
@@ -297,6 +387,67 @@ export default function NotificationBell() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {composeOpen && (
+        <div className="modal-backdrop" onClick={() => setComposeOpen(false)}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontSize: 18 }}>📢 Hızlı Duyuru Gönder</h2>
+              <button type="button" className="office-modal__close" onClick={() => setComposeOpen(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSubmitCompose}>
+              <div className="form-field" style={{ marginBottom: 10 }}>
+                <label>Başlık</label>
+                <input value={composeTitle} onChange={(e) => setComposeTitle(e.target.value)} required />
+              </div>
+              <div className="form-field" style={{ marginBottom: 10 }}>
+                <label>Mesaj</label>
+                <textarea rows={3} value={composeMessage} onChange={(e) => setComposeMessage(e.target.value)} required style={{ width: '100%' }} />
+              </div>
+              <div className="form-field" style={{ marginBottom: 10 }}>
+                <label>Tür</label>
+                <select value={composeType} onChange={(e) => setComposeType(e.target.value)}>
+                  <option value="general">Genel Duyuru</option>
+                  <option value="celebration">🎉 Kutlama</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 14, marginBottom: 10 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400 }}>
+                  <input type="radio" checked={composeSendToAll} onChange={() => setComposeSendToAll(true)} />
+                  Tüm danışmanlara
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400 }}>
+                  <input type="radio" checked={!composeSendToAll} onChange={() => setComposeSendToAll(false)} />
+                  Seçili danışmanlara
+                </label>
+              </div>
+              {!composeSendToAll && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14, maxHeight: 120, overflowY: 'auto' }}>
+                  {composeAgents.map((a) => (
+                    <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 400, background: 'var(--paper)', padding: '3px 8px', borderRadius: 4 }}>
+                      <input
+                        type="checkbox"
+                        checked={composeSelectedAgentIds.includes(a.id)}
+                        onChange={(e) =>
+                          setComposeSelectedAgentIds((prev) =>
+                            e.target.checked ? [...prev, a.id] : prev.filter((id) => id !== a.id),
+                          )
+                        }
+                      />
+                      {a.name}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-primary" disabled={composeSaving}>
+                  {composeSaving ? 'Gönderiliyor…' : 'Duyuruyu Gönder'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
