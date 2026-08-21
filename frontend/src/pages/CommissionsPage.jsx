@@ -199,6 +199,23 @@ export default function CommissionsPage() {
 
   return (
     <div>
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 12,
+          color: 'var(--muted)',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          marginBottom: 12,
+          cursor: 'pointer',
+          display: 'block',
+        }}
+      >
+        ← Geri Dön
+      </button>
       <div className="folder-tabs">
         <button
           className={`folder-tab ${activeStatus === 'all' ? 'active' : ''}`}

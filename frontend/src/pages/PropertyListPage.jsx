@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -47,6 +47,7 @@ export default function PropertyListPage() {
   const [scope, setScope] = useState('mine'); // 'mine' | 'office' -- sadece Danisman icin anlamli
   const [showForm, setShowForm] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // "+ Hizli Ekle" (ust bar) uzerinden "Yeni Portfoy" secildiginde,
   // bu sayfaya gelir gelmez wizard'i otomatik acar -- ekstra tiklama gerekmez.
@@ -180,6 +181,23 @@ export default function PropertyListPage() {
 
   return (
     <div>
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 12,
+          color: 'var(--muted)',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          marginBottom: 12,
+          cursor: 'pointer',
+          display: 'block',
+        }}
+      >
+        ← Geri Dön
+      </button>
       {!isBroker && (
         <div className="folder-tabs" style={{ marginBottom: 4 }}>
           <button
