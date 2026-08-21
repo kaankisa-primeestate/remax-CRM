@@ -7,6 +7,7 @@ import { dashboardApi } from '../api/dashboard';
 import { tasksApi } from '../api/tasks';
 import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
 import { announcementsApi } from '../api/announcements';
+import { transactionsApi, TRANSACTION_STAGES } from '../api/transactions';
 import TradingViewWidget from '../components/TradingViewWidget.jsx';
 
 const TICKER_CONFIG = {
@@ -48,12 +49,15 @@ export default function AgentDashboardPage() {
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
   const [monthlyLeaderboard, setMonthlyLeaderboard] = useState([]);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState('week');
+  const [myTransactions, setMyTransactions] = useState([]);
+  const [allPropertiesForLookup, setAllPropertiesForLookup] = useState([]);
+  const [allCustomersForLookup, setAllCustomersForLookup] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [properties, customers, targetProgress, tasks, appointments, revisionProperties, announcementList] = await Promise.all([
+      const [properties, customers, targetProgress, tasks, appointments, revisionProperties, announcementList, transactions, allProperties] = await Promise.all([
         propertiesApi.list({ status: 'active' }),
         customersApi.list({}),
         dashboardApi.myTarget().catch(() => null),
@@ -61,12 +65,17 @@ export default function AgentDashboardPage() {
         appointmentsApi.list().catch(() => []),
         propertiesApi.list({ status: 'needs_revision' }).catch(() => []),
         announcementsApi.list().catch(() => []),
+        transactionsApi.list().catch(() => []),
+        propertiesApi.list({}).catch(() => []), // Kanban'da tum durumlardaki portfoyleri eslestirmek icin (sadece aktif degil)
       ]);
       if (cancelled) return;
       setActivePropertiesCount(properties.length);
       setMyTarget(targetProgress);
       setAnnouncements(announcementList.slice(0, 20));
       setNeedsRevisionProperties(revisionProperties);
+      setMyTransactions(transactions);
+      setAllPropertiesForLookup(allProperties);
+      setAllCustomersForLookup(customers);
 
       // Bugunun Is Plani: gecikmis (dueDate < bugun) veya bugune ait
       // (dueDate === bugun), henuz tamamlanmamis gorevler.
@@ -395,6 +404,58 @@ export default function AgentDashboardPage() {
             ))
           )}
         </div>
+      </div>
+
+      {/* --- İşlemler Özet Panosu: Talep/Gösterme/Teklif/Tapu/Kapanış --- */}
+      <div className="panel" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 className="panel__title" style={{ margin: 0 }}>🔄 İşlemlerim</h3>
+          <Link to="/islemler" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-navy)' }}>
+            Tümünü Gör →
+          </Link>
+        </div>
+        {loading ? (
+          <div className="panel__empty">Yükleniyor…</div>
+        ) : myTransactions.length === 0 ? (
+          <div className="panel__empty">Henüz bir işlem başlatmadın.</div>
+        ) : (
+          <div className="kanban-board" style={{ marginTop: 12 }}>
+            {TRANSACTION_STAGES.map((stage) => {
+              const stageTransactions = myTransactions.filter((t) => t.stage === stage.value);
+              return (
+                <div className="kanban-column" key={stage.value}>
+                  <div className="kanban-column__title">{stage.label} ({stageTransactions.length})</div>
+                  {stageTransactions.length === 0 ? (
+                    <div className="kanban-empty">Boş</div>
+                  ) : (
+                    stageTransactions.slice(0, 5).map((t) => {
+                      const property = allPropertiesForLookup.find((p) => p.id === t.propertyId);
+                      const customer = allCustomersForLookup.find((c) => c.id === t.customerId);
+                      const days = Math.floor((Date.now() - new Date(t.stageChangedAt || t.createdAt).getTime()) / 86400000);
+                      const isStale = t.stage !== 'closed' && days >= 7;
+                      return (
+                        <Link to="/islemler" className="kanban-card kanban-card--clickable" key={t.id}>
+                          <div className="kanban-card__name">
+                            {property?.title || t.externalPropertyLabel || 'Portföy belirtilmedi'}
+                          </div>
+                          <div className="kanban-card__meta">
+                            {customer ? `${customer.firstName} ${customer.lastName}` : t.externalCustomerLabel || 'Müşteri belirtilmedi'}
+                            {isStale && <span style={{ color: 'var(--danger)' }}> · ⏱ {days} gün</span>}
+                          </div>
+                        </Link>
+                      );
+                    })
+                  )}
+                  {stageTransactions.length > 5 && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 4 }}>
+                      +{stageTransactions.length - 5} tane daha
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* --- Liderlik Tablosu (gamification) --- */}
