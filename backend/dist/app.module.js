@@ -36,6 +36,7 @@ const recurring_expenses_module_1 = require("./recurring-expenses/recurring-expe
 const cheque_notes_module_1 = require("./cheque-notes/cheque-notes.module");
 const cash_flow_module_1 = require("./cash-flow/cash-flow.module");
 const partners_module_1 = require("./partners/partners.module");
+const calendar_module_1 = require("./calendar/calendar.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -95,6 +96,7 @@ exports.AppModule = AppModule = __decorate([
             cheque_notes_module_1.ChequeNotesModule,
             cash_flow_module_1.CashFlowModule,
             partners_module_1.PartnersModule,
+            calendar_module_1.CalendarModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: throttler_1.ThrottlerGuard },

@@ -27,6 +27,7 @@ import { RecurringExpensesModule } from './recurring-expenses/recurring-expenses
 import { ChequeNotesModule } from './cheque-notes/cheque-notes.module';
 import { CashFlowModule } from './cash-flow/cash-flow.module';
 import { PartnersModule } from './partners/partners.module';
+import { CalendarModule } from './calendar/calendar.module';
 
 @Module({
   imports: [
@@ -104,6 +105,7 @@ import { PartnersModule } from './partners/partners.module';
     ChequeNotesModule,
     CashFlowModule,
     PartnersModule,
+    CalendarModule,
   ],
   providers: [
     // ThrottlerGuard'ı tüm endpoint'lere global olarak uygular.
