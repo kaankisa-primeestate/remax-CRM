@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { propertiesApi } from '../api/properties';
-import { customersApi, CUSTOMER_TYPES } from '../api/customers';
+import { customersApi } from '../api/customers';
 import { dashboardApi } from '../api/dashboard';
 import { tasksApi } from '../api/tasks';
 import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
 import { announcementsApi } from '../api/announcements';
-import { PIPELINE_STAGES } from '../constants/pipeline.js';
 import TradingViewWidget from '../components/TradingViewWidget.jsx';
 
 const TICKER_CONFIG = {
@@ -39,7 +38,6 @@ export default function AgentDashboardPage() {
   const [activePropertiesCount, setActivePropertiesCount] = useState(0);
   const [matches, setMatches] = useState([]);
   const [myTarget, setMyTarget] = useState(null);
-  const [allCustomers, setAllCustomers] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [needsRevisionProperties, setNeedsRevisionProperties] = useState([]);
@@ -68,7 +66,6 @@ export default function AgentDashboardPage() {
       setActivePropertiesCount(properties.length);
       setMyTarget(targetProgress);
       setAnnouncements(announcementList.slice(0, 20));
-      setAllCustomers(customers);
       setNeedsRevisionProperties(revisionProperties);
 
       // Bugunun Is Plani: gecikmis (dueDate < bugun) veya bugune ait
@@ -287,7 +284,7 @@ export default function AgentDashboardPage() {
           )}
         </Link>
         <Link to="/musteriler" state={{ presetHotOnly: true }} className="metric-card metric-card--clickable">
-          <div className="metric-card__label">Sıcak Fırsatlar</div>
+          <div className="metric-card__label">⚡ Acil Talepler</div>
           <div className="metric-card__value">{loading ? '…' : hotOpportunitiesCount} Müşteri</div>
           <div className="metric-card__delta is-muted">"Hemen" almak/kiralamak isteyen</div>
         </Link>
@@ -345,7 +342,12 @@ export default function AgentDashboardPage() {
           </div>
         </div>
         <div className="panel">
-          <h3 className="panel__title">Akıllı Eşleştirmeler</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="panel__title" style={{ margin: 0 }}>🔥 Sıcak Fırsatlar</h3>
+            <Link to="/talepler" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-navy)' }}>
+              Tümünü Gör →
+            </Link>
+          </div>
           {loading ? (
             <div className="panel__empty">Yükleniyor…</div>
           ) : matches.length === 0 ? (
@@ -363,34 +365,6 @@ export default function AgentDashboardPage() {
               </Link>
             ))
           )}
-        </div>
-      </div>
-
-      {/* --- Müşteri Takip Kanban Panosu --- */}
-      <div className="panel">
-        <h3 className="panel__title">Müşteri Takip Panosu</h3>
-        <div className="kanban-board">
-          {PIPELINE_STAGES.map((stage) => {
-            const stageCustomers = allCustomers.filter((c) => (c.pipelineStage || 'new_contact') === stage.key);
-            return (
-              <div className="kanban-column" key={stage.key}>
-                <div className="kanban-column__title">{stage.label} ({stageCustomers.length})</div>
-                {stageCustomers.length === 0 ? (
-                  <div className="kanban-empty">Bu aşamada müşteri yok</div>
-                ) : (
-                  stageCustomers.map((c) => (
-                    <Link to={`/musteriler/${c.id}`} className="kanban-card kanban-card--clickable" key={c.id}>
-                      <div className="kanban-card__name">{c.firstName} {c.lastName}</div>
-                      <div className="kanban-card__meta">
-                        {CUSTOMER_TYPES.find((t) => t.value === c.type)?.label}
-                        {c.propertyInterest ? ` · ${c.propertyInterest}` : ''}
-                      </div>
-                    </Link>
-                  ))
-                )}
-              </div>
-            );
-          })}
         </div>
       </div>
 

@@ -1,150 +1,135 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { customersApi, CUSTOMER_TYPES } from '../api/customers';
-import { PIPELINE_STAGES } from '../constants/pipeline.js';
+import { customersApi } from '../api/customers';
 
 const MATCHABLE_TYPES = ['buyer', 'tenant', 'investor'];
 const MAX_CUSTOMERS_TO_SCAN = 50; // performans icin ust sinir
 
-const TIMELINE_LABELS = {
-  immediate: 'Hemen',
-  '1_3_months': '1–3 ay içinde',
-  '3_6_months': '3–6 ay içinde',
-  later: 'Daha sonra',
-};
-
-const TIMELINE_URGENCY = { immediate: 0, '1_3_months': 1, '3_6_months': 2, later: 3 };
-
 const money = (n) =>
   n ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : '—';
 
-function timeAgo(dateStr) {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days < 1) return 'bugün';
-  if (days === 1) return 'dün';
-  if (days < 30) return `${days} gün önce`;
-  return new Date(dateStr).toLocaleDateString('tr-TR');
+function scoreColor(score) {
+  if (score >= 70) return { bg: '#e6f4ea', fg: '#1e7a3d' };
+  if (score >= 55) return { bg: '#fdf3e0', fg: '#8a6100' };
+  return { bg: '#eef3f9', fg: 'var(--ink-navy)' };
 }
 
-// Talepler: "Kim ne ariyor?" -- mevcut musteri verisini aksiyon odakli,
-// eslesme sayisiyla zenginlestirilmis bir calisma masasi olarak sunar.
-// Yeni bir backend yapisi gerektirmez, var olan musteri + eslestirme
-// motorunu yeniden duzenler.
+// Sicak Firsatlar: eskiden "Talepler" (musteri listesi) ve Panelim'deki
+// "Akilli Eslestirmeler" widget'i AYRI AYRI, kismen ortusen iki farkli
+// gorunum sunuyordu -- kafa karistiriyordu. Artik TEK bir ekran: musteri
+// ile portfoy arasindaki HER eslesmeyi (ayni eslestirme motorundan,
+// matching.service.ts), en yuksek skordan en dusuge dogru TEK bir liste
+// halinde gosterir. Bir satira tiklamak ilgili portfoye goturur,
+// musteri adina tiklamak musteri kartina goturur.
 export default function RequestsPage() {
-  const [customers, setCustomers] = useState([]);
-  const [matchCounts, setMatchCounts] = useState({});
+  const [pairs, setPairs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState('urgency'); // urgency | matches | recent
   const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     const all = await customersApi.list({});
-    const requests = all
-      .filter((c) => MATCHABLE_TYPES.includes(c.type))
-      .slice(0, MAX_CUSTOMERS_TO_SCAN);
-    setCustomers(requests);
-    setLoading(false);
+    const candidates = all.filter((c) => MATCHABLE_TYPES.includes(c.type)).slice(0, MAX_CUSTOMERS_TO_SCAN);
 
-    // Eslesme sayilarini arka planda, sayfa zaten gorunur haldeyken
-    // hesapliyoruz -- kullanici bekletilmez, kartlar geldikce dolar.
     const results = await Promise.all(
-      requests.map(async (c) => {
+      candidates.map(async (c) => {
         try {
           const matches = await customersApi.matchingProperties(c.id);
-          return [c.id, { count: matches.length, topScore: matches[0]?.score ?? 0 }];
+          return matches.map((m) => ({ customer: c, property: m.property, score: m.score }));
         } catch {
-          return [c.id, { count: 0, topScore: 0 }];
+          return [];
         }
       }),
     );
-    setMatchCounts(Object.fromEntries(results));
+    const flattened = results.flat().sort((a, b) => b.score - a.score);
+    setPairs(flattened);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const filtered = customers.filter((c) => {
+  const filtered = pairs.filter((p) => {
     if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || (c.propertyInterest || '').toLowerCase().includes(q);
-  });
-
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === 'urgency') {
-      const ua = TIMELINE_URGENCY[a.purchaseTimeline] ?? 9;
-      const ub = TIMELINE_URGENCY[b.purchaseTimeline] ?? 9;
-      return ua - ub;
-    }
-    if (sortBy === 'matches') {
-      return (matchCounts[b.id]?.count ?? 0) - (matchCounts[a.id]?.count ?? 0);
-    }
-    // recent
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    const q = search.trim().toLocaleLowerCase('tr-TR');
+    return (
+      `${p.customer.firstName} ${p.customer.lastName}`.toLocaleLowerCase('tr-TR').includes(q) ||
+      (p.property.title || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (p.property.district || '').toLocaleLowerCase('tr-TR').includes(q)
+    );
   });
 
   return (
     <div>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>Talepler</h2>
-
-      <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <div className="toolbar">
-          <input
-            className="search-input"
-            placeholder="İsim veya ne aradığıyla ara…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ maxWidth: 220 }}>
-            <option value="urgency">Aciliyete göre sırala</option>
-            <option value="matches">Eşleşme sayısına göre sırala</option>
-            <option value="recent">Son güncellemeye göre sırala</option>
-          </select>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+        <h2 className="dossier__name" style={{ margin: 0 }}>🔥 Sıcak Fırsatlar</h2>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Müşteri veya ilan ara…"
+          style={{ maxWidth: 260 }}
+        />
       </div>
+      <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: -10, marginBottom: 20 }}>
+        Müşterilerinizin aradığı özelliklerle portföylerin otomatik karşılaştırılmasından doğan tüm eşleşmeler, en yüksek orandan en düşüğe sıralı. Bir satıra tıklayınca ilgili portföye gidersiniz.
+      </p>
 
       {loading ? (
-        <div className="empty-state">Yükleniyor…</div>
-      ) : sorted.length === 0 ? (
+        <div className="empty-state">Eşleşmeler taranıyor…</div>
+      ) : filtered.length === 0 ? (
         <div className="empty-state">
-          {search ? 'Aramanızla eşleşen talep yok.' : 'Aktif bir talebiniz (Alıcı/Kiracı/Yatırımcı) yok.'}
+          {search.trim() ? 'Aramanızla eşleşen bir sonuç yok.' : 'Şu an güçlü bir eşleşme bulunamadı — müşteri ve portföy bilgileri ne kadar dolu olursa eşleştirme o kadar isabetli olur.'}
         </div>
       ) : (
-        sorted.map((c) => {
-          const stageLabel = PIPELINE_STAGES.find((s) => s.key === c.pipelineStage)?.label || 'İlk Temas';
-          const match = matchCounts[c.id];
-          return (
-            <Link to={`/musteriler/${c.id}`} className="request-card" key={c.id}>
-              <div className="request-card__main">
-                <div className="request-card__name">
-                  {c.firstName} {c.lastName}
-                  <span className="request-card__type">{CUSTOMER_TYPES.find((t) => t.value === c.type)?.label}</span>
-                </div>
-                <div className="request-card__meta">
-                  {c.propertyInterest && <span>{c.propertyInterest}</span>}
-                  {c.budget && <span> · {money(c.budget)}</span>}
-                  {c.preferredDistricts?.length > 0 && <span> · {c.preferredDistricts.join(', ')}</span>}
-                </div>
+        <div className="folder-panel" style={{ padding: 0 }}>
+          {filtered.map((p, i) => {
+            const colors = scoreColor(p.score);
+            return (
+              <div
+                key={`${p.customer.id}-${p.property.id}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 16px',
+                  borderTop: i > 0 ? '1px solid var(--paper-line)' : 'none',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    background: colors.bg,
+                    color: colors.fg,
+                    borderRadius: 999,
+                    padding: '4px 10px',
+                    flexShrink: 0,
+                    minWidth: 48,
+                    textAlign: 'center',
+                  }}
+                >
+                  %{p.score}
+                </span>
+                <Link to={`/portfoyler/${p.property.id}`} style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.property.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    {p.property.district} · {money(p.property.price)}
+                  </div>
+                </Link>
+                <Link
+                  to={`/musteriler/${p.customer.id}`}
+                  style={{ fontSize: 12, color: 'var(--ink-navy)', textAlign: 'right', flexShrink: 0, textDecoration: 'none' }}
+                >
+                  👤 {p.customer.firstName} {p.customer.lastName}
+                </Link>
               </div>
-              <div className="request-card__side">
-                {c.purchaseTimeline && (
-                  <span className={`request-card__urgency${c.purchaseTimeline === 'immediate' ? ' is-urgent' : ''}`}>
-                    {TIMELINE_LABELS[c.purchaseTimeline]}
-                  </span>
-                )}
-                <span className="request-card__stage">{stageLabel}</span>
-                {match !== undefined && (
-                  <span className={`request-card__matches${match.count > 0 ? ' has-matches' : ''}`}>
-                    {match.count > 0 ? `🔗 ${match.count} eşleşme` : 'Eşleşme yok'}
-                  </span>
-                )}
-                <span className="request-card__updated">{timeAgo(c.updatedAt)}</span>
-              </div>
-            </Link>
-          );
-        })
+            );
+          })}
+        </div>
       )}
     </div>
   );
