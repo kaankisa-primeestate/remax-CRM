@@ -94,21 +94,26 @@ export class AnnouncementsService {
 
   // Danisman bir duyuruyu ACIP icerigini gordugunde cagrilir -- "okundu"
   // isaretler (kapatma/silme ile KARISTIRILMAMALI, ayri bir durum).
+  //
+  // NOT: find+create+save yerine ATOMIK bir upsert kullaniyoruz -- iki
+  // istek (orn. modal acilirken tetiklenen "okundu" + kullanicinin hemen
+  // ardindan bastigi "Sil") AYNI ANDA gelirse, eski find+create+save
+  // deseni bir "unique constraint" cakismasina (2. istek satiri zaten
+  // var saniyor, INSERT deniyor) yol aciyordu -- bu YARIS DURUMU
+  // (race condition) canlida "Duyuru kaldirilamadi" hatasina sebep oldu.
+  // upsert, veritabani seviyesinde INSERT...ON CONFLICT DO UPDATE
+  // calistirir, bu tur bir cakismayi yapisal olarak imkansiz kilar.
   async markRead(announcementId: string, currentUser: CurrentUserPayload): Promise<void> {
     const announcement = await this.announcementRepo.findOne({ where: { id: announcementId } });
     if (!announcement) {
       throw new NotFoundException('Duyuru bulunamadı');
     }
-    let dismissal = await this.dismissalRepo.findOne({
-      where: { announcementId, agentId: currentUser.userId },
-    });
-    if (!dismissal) {
-      dismissal = this.dismissalRepo.create({ announcementId, agentId: currentUser.userId });
-    }
-    if (!dismissal.readAt) {
-      dismissal.readAt = new Date();
-      await this.dismissalRepo.save(dismissal);
-    }
+    // Sadece readAt gonderiliyor -- upsert cakisma aninda SADECE bu
+    // sutunu gunceller, mevcut dismissedAt'e (varsa) dokunmaz.
+    await this.dismissalRepo.upsert(
+      { announcementId, agentId: currentUser.userId, readAt: new Date() },
+      ['announcementId', 'agentId'],
+    );
   }
 
   // Danisman "Sil" dedi -- SADECE kendi ekranindan kaldirilir, Broker'in
@@ -118,15 +123,11 @@ export class AnnouncementsService {
     if (!announcement) {
       throw new NotFoundException('Duyuru bulunamadı');
     }
-    let dismissal = await this.dismissalRepo.findOne({
-      where: { announcementId, agentId: currentUser.userId },
-    });
-    if (!dismissal) {
-      dismissal = this.dismissalRepo.create({ announcementId, agentId: currentUser.userId });
-    }
-    dismissal.readAt = dismissal.readAt || new Date();
-    dismissal.dismissedAt = new Date();
-    await this.dismissalRepo.save(dismissal);
+    const now = new Date();
+    await this.dismissalRepo.upsert(
+      { announcementId, agentId: currentUser.userId, readAt: now, dismissedAt: now },
+      ['announcementId', 'agentId'],
+    );
   }
 
   // Danisman kendi yanitini verir/gunceller (upsert).
