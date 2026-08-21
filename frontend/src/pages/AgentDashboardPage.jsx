@@ -157,6 +157,19 @@ export default function AgentDashboardPage() {
     }
   }
 
+  // Duyuruyu "Sil" -- SADECE bu danismanin ekranindan kaldirir (kalici
+  // silme degil, Broker/diger danismanlar etkilenmez -- bkz. backend).
+  async function handleDismissAnnouncement(announcementId) {
+    const previous = announcements;
+    setAnnouncements((prev) => prev.filter((a) => a.id !== announcementId));
+    try {
+      await announcementsApi.dismiss(announcementId);
+    } catch {
+      alert('Duyuru kaldırılamadı, tekrar deneyin.');
+      setAnnouncements(previous);
+    }
+  }
+
   return (
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 4 }}>
@@ -182,7 +195,15 @@ export default function AgentDashboardPage() {
           <button
             type="button"
             className={`office-trigger${hasCelebration ? ' office-trigger--celebration' : ''}`}
-            onClick={() => setOfficeModalOpen(true)}
+            onClick={() => {
+              setOfficeModalOpen(true);
+              // Modal acilinca gorunen tum duyurular "okundu" sayilir --
+              // zaten icerikleri direkt burada tam gorunuyor, ayrica
+              // tiklamaya gerek yok (bkz. bildirim zilindeki ayni mantik).
+              announcements.forEach((a) => {
+                if (!a.isRead) announcementsApi.markRead(a.id).catch(() => {});
+              });
+            }}
           >
             <span className="office-trigger__icon">🏢</span>
             <span className="office-trigger__label">Merkez Ofis</span>
@@ -230,6 +251,14 @@ export default function AgentDashboardPage() {
                       )}
                     </div>
                   )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: 11, padding: '4px 10px', marginTop: 10, color: 'var(--danger)' }}
+                    onClick={() => handleDismissAnnouncement(a.id)}
+                  >
+                    🗑 Sil
+                  </button>
                 </div>
               ))}
             </div>

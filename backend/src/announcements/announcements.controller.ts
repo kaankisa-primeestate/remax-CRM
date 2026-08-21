@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { RespondAnnouncementDto } from './dto/respond-announcement.dto';
@@ -21,10 +21,26 @@ export class AnnouncementsController {
   }
 
   // GET /api/announcements -- Danisman kendine gelenleri (+ kendi yaniti),
-  // Broker tumunu (+ herkesin yanit ozeti) gorur
+  // Broker tumunu (+ herkesin yanit ozeti) gorur. ?includeDismissed=true
+  // ile danisman KAPATTIGI duyurulari da (gecmis/arsiv gorunumu icin) gorebilir.
   @Get()
-  findAll(@CurrentUser() user: CurrentUserPayload) {
-    return this.announcementsService.findAllForUser(user);
+  findAll(@CurrentUser() user: CurrentUserPayload, @Query('includeDismissed') includeDismissed?: string) {
+    return this.announcementsService.findAllForUser(user, includeDismissed === 'true');
+  }
+
+  // POST /api/announcements/:id/read -- danisman duyuruyu actiginda cagrilir
+  @Post(':id/read')
+  async markRead(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.announcementsService.markRead(id, user);
+    return { success: true };
+  }
+
+  // POST /api/announcements/:id/dismiss -- danisman "Sil" dedi, SADECE
+  // kendi ekranindan kaldirilir (kalici DELETE degildir, bkz. entity)
+  @Post(':id/dismiss')
+  async dismiss(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.announcementsService.dismiss(id, user);
+    return { success: true };
   }
 
   // POST /api/announcements/:id/respond -- Danismanin "katilacagim/

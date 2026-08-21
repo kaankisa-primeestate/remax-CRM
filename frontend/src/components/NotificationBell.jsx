@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../api/notifications';
+import { announcementsApi } from '../api/announcements';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const TYPE_ICONS = {
@@ -36,6 +37,8 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [detailItem, setDetailItem] = useState(null); // popup'ta acik olan bildirim
+  const [dismissing, setDismissing] = useState(false);
   const wrapperRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -82,9 +85,33 @@ export default function NotificationBell() {
   }
 
   function handleItemClick(item) {
-    if (item.propertyId) {
+    // 'broker_message' turu dogrudan ilgili portfoye goturur (icerigi zaten
+    // orada gorunur) -- diger turler (orn. 'announcement') icin bir detay
+    // popup'i acilir, cunku gidilecek ayri bir sayfalari yok.
+    if (item.type === 'broker_message' && item.propertyId) {
       setOpen(false);
       navigate(`/portfoyler/${item.propertyId}`);
+      return;
+    }
+    setDetailItem(item);
+    setOpen(false);
+    if (item.type === 'announcement' && item.announcementId && !item.read) {
+      announcementsApi.markRead(item.announcementId).catch(() => {});
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, read: true } : i)));
+    }
+  }
+
+  async function handleDismissAnnouncement() {
+    if (!detailItem?.announcementId) return;
+    setDismissing(true);
+    try {
+      await announcementsApi.dismiss(detailItem.announcementId);
+      setItems((prev) => prev.filter((i) => i.id !== detailItem.id));
+      setDetailItem(null);
+    } catch {
+      alert('Duyuru kaldırılamadı, tekrar deneyin.');
+    } finally {
+      setDismissing(false);
     }
   }
 
@@ -113,7 +140,7 @@ export default function NotificationBell() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className={`notif-bell__item${item.read ? '' : ' notif-bell__item--unread'}${item.propertyId ? ' notif-bell__item--clickable' : ''}`}
+                  className={`notif-bell__item${item.read ? '' : ' notif-bell__item--unread'} notif-bell__item--clickable`}
                   onClick={() => handleItemClick(item)}
                 >
                   <span className="notif-bell__icon" aria-hidden="true">{TYPE_ICONS[item.type] || '•'}</span>
@@ -125,6 +152,35 @@ export default function NotificationBell() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {detailItem && (
+        <div className="modal-backdrop" onClick={() => setDetailItem(null)}>
+          <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontSize: 18 }}>{TYPE_ICONS[detailItem.type] || '•'} {detailItem.title.replace(/^Duyuru: /, '')}</h2>
+              <button type="button" className="office-modal__close" onClick={() => setDetailItem(null)}>✕</button>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 0 }}>
+              {detailItem.agentName} · {new Date(detailItem.occurredAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+            </p>
+            {detailItem.message ? (
+              <p style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{detailItem.message}</p>
+            ) : (
+              <p style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>Bu bildirim için ek içerik yok.</p>
+            )}
+            <div className="modal-actions" style={{ marginTop: 16, justifyContent: detailItem.type === 'announcement' ? 'space-between' : 'flex-end' }}>
+              {detailItem.type === 'announcement' && (
+                <button type="button" className="btn btn-secondary" style={{ color: 'var(--danger)' }} disabled={dismissing} onClick={handleDismissAnnouncement}>
+                  {dismissing ? 'Kaldırılıyor…' : '🗑 Sil'}
+                </button>
+              )}
+              <button type="button" className="btn btn-primary" onClick={() => setDetailItem(null)}>
+                Kapat
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Announcement } from './announcement.entity';
 import { AnnouncementResponse } from './announcement-response.entity';
+import { AnnouncementDismissal } from './announcement-dismissal.entity';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { RespondAnnouncementDto } from './dto/respond-announcement.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
@@ -12,6 +13,7 @@ export class AnnouncementsService {
   constructor(
     @InjectRepository(Announcement) private readonly announcementRepo: Repository<Announcement>,
     @InjectRepository(AnnouncementResponse) private readonly responseRepo: Repository<AnnouncementResponse>,
+    @InjectRepository(AnnouncementDismissal) private readonly dismissalRepo: Repository<AnnouncementDismissal>,
   ) {}
 
   // Sadece Broker olusturabilir (controller'da @Roles ile de korunuyor,
@@ -31,7 +33,7 @@ export class AnnouncementsService {
   // Broker: gonderdigi tum duyurulari, HERKESIN yanitiyla birlikte gorur
   // (responseCounts + responses listesi) -- toplanti gibi konularda kim
   // katilacak/katilamayacak diye tek bakista gorebilmesi icin.
-  async findAllForUser(currentUser: CurrentUserPayload): Promise<any[]> {
+  async findAllForUser(currentUser: CurrentUserPayload, includeDismissed = false): Promise<any[]> {
     const all = await this.announcementRepo.find({ order: { createdAt: 'DESC' } });
     const visible =
       currentUser.role === 'broker'
@@ -48,7 +50,20 @@ export class AnnouncementsService {
       .where('r.announcementId IN (:...ids)', { ids: announcementIds })
       .getMany();
 
-    return visible.map((a) => {
+    // Danisman icin: kendi okundu/kapatildi durumunu (dismissal) da cek.
+    // Broker'in genel gorunumu bundan ETKILENMEZ -- dismissal tamamen
+    // kisisel, sadece o danismanin KENDI ekranindan kaybolmasini saglar.
+    const myDismissals =
+      currentUser.role === 'agent'
+        ? await this.dismissalRepo.find({ where: { announcementId: In(announcementIds), agentId: currentUser.userId } })
+        : [];
+    const dismissalByAnnouncementId = new Map(myDismissals.map((d) => [d.announcementId, d]));
+
+    const filtered = includeDismissed
+      ? visible
+      : visible.filter((a) => currentUser.role === 'broker' || !dismissalByAnnouncementId.get(a.id)?.dismissedAt);
+
+    return filtered.map((a) => {
       const responsesForThis = allResponses.filter((r) => r.announcementId === a.id);
       if (currentUser.role === 'broker') {
         return {
@@ -67,11 +82,51 @@ export class AnnouncementsService {
         };
       }
       const mine = responsesForThis.find((r) => r.agentId === currentUser.userId);
+      const dismissal = dismissalByAnnouncementId.get(a.id);
       return {
         ...a,
         myResponse: mine ? { status: mine.status, note: mine.note } : null,
+        isRead: !!dismissal?.readAt,
+        isDismissed: !!dismissal?.dismissedAt,
       };
     });
+  }
+
+  // Danisman bir duyuruyu ACIP icerigini gordugunde cagrilir -- "okundu"
+  // isaretler (kapatma/silme ile KARISTIRILMAMALI, ayri bir durum).
+  async markRead(announcementId: string, currentUser: CurrentUserPayload): Promise<void> {
+    const announcement = await this.announcementRepo.findOne({ where: { id: announcementId } });
+    if (!announcement) {
+      throw new NotFoundException('Duyuru bulunamadı');
+    }
+    let dismissal = await this.dismissalRepo.findOne({
+      where: { announcementId, agentId: currentUser.userId },
+    });
+    if (!dismissal) {
+      dismissal = this.dismissalRepo.create({ announcementId, agentId: currentUser.userId });
+    }
+    if (!dismissal.readAt) {
+      dismissal.readAt = new Date();
+      await this.dismissalRepo.save(dismissal);
+    }
+  }
+
+  // Danisman "Sil" dedi -- SADECE kendi ekranindan kaldirilir, Broker'in
+  // ve diger danismanlarin gorunumu etkilenmez (bkz. entity aciklamasi).
+  async dismiss(announcementId: string, currentUser: CurrentUserPayload): Promise<void> {
+    const announcement = await this.announcementRepo.findOne({ where: { id: announcementId } });
+    if (!announcement) {
+      throw new NotFoundException('Duyuru bulunamadı');
+    }
+    let dismissal = await this.dismissalRepo.findOne({
+      where: { announcementId, agentId: currentUser.userId },
+    });
+    if (!dismissal) {
+      dismissal = this.dismissalRepo.create({ announcementId, agentId: currentUser.userId });
+    }
+    dismissal.readAt = dismissal.readAt || new Date();
+    dismissal.dismissedAt = new Date();
+    await this.dismissalRepo.save(dismissal);
   }
 
   // Danisman kendi yanitini verir/gunceller (upsert).

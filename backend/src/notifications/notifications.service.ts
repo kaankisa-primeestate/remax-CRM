@@ -9,6 +9,7 @@ import { User, UserRole } from '../users/user.entity';
 import { PropertyComment } from '../property-comments/property-comment.entity';
 import { Appointment } from '../appointments/appointment.entity';
 import { Announcement } from '../announcements/announcement.entity';
+import { AnnouncementDismissal } from '../announcements/announcement-dismissal.entity';
 import { Transaction } from '../transactions/transaction.entity';
 
 const PROPERTY_STATUS_LABELS: Record<string, string> = {
@@ -38,10 +39,12 @@ export interface NotificationItem {
   id: string;
   type: NotificationType;
   title: string;
+  message?: string; // tam icerik -- zil'de detay popup'i icin (henuz tum turler doldurmuyor)
   agentName: string;
   occurredAt: Date;
   read: boolean;
   propertyId?: string;
+  announcementId?: string; // 'announcement' turunde, okundu/kapatma islemleri icin gercek duyuru id'si
 }
 
 // Her kaynaktan en fazla bu kadar kayit cekilir (performans icin)
@@ -60,6 +63,7 @@ export class NotificationsService {
     @InjectRepository(PropertyComment) private readonly commentRepo: Repository<PropertyComment>,
     @InjectRepository(Appointment) private readonly appointmentRepo: Repository<Appointment>,
     @InjectRepository(Announcement) private readonly announcementRepo: Repository<Announcement>,
+    @InjectRepository(AnnouncementDismissal) private readonly dismissalRepo: Repository<AnnouncementDismissal>,
     @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
   ) {}
 
@@ -253,11 +257,21 @@ export class NotificationsService {
     // Broker'dan gelen duyurular (tumune ya da sadece bu danismana
     // gonderilenler) -- basit olcekte tum kayitlari cekip JS'te filtreliyoruz,
     // cunku simple-array kolonlarda Postgres "contains" sorgusu TypeORM'de
-    // dogrudan desteklenmiyor.
+    // dogrudan desteklenmiyor. KAPATILAN (dismissedAt dolu) duyurular
+    // zilden de kaybolur -- Panelim'deki "Merkez Ofis" widget'iyla AYNI
+    // gorunurluk kurali (bkz. announcements.service.ts findAllForUser).
     const allAnnouncements = await this.announcementRepo.find({ order: { createdAt: 'DESC' }, take: LIMIT_PER_SOURCE });
-    const myAnnouncements = allAnnouncements.filter(
+    const myAnnouncementsRaw = allAnnouncements.filter(
       (a) => !a.targetAgentIds || a.targetAgentIds.length === 0 || a.targetAgentIds.includes(agentId),
     );
+    const myDismissals = myAnnouncementsRaw.length
+      ? await this.dismissalRepo.find({
+          where: { announcementId: In(myAnnouncementsRaw.map((a) => a.id)), agentId },
+        })
+      : [];
+    const dismissedIds = new Set(myDismissals.filter((d) => d.dismissedAt).map((d) => d.announcementId));
+    const readIds = new Set(myDismissals.filter((d) => d.readAt).map((d) => d.announcementId));
+    const myAnnouncements = myAnnouncementsRaw.filter((a) => !dismissedIds.has(a.id));
 
     // Isbirlikli Satis: bu danismanin taraf oldugu (sahip VEYA isbirlikci),
     // henuz paylasim onayi kesinlesmemis islemler -- "harekete gec"
@@ -297,9 +311,11 @@ export class NotificationsService {
         id: `announcement-${a.id}`,
         type: 'announcement' as const,
         title: `Duyuru: ${a.title}`,
+        message: a.message,
         agentName: 'Broker',
         occurredAt: a.createdAt,
-        read: false,
+        read: readIds.has(a.id),
+        announcementId: a.id,
       })),
       ...pendingSplits.map((t) => ({
         id: `collab-split-${t.id}-${new Date(t.updatedAt).getTime()}`,
