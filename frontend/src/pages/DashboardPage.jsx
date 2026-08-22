@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { dashboardApi } from '../api/dashboard';
 import { propertiesApi } from '../api/properties';
 import { propertyCommentsApi } from '../api/propertyComments';
+import { transactionsApi } from '../api/transactions';
 import TradingViewWidget from '../components/TradingViewWidget.jsx';
 
 const TICKER_CONFIG = {
@@ -113,16 +114,19 @@ export default function DashboardPage() {
   const [customTo, setCustomTo] = useState(rangeForPeriod('month').to);
   const [data, setData] = useState(null);
   const [propertyStats, setPropertyStats] = useState(null);
+  const [agentActivity, setAgentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { from, to } = period === 'custom' ? { from: customFrom, to: customTo } : rangeForPeriod(period);
-    const [summary, properties] = await Promise.all([
+    const [summary, properties, activity] = await Promise.all([
       dashboardApi.summary({ from, to }),
       propertiesApi.list({}),
+      dashboardApi.agentActivity().catch(() => []),
     ]);
     setData(summary);
+    setAgentActivity(activity);
     const active = properties.filter((p) => p.status === 'active');
     setPropertyStats({
       total: properties.length,
@@ -160,6 +164,15 @@ export default function DashboardPage() {
     } catch (err) {
       const message = err?.response?.data?.message ?? 'Revizyon isteği gönderilemedi.';
       alert(Array.isArray(message) ? message.join(', ') : message);
+    }
+  }
+
+  async function handleResolveFlag(noteId) {
+    try {
+      await transactionsApi.resolveNoteFlag(noteId);
+      load();
+    } catch {
+      alert('İşaretlenemedi, tekrar deneyin.');
     }
   }
 
@@ -237,33 +250,90 @@ export default function DashboardPage() {
             </div>
             <div className="panel">
               <h3 className="panel__title">Akıllı Aksiyon & Onay Merkezi</h3>
-              {(data.pendingApprovals || []).map((p) => (
-                <div className="action-item" key={p.propertyId}>
-                  <span className="action-item__dot">{p.status === 'needs_revision' ? '🟠' : '🔴'}</span>
-                  <div className="action-item__body">
-                    <div className="action-item__title">
-                      {p.status === 'needs_revision' ? 'Revizyon Bekliyor' : 'Onay Bekleyen İlan'}: {p.title}
+              {(data.pendingApprovals || []).map((p) => {
+                if (p.kind === 'flag') {
+                  return (
+                    <div className="action-item" key={`flag-${p.noteId}`}>
+                      <span className="action-item__dot">⚠️</span>
+                      <div className="action-item__body">
+                        <div className="action-item__title">Danışman Bildirimi: {p.title}</div>
+                        <div className="action-item__meta">{p.agentName} · {p.text}</div>
+                        <div className="action-item__buttons">
+                          <button type="button" className="btn btn-primary" onClick={() => handleResolveFlag(p.noteId)}>
+                            ✓ Çözüldü
+                          </button>
+                          <Link to={`/islemler/${p.transactionId}`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                            İşlem Dosyasını Aç
+                          </Link>
+                        </div>
+                      </div>
                     </div>
-                    <div className="action-item__meta">
-                      {p.agentName}
-                      {p.status === 'needs_revision' && p.revisionNote && (
-                        <> · Not: "{p.revisionNote}"</>
-                      )}
+                  );
+                }
+                if (p.kind === 'deal') {
+                  return (
+                    <div className="action-item" key={`deal-${p.transactionId}`}>
+                      <span className="action-item__dot">🔴</span>
+                      <div className="action-item__body">
+                        <div className="action-item__title">Kapanış Onayı Bekliyor: {p.title}</div>
+                        <div className="action-item__meta">
+                          {p.agentName}
+                          {p.totalCommission ? ` · Komisyon: ${money(p.totalCommission)}` : ''}
+                        </div>
+                        <div className="action-item__buttons">
+                          <Link to={`/islemler/${p.transactionId}`} className="btn btn-primary" style={{ textDecoration: 'none' }}>
+                            İşlem Dosyasını Aç ve Onayla
+                          </Link>
+                        </div>
+                      </div>
                     </div>
-                    <div className="action-item__buttons">
-                      <button type="button" className="btn btn-primary" onClick={() => handleApprove(p.propertyId)}>
-                        Onayla
-                      </button>
-                      <button type="button" className="btn btn-secondary" onClick={() => handleRequestRevision(p.propertyId)}>
-                        Revize İste
-                      </button>
-                      <Link to={`/portfoyler/${p.propertyId}`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
-                        Detay
-                      </Link>
+                  );
+                }
+                if (p.kind === 'split') {
+                  return (
+                    <div className="action-item" key={`split-${p.transactionId}`}>
+                      <span className="action-item__dot">🤝</span>
+                      <div className="action-item__body">
+                        <div className="action-item__title">İşbirlikli Paylaşım Onayı Bekliyor: {p.title}</div>
+                        <div className="action-item__meta">{p.agentName}</div>
+                        <div className="action-item__buttons">
+                          <Link to={`/islemler/${p.transactionId}`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                            İşlem Dosyasını Aç
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                // kind === 'property' (varsayilan, mevcut davranis)
+                return (
+                  <div className="action-item" key={`property-${p.propertyId}`}>
+                    <span className="action-item__dot">{p.status === 'needs_revision' ? '🟠' : '🔴'}</span>
+                    <div className="action-item__body">
+                      <div className="action-item__title">
+                        {p.status === 'needs_revision' ? 'Revizyon Bekliyor' : 'Onay Bekleyen İlan'}: {p.title}
+                      </div>
+                      <div className="action-item__meta">
+                        {p.agentName}
+                        {p.status === 'needs_revision' && p.revisionNote && (
+                          <> · Not: "{p.revisionNote}"</>
+                        )}
+                      </div>
+                      <div className="action-item__buttons">
+                        <button type="button" className="btn btn-primary" onClick={() => handleApprove(p.propertyId)}>
+                          Onayla
+                        </button>
+                        <button type="button" className="btn btn-secondary" onClick={() => handleRequestRevision(p.propertyId)}>
+                          Revize İste
+                        </button>
+                        <Link to={`/portfoyler/${p.propertyId}`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                          Detay
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {(data.expiringContracts || []).map((c) => (
                 <Link to={`/portfoyler/${c.propertyId}`} className="action-item action-item--clickable" key={c.propertyId}>
                   <span className="action-item__dot">🟡</span>
@@ -279,6 +349,26 @@ export default function DashboardPage() {
                 <div className="panel__empty">Aksiyon bekleyen bir öğe yok.</div>
               )}
             </div>
+          </div>
+
+          {/* --- Danışman Aktiviteleri: aksiyon gerektirmez, sadece haberdar-olma amacli --- */}
+          <div className="panel" style={{ marginBottom: 20 }}>
+            <h3 className="panel__title">Danışman Aktiviteleri</h3>
+            {agentActivity.length === 0 ? (
+              <div className="panel__empty">Yakın zamanda bir aktivite yok.</div>
+            ) : (
+              agentActivity.map((a, i) => (
+                <Link to={`/islemler/${a.transactionId}`} className="record-row" key={i} style={{ textDecoration: 'none' }}>
+                  <span style={{ marginRight: 10 }}>📋</span>
+                  <span className="record-row__name" style={{ flex: 1 }}>
+                    {a.agentName} — {a.title}: {a.text}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                    {dateTime(a.createdAt)}
+                  </span>
+                </Link>
+              ))
+            )}
           </div>
 
           {/* --- Rozetler (gercek veri) --- */}

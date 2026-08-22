@@ -27,6 +27,16 @@ export class TransactionNote {
   @Column()
   authorName: string;
 
+  // Danisman "Broker'a Bildir" dediginde true olur -- Broker'in ana
+  // sayfasindaki Aksiyon Merkezi'nde one cikan, cevap/aksiyon bekleyen
+  // bir bayrak. resolved=true olunca (Broker "Cozuldu" dedikten sonra)
+  // aksiyon merkezinden kaybolur ama kayit (Aktivite Akisi'nda) kalir.
+  @Column({ type: 'boolean', default: false })
+  isBrokerFlag: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  resolved: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }

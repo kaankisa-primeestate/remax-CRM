@@ -261,9 +261,9 @@ export default function TransactionDetailPage() {
     const note = prompt(`Broker'a hangi düzeltmeyi bildirmek istiyorsun? (${docLabel})`);
     if (!note || !note.trim()) return;
     try {
-      const saved = await transactionsApi.addNote(id, `⚠️ Broker'a bildirim: ${note.trim()} (${docLabel})`);
+      const saved = await transactionsApi.addNote(id, `⚠️ Broker'a bildirim: ${note.trim()} (${docLabel})`, true);
       setNotes((prev) => [saved, ...prev]);
-      alert("Broker'a bildirildi — Aktivite Akışı'na kaydedildi.");
+      alert("Broker'a bildirildi — Aktivite Akışı'na kaydedildi ve Broker'ın Aksiyon Merkezi'nde görünecek.");
     } catch {
       alert('Bildirim gönderilemedi, tekrar deneyin.');
     }

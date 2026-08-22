@@ -7,9 +7,11 @@ import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
 import { Commission } from '../commissions/commission.entity';
 import { User } from '../users/user.entity';
+import { Transaction } from '../transactions/transaction.entity';
+import { TransactionNote } from '../transactions/transaction-note.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User])],
+  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, Transaction, TransactionNote])],
   controllers: [DashboardController],
   providers: [DashboardService],
 })

@@ -67,6 +67,18 @@ export class TransactionsController {
     return this.transactionsService.addNote(id, dto, user);
   }
 
+  // GET /api/transactions/broker-flags/unresolved -- Broker Aksiyon Merkezi icin
+  @Get('broker-flags/unresolved')
+  getUnresolvedBrokerFlags() {
+    return this.transactionsService.getUnresolvedBrokerFlags();
+  }
+
+  // PATCH /api/transactions/notes/:noteId/resolve -- SADECE Broker
+  @Patch('notes/:noteId/resolve')
+  resolveNoteFlag(@Param('noteId') noteId: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.resolveNoteFlag(noteId, user);
+  }
+
   // GET /api/transactions/:id/documents -- Belgeler sekmesi
   @Get(':id/documents')
   getDocuments(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {

@@ -34,6 +34,14 @@ export class DashboardController {
     return this.dashboardService.getAgentMonthlyProgress(user.userId);
   }
 
+  // GET /api/dashboard/agent-activity — Broker'in ana sayfasindaki "Genel
+  // Aktivite" panosu icin (aksiyon gerektirmeyen, haberdar-olma amacli)
+  @Get('agent-activity')
+  @Roles(UserRole.BROKER)
+  getRecentAgentActivity() {
+    return this.dashboardService.getRecentAgentActivity();
+  }
+
   // GET /api/dashboard/leaderboard?period=week|month — hem Broker hem
   // Danisman erisebilir (gamification/motivasyon amacli, tum ofis gorur).
   @Get('leaderboard')

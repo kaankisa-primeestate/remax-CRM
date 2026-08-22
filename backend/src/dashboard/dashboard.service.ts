@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, IsNull, MoreThanOrEqual, Not, Repository } from 'typeorm';
+import { Between, In, IsNull, MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
 import { Commission } from '../commissions/commission.entity';
 import { User, UserRole } from '../users/user.entity';
+import { Transaction } from '../transactions/transaction.entity';
+import { TransactionNote } from '../transactions/transaction-note.entity';
 
 interface AgentStats {
   propertiesCount: number;
@@ -23,6 +25,8 @@ export class DashboardService {
     @InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
     @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
+    @InjectRepository(TransactionNote) private readonly noteRepo: Repository<TransactionNote>,
   ) {}
 
   async getSummary(from: Date, to: Date) {
@@ -285,6 +289,7 @@ export class DashboardService {
     const agents = await this.userRepo.find();
     const agentNameById = new Map(agents.map((a) => [a.id, a.name]));
 
+    // 1) Portfoy onaylari (mevcut)
     const properties = await this.propertyRepo.find({
       where: [
         { status: PropertyStatus.PENDING_APPROVAL },
@@ -292,8 +297,8 @@ export class DashboardService {
       ],
       order: { statusChangedAt: 'ASC', createdAt: 'ASC' },
     });
-
-    return properties.map((p) => ({
+    const propertyItems = properties.map((p) => ({
+      kind: 'property' as const,
       propertyId: p.id,
       title: p.title,
       status: p.status,
@@ -301,5 +306,104 @@ export class DashboardService {
       revisionNote: p.revisionNote,
       createdAt: p.createdAt,
     }));
+
+    // 2) Kapanis onayi bekleyen islemler -- danismanin ACIKCA Broker'a
+    // gonderdigi en kritik aksiyon: is bitti, komisyon onayi bekliyor.
+    const closedUnapproved = await this.transactionRepo.find({
+      where: { stage: 'closed' as any, dealApproved: false },
+      order: { stageChangedAt: 'ASC' },
+    });
+    const allTxPropertyIds = closedUnapproved.map((t) => t.propertyId).filter(Boolean) as string[];
+    const relatedProperties = allTxPropertyIds.length
+      ? await this.propertyRepo.find({ where: { id: In(allTxPropertyIds) } })
+      : [];
+    const propertyTitleById = new Map(relatedProperties.map((p) => [p.id, p.title]));
+    const dealItems = closedUnapproved.map((t) => ({
+      kind: 'deal' as const,
+      transactionId: t.id,
+      title: (t.propertyId ? propertyTitleById.get(t.propertyId) : t.externalPropertyLabel) || 'İşlem',
+      agentName: agentNameById.get(t.agentId) || 'Bilinmeyen',
+      totalCommission: t.totalCommissionAmount,
+      createdAt: t.stageChangedAt || t.createdAt,
+    }));
+
+    // 3) Isbirlikli paylasim onayi bekleyen (iki taraf da onaylamamis)
+    const pendingSplits = await this.transactionRepo.find({
+      where: { splitFinalizedAt: IsNull(), collaboratorAgentId: Not(IsNull()) as any },
+      order: { createdAt: 'DESC' },
+    });
+    const splitItems = pendingSplits.map((t) => ({
+      kind: 'split' as const,
+      transactionId: t.id,
+      title: (t.propertyId ? propertyTitleById.get(t.propertyId) : t.externalPropertyLabel) || 'İşlem',
+      agentName: `${agentNameById.get(t.agentId) || 'Bilinmeyen'} & ${agentNameById.get(t.collaboratorAgentId as string) || 'Bilinmeyen'}`,
+      createdAt: t.createdAt,
+    }));
+
+    // 4) Danismanin "Broker'a Bildir" ile ACIKCA bayrakladigi sorunlar --
+    // bunlar da danismanin dogrudan Broker'a gonderdigi bir talep, en
+    // yuksek onceliklidir.
+    const flags = await this.noteRepo.find({
+      where: { isBrokerFlag: true, resolved: false },
+      order: { createdAt: 'DESC' },
+    });
+    const flagTxIds = [...new Set(flags.map((f) => f.transactionId))];
+    const flagTxs = flagTxIds.length ? await this.transactionRepo.find({ where: { id: In(flagTxIds) } }) : [];
+    const flagTxById = new Map(flagTxs.map((t) => [t.id, t]));
+    const flagItems = flags.map((f) => {
+      const tx = flagTxById.get(f.transactionId);
+      return {
+        kind: 'flag' as const,
+        noteId: f.id,
+        transactionId: f.transactionId,
+        title: (tx?.propertyId ? propertyTitleById.get(tx.propertyId) : tx?.externalPropertyLabel) || 'İşlem',
+        agentName: f.authorName,
+        text: f.text,
+        createdAt: f.createdAt,
+      };
+    });
+
+    // Oncelik sirasi: danismanin ACIKCA Broker'a gonderdigi seyler
+    // (bayraklar + kapanis onaylari + paylasim onaylari + portfoy
+    // onaylari) hep en basta -- hepsi zaten "aksiyon bekliyor" turunde,
+    // aralarinda en yeniden en eskiye siralaniyor.
+    return [...flagItems, ...dealItems, ...splitItems, ...propertyItems].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }
+
+  // Danismanin kendi sayfasinda yaptigi, Broker'in AKSIYON almasi
+  // gerekmeyen ama HABERDAR olmasi faydali olan genel aktiviteler --
+  // Aksiyon Merkezi'nin ALTINDA, ikinci oncelikte gosterilir.
+  async getRecentAgentActivity(): Promise<
+    { transactionId: string; title: string; agentName: string; text: string; createdAt: Date }[]
+  > {
+    const agents = await this.userRepo.find();
+    const agentNameById = new Map(agents.map((a) => [a.id, a.name]));
+
+    const notes = await this.noteRepo.find({
+      where: { isBrokerFlag: false },
+      order: { createdAt: 'DESC' },
+      take: 20,
+    });
+    if (notes.length === 0) return [];
+
+    const txIds = [...new Set(notes.map((n) => n.transactionId))];
+    const txs = await this.transactionRepo.find({ where: { id: In(txIds) } });
+    const txById = new Map(txs.map((t) => [t.id, t]));
+    const propertyIds = txs.map((t) => t.propertyId).filter(Boolean) as string[];
+    const properties = propertyIds.length ? await this.propertyRepo.find({ where: { id: In(propertyIds) } }) : [];
+    const propertyTitleById = new Map(properties.map((p) => [p.id, p.title]));
+
+    return notes.map((n) => {
+      const tx = txById.get(n.transactionId);
+      return {
+        transactionId: n.transactionId,
+        title: (tx?.propertyId ? propertyTitleById.get(tx.propertyId) : tx?.externalPropertyLabel) || 'İşlem',
+        agentName: n.authorName,
+        text: n.text,
+        createdAt: n.createdAt,
+      };
+    });
   }
 }

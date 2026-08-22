@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Transaction, TransactionStage, OfferStatus, DeedChecklistItem } from './transaction.entity';
 import { TransactionNote } from './transaction-note.entity';
 import { TransactionDocument, TransactionDocType } from './transaction-document.entity';
@@ -258,8 +258,56 @@ export class TransactionsService {
       text: dto.text,
       authorId: currentUser.userId,
       authorName: currentUser.name,
+      isBrokerFlag: !!dto.isBrokerFlag,
     });
     return this.noteRepo.save(note);
+  }
+
+  // Broker "Cozuldu" dedi -- bayrak Aksiyon Merkezi'nden kaybolur, kayit
+  // Aktivite Akisi'nda kalmaya devam eder (silinmez).
+  async resolveNoteFlag(noteId: string, currentUser: CurrentUserPayload): Promise<TransactionNote> {
+    if (currentUser.role !== 'broker') {
+      throw new ForbiddenException('Sadece Broker çözüldü olarak işaretleyebilir');
+    }
+    const note = await this.noteRepo.findOne({ where: { id: noteId } });
+    if (!note) {
+      throw new NotFoundException('Kayıt bulunamadı');
+    }
+    note.resolved = true;
+    return this.noteRepo.save(note);
+  }
+
+  // Broker'in Aksiyon Merkezi'nde gosterilecek, henuz cozulmemis TUM
+  // bayrakli bildirimler (hangi islemden geldigi bilgisiyle birlikte).
+  async getUnresolvedBrokerFlags(): Promise<
+    (TransactionNote & { propertyTitle: string | null; customerName: string | null })[]
+  > {
+    const flags = await this.noteRepo.find({
+      where: { isBrokerFlag: true, resolved: false },
+      order: { createdAt: 'DESC' },
+    });
+    if (flags.length === 0) return [];
+
+    const txIds = [...new Set(flags.map((f) => f.transactionId))];
+    const txs = await this.transactionRepo.find({ where: { id: In(txIds) } });
+    const txById = new Map(txs.map((t) => [t.id, t]));
+    const propertyIds = txs.map((t) => t.propertyId).filter(Boolean) as string[];
+    const customerIds = txs.map((t) => t.customerId).filter(Boolean) as string[];
+    const [properties, customers] = await Promise.all([
+      propertyIds.length ? this.propertyRepo.find({ where: { id: In(propertyIds) } }) : Promise.resolve([]),
+      customerIds.length ? this.customerRepo.find({ where: { id: In(customerIds) } }) : Promise.resolve([]),
+    ]);
+    const propertyTitleById = new Map(properties.map((p) => [p.id, p.title]));
+    const customerNameById = new Map(customers.map((c) => [c.id, `${c.firstName} ${c.lastName}`]));
+
+    return flags.map((f) => {
+      const tx = txById.get(f.transactionId);
+      return {
+        ...f,
+        propertyTitle: tx?.propertyId ? propertyTitleById.get(tx.propertyId) || tx.externalPropertyLabel || null : tx?.externalPropertyLabel || null,
+        customerName: tx?.customerId ? customerNameById.get(tx.customerId) || tx.externalCustomerLabel || null : tx?.externalCustomerLabel || null,
+      };
+    });
   }
 
   async getDocuments(
