@@ -126,6 +126,18 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "resetTokenHash", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "resetTokenExpiresAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'enum', enum: UserRole, default: UserRole.AGENT }),
     __metadata("design:type", String)
 ], User.prototype, "role", void 0);

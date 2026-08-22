@@ -3,6 +3,8 @@ import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-r
 import { useAuth } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import CustomerListPage from './pages/CustomerListPage.jsx';
 import CustomerDetailPage from './pages/CustomerDetailPage.jsx';
 import PropertyListPage from './pages/PropertyListPage.jsx';
@@ -194,6 +196,8 @@ export default function App() {
       <main className="app-body">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
+          <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
           <Route path="*" element={<LoginPage />} />
         </Routes>
       </main>
@@ -208,6 +212,8 @@ export default function App() {
         <main className="app-body">
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
+            <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
             <Route
               path="/"
               element={

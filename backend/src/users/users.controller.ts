@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
@@ -66,6 +66,35 @@ export class UsersController {
   @Roles(UserRole.BROKER)
   updateAgentProfile(@Param('id') id: string, @Body() dto: UpdateAgentProfileDto) {
     return this.usersService.updateAgentProfile(id, dto);
+  }
+
+  // POST /api/users/agents/:id/reset-password — Broker ACIL durumda
+  // (e-posta calismiyor, danisman sahada vb.) aninda gecici bir sifre
+  // uretir. Hicbir dis servise ihtiyac duymaz, aninda calisir.
+  @Post('agents/:id/reset-password')
+  @Roles(UserRole.BROKER)
+  async brokerResetPassword(@Param('id') id: string) {
+    const tempPassword = await this.usersService.brokerResetPassword(id);
+    return { tempPassword };
+  }
+
+  // PATCH /api/users/agents/:id/active — Pasife al / aktiflestir (giris
+  // engellenir, TUM veri korunur)
+  @Patch('agents/:id/active')
+  @Roles(UserRole.BROKER)
+  setActive(@Param('id') id: string, @Body('isActive') isActive: boolean) {
+    return this.usersService.setActive(id, isActive);
+  }
+
+  // DELETE /api/users/agents/:id — SADECE baglantili verisi (musteri/
+  // portfoy/islem) yoksa izin verilir -- mukerrer/hatali olusturulmus
+  // BOS kayitlar icin. Gercek is verisi olan hesap icin backend
+  // reddeder, "Pasife Al" onerir.
+  @Delete('agents/:id')
+  @Roles(UserRole.BROKER)
+  async removeAgent(@Param('id') id: string) {
+    await this.usersService.removeAgent(id);
+    return { success: true };
   }
 
   // PATCH /api/users/change-password — Broker veya Danisman kendi sifresini degistirir

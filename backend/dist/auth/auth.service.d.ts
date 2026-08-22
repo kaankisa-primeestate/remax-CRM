@@ -1,10 +1,12 @@
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { MailService } from '../mail/mail.service';
 import { LoginDto } from './dto/login.dto';
 export declare class AuthService {
     private readonly usersService;
     private readonly jwtService;
-    constructor(usersService: UsersService, jwtService: JwtService);
+    private readonly mailService;
+    constructor(usersService: UsersService, jwtService: JwtService, mailService: MailService);
     login(dto: LoginDto): Promise<{
         accessToken: string;
         user: {
@@ -14,4 +16,9 @@ export declare class AuthService {
             role: import("../users/user.entity").UserRole;
         };
     }>;
+    forgotPassword(email: string, frontendBaseUrl: string): Promise<{
+        emailSent: boolean;
+        smtpConfigured: boolean;
+    }>;
+    resetPassword(email: string, token: string, newPassword: string): Promise<void>;
 }

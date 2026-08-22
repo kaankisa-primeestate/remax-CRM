@@ -39,6 +39,9 @@ export declare class UsersController {
         powerStartCompleted: boolean;
         powerStartCertificateNo: string | null;
         powerStartCertificateDate: string | null;
+        isActive: boolean;
+        resetTokenHash: string | null;
+        resetTokenExpiresAt: Date | null;
         role: UserRole;
         lastNotificationsSeenAt: Date | null;
         monthlyTarget: number | null;
@@ -49,6 +52,13 @@ export declare class UsersController {
     setMonthlyTarget(id: string, monthlyTarget: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     setMonthlyDues(id: string, monthlyDuesAmount: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     updateAgentProfile(id: string, dto: UpdateAgentProfileDto): Promise<Omit<import("./user.entity").User, "passwordHash">>;
+    brokerResetPassword(id: string): Promise<{
+        tempPassword: string;
+    }>;
+    setActive(id: string, isActive: boolean): Promise<void>;
+    removeAgent(id: string): Promise<{
+        success: boolean;
+    }>;
     changePassword(dto: ChangePasswordDto, user: CurrentUserPayload): Promise<{
         success: boolean;
     }>;

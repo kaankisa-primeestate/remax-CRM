@@ -52,6 +52,17 @@ let UsersController = class UsersController {
     updateAgentProfile(id, dto) {
         return this.usersService.updateAgentProfile(id, dto);
     }
+    async brokerResetPassword(id) {
+        const tempPassword = await this.usersService.brokerResetPassword(id);
+        return { tempPassword };
+    }
+    setActive(id, isActive) {
+        return this.usersService.setActive(id, isActive);
+    }
+    async removeAgent(id) {
+        await this.usersService.removeAgent(id);
+        return { success: true };
+    }
     async changePassword(dto, user) {
         await this.usersService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
         return { success: true };
@@ -113,6 +124,31 @@ __decorate([
     __metadata("design:paramtypes", [String, update_agent_profile_dto_1.UpdateAgentProfileDto]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "updateAgentProfile", null);
+__decorate([
+    (0, common_1.Post)('agents/:id/reset-password'),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "brokerResetPassword", null);
+__decorate([
+    (0, common_1.Patch)('agents/:id/active'),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('isActive')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Boolean]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "setActive", null);
+__decorate([
+    (0, common_1.Delete)('agents/:id'),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "removeAgent", null);
 __decorate([
     (0, common_1.Patch)('change-password'),
     __param(0, (0, common_1.Body)()),

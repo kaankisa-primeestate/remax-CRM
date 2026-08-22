@@ -256,6 +256,49 @@ export default function AgentsPage() {
     setActiveTab('add');
   }
 
+  // ACIL DURUM: danisman sifresini unuttu, e-posta calismiyor vb. --
+  // Broker aninda gecici bir sifre uretir, ekranda BIR KEZ gorur,
+  // telefon/WhatsApp ile danismana iletir. Hicbir dis servise ihtiyac
+  // duymaz, aninda calisir.
+  async function handleBrokerResetPassword(agent) {
+    if (!confirm(`${agent.name} için yeni bir geçici şifre oluşturulsun mu?`)) return;
+    try {
+      const { tempPassword } = await usersApi.brokerResetPassword(agent.id);
+      alert(
+        `${agent.name} için yeni geçici şifre:\n\n${tempPassword}\n\nBu şifreyi güvenli bir şekilde (telefon/WhatsApp) danışmana iletin. Danışman giriş yaptıktan sonra kendi şifresini değiştirebilir.`,
+      );
+    } catch {
+      alert('Şifre sıfırlanamadı, tekrar deneyin.');
+    }
+  }
+
+  // Pasife alma -- danisman giris yapamaz ama TUM verisi (musteri,
+  // portfoy, islem, komisyon gecmisi) korunur. Mukerrer kayit temizligi
+  // icin ONERILEN, guvenli yol.
+  async function handleToggleActive(agent) {
+    const action = agent.isActive === false ? 'aktifleştirilsin' : 'pasife alınsın';
+    if (!confirm(`${agent.name} ${action} mı?`)) return;
+    try {
+      await usersApi.setActive(agent.id, agent.isActive === false);
+      load();
+    } catch {
+      alert('Güncellenemedi, tekrar deneyin.');
+    }
+  }
+
+  // Kalici silme -- SADECE hicbir baglantili veri yoksa (gercek mukerrer
+  // kayit) izin verilir, backend zaten bunu kontrol ediyor.
+  async function handleDeleteAgent(agent) {
+    if (!confirm(`${agent.name} KALICI olarak silinsin mi? Bu işlem geri alınamaz.`)) return;
+    try {
+      await usersApi.removeAgent(agent.id);
+      load();
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Silinemedi.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
+    }
+  }
+
   function handleCancelAddAgent() {
     setForm(emptyForm);
     setAddAgentTab('personal');
@@ -428,7 +471,7 @@ export default function AgentsPage() {
           <div className="empty-state">Henüz danışman eklenmemiş. "Yeni Danışman Ekle" sekmesinden başlayabilirsin.</div>
         ) : (
           agents.map((agent) => (
-            <div className="agent-card" key={agent.id}>
+            <div className="agent-card" key={agent.id} style={{ opacity: agent.isActive === false ? 0.6 : 1 }}>
               <div className="agent-card__header">
                 {agent.profilePhotoUrl && (
                   <img
@@ -438,7 +481,14 @@ export default function AgentsPage() {
                   />
                 )}
                 <div style={{ flex: 1 }}>
-                  <div className="agent-card__name">{agent.name}</div>
+                  <div className="agent-card__name">
+                    {agent.name}
+                    {agent.isActive === false && (
+                      <span style={{ marginLeft: 8, fontSize: 11, fontFamily: 'var(--font-mono)', background: '#eee', color: 'var(--muted)', borderRadius: 999, padding: '2px 8px' }}>
+                        PASİF
+                      </span>
+                    )}
+                  </div>
                   <div className="agent-card__meta">
                     {agent.email}
                     {agent.phone && ` · ${agent.phone}`}
@@ -454,14 +504,42 @@ export default function AgentsPage() {
                     <div className="agent-card__meta">🏢 {agent.companyName}{agent.taxId && ` · VKN: ${agent.taxId}`}</div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: 12, padding: '6px 12px', flexShrink: 0 }}
-                  onClick={() => handleEditAgent(agent)}
-                >
-                  ✏️ Düzenle
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12, padding: '6px 12px' }}
+                    onClick={() => handleEditAgent(agent)}
+                  >
+                    ✏️ Düzenle
+                  </button>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      title="Danışmana yeni geçici şifre oluştur"
+                      style={{ fontSize: 11, background: 'none', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: 'var(--ink-navy)' }}
+                      onClick={() => handleBrokerResetPassword(agent)}
+                    >
+                      🔑 Şifre Sıfırla
+                    </button>
+                    <button
+                      type="button"
+                      title={agent.isActive === false ? 'Aktifleştir' : 'Pasife al'}
+                      style={{ fontSize: 11, background: 'none', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: '#8a6100' }}
+                      onClick={() => handleToggleActive(agent)}
+                    >
+                      {agent.isActive === false ? '▶️ Aktifleştir' : '⏸ Pasife Al'}
+                    </button>
+                    <button
+                      type="button"
+                      title="Kalıcı olarak sil (sadece bağlı verisi yoksa)"
+                      style={{ fontSize: 11, background: 'none', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: 'var(--danger)' }}
+                      onClick={() => handleDeleteAgent(agent)}
+                    >
+                      🗑 Sil
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Mali/Yasal, Calisma Modeli ve Akademi bilgileri + belge linkleri --

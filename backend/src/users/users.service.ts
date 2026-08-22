@@ -9,7 +9,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { User, UserRole } from './user.entity';
+import { Customer } from '../customers/customer.entity';
+import { Property } from '../portfolios/property.entity';
+import { Transaction } from '../transactions/transaction.entity';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
 
@@ -22,6 +26,12 @@ export class UsersService implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Customer)
+    private readonly customerRepo: Repository<Customer>,
+    @InjectRepository(Property)
+    private readonly propertyRepo: Repository<Property>,
+    @InjectRepository(Transaction)
+    private readonly transactionRepo: Repository<Transaction>,
   ) {}
 
   // Sistemde hiç kullanıcı yoksa (ilk kurulum), otomatik olarak bir Broker
@@ -73,6 +83,66 @@ export class UsersService implements OnModuleInit {
     }
     user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await this.userRepo.save(user);
+  }
+
+  async setResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+    await this.userRepo.update(userId, { resetTokenHash: tokenHash, resetTokenExpiresAt: expiresAt });
+  }
+
+  async setPasswordAndClearResetToken(userId: string, newPassword: string): Promise<void> {
+    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await this.userRepo.update(userId, { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null });
+  }
+
+  // Broker acil durumda (danisman sifresini unuttu, e-posta calismiyor
+  // vb.) aninda yeni bir GECICI sifre uretir -- hicbir dis servise
+  // ihtiyac duymadan, ayni an calisan bir cozum. Broker bu sifreyi
+  // ekranda BIR KEZ gorur, telefonla/WhatsApp'tan danismana iletir.
+  async brokerResetPassword(agentId: string): Promise<string> {
+    const user = await this.userRepo.findOne({ where: { id: agentId } });
+    if (!user) {
+      throw new NotFoundException('Danışman bulunamadı');
+    }
+    const tempPassword = crypto.randomBytes(6).toString('base64url'); // ~8 karakter, okunabilir
+    user.passwordHash = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+    user.resetTokenHash = null;
+    user.resetTokenExpiresAt = null;
+    await this.userRepo.save(user);
+    return tempPassword;
+  }
+
+  // Pasife alma -- danisman giris yapamaz ama TUM verisi korunur.
+  async setActive(agentId: string, isActive: boolean): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: agentId } });
+    if (!user) {
+      throw new NotFoundException('Danışman bulunamadı');
+    }
+    user.isActive = isActive;
+    await this.userRepo.save(user);
+  }
+
+  // Kalici silme -- SADECE baglantili hicbir veri (musteri/portfoy/islem)
+  // yoksa izin verilir. Gercek is verisi olan bir hesabin silinmesi,
+  // o danismana ait tum gecmisin (komisyon, cari hesap vb.) tutarsiz
+  // kalmasina yol acar -- bu yuzden boyle durumlarda Pasife Alma
+  // ZORUNLU tutulur, silme sadece GERCEKTEN bos (mukerrer kayit gibi)
+  // hesaplar icindir.
+  async removeAgent(agentId: string): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: agentId } });
+    if (!user) {
+      throw new NotFoundException('Danışman bulunamadı');
+    }
+    const [customerCount, propertyCount, transactionCount] = await Promise.all([
+      this.customerRepo.count({ where: { agentId } }),
+      this.propertyRepo.count({ where: { agentId } }),
+      this.transactionRepo.count({ where: { agentId } }),
+    ]);
+    if (customerCount > 0 || propertyCount > 0 || transactionCount > 0) {
+      throw new ConflictException(
+        `Bu danışmanın ${customerCount} müşteri, ${propertyCount} portföy, ${transactionCount} işlem kaydı var — güvenlik nedeniyle silinemez. Bunun yerine "Pasife Al" kullanın.`,
+      );
+    }
+    await this.userRepo.remove(user);
   }
 
   // Sadece Broker çağırabilir (bkz. users.controller.ts + RolesGuard)

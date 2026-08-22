@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
@@ -63,6 +63,9 @@ export default function LoginPage() {
             {loading ? 'Giriş yapılıyor…' : 'Giriş Yap'}
           </button>
         </form>
+        <Link to="/sifremi-unuttum" style={{ display: 'block', textAlign: 'center', marginTop: 14, fontSize: 13 }}>
+          Şifremi unuttum
+        </Link>
       </div>
     </div>
   );

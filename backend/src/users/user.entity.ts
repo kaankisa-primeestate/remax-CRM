@@ -125,6 +125,22 @@ export class User {
   @Column()
   passwordHash: string;
 
+  // Danisman pasife alindiginda giris yapamaz ama TUM verisi (musteri,
+  // portfoy, islem, komisyon gecmisi) korunur -- kalici silmenin
+  // yaratacagi veri kaybi riski olmadan "bu artik aktif calismiyor"
+  // durumunu isaretlemenin standart, guvenli yolu.
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
+  // Sifremi Unuttum akisi: tek kullanimlik, sureli token. Hash'lenerek
+  // saklanir (dogrudan token DEGIL) -- boylece veritabani sizarsa bile
+  // token'lar kullanilamaz hale gelir (bcrypt ile karsilastirilir).
+  @Column({ type: 'varchar', nullable: true })
+  resetTokenHash: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetTokenExpiresAt: Date | null;
+
   @Column({ type: 'enum', enum: UserRole, default: UserRole.AGENT })
   role: UserRole;
 

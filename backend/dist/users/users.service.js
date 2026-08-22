@@ -18,11 +18,18 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const user_entity_1 = require("./user.entity");
+const customer_entity_1 = require("../customers/customer.entity");
+const property_entity_1 = require("../portfolios/property.entity");
+const transaction_entity_1 = require("../transactions/transaction.entity");
 const SALT_ROUNDS = 10;
 let UsersService = UsersService_1 = class UsersService {
-    constructor(userRepo) {
+    constructor(userRepo, customerRepo, propertyRepo, transactionRepo) {
         this.userRepo = userRepo;
+        this.customerRepo = customerRepo;
+        this.propertyRepo = propertyRepo;
+        this.transactionRepo = transactionRepo;
         this.logger = new common_1.Logger(UsersService_1.name);
     }
     async onModuleInit() {
@@ -57,6 +64,48 @@ let UsersService = UsersService_1 = class UsersService {
         }
         user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
         await this.userRepo.save(user);
+    }
+    async setResetToken(userId, tokenHash, expiresAt) {
+        await this.userRepo.update(userId, { resetTokenHash: tokenHash, resetTokenExpiresAt: expiresAt });
+    }
+    async setPasswordAndClearResetToken(userId, newPassword) {
+        const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        await this.userRepo.update(userId, { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null });
+    }
+    async brokerResetPassword(agentId) {
+        const user = await this.userRepo.findOne({ where: { id: agentId } });
+        if (!user) {
+            throw new common_1.NotFoundException('Danışman bulunamadı');
+        }
+        const tempPassword = crypto.randomBytes(6).toString('base64url');
+        user.passwordHash = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+        user.resetTokenHash = null;
+        user.resetTokenExpiresAt = null;
+        await this.userRepo.save(user);
+        return tempPassword;
+    }
+    async setActive(agentId, isActive) {
+        const user = await this.userRepo.findOne({ where: { id: agentId } });
+        if (!user) {
+            throw new common_1.NotFoundException('Danışman bulunamadı');
+        }
+        user.isActive = isActive;
+        await this.userRepo.save(user);
+    }
+    async removeAgent(agentId) {
+        const user = await this.userRepo.findOne({ where: { id: agentId } });
+        if (!user) {
+            throw new common_1.NotFoundException('Danışman bulunamadı');
+        }
+        const [customerCount, propertyCount, transactionCount] = await Promise.all([
+            this.customerRepo.count({ where: { agentId } }),
+            this.propertyRepo.count({ where: { agentId } }),
+            this.transactionRepo.count({ where: { agentId } }),
+        ]);
+        if (customerCount > 0 || propertyCount > 0 || transactionCount > 0) {
+            throw new common_1.ConflictException(`Bu danışmanın ${customerCount} müşteri, ${propertyCount} portföy, ${transactionCount} işlem kaydı var — güvenlik nedeniyle silinemez. Bunun yerine "Pasife Al" kullanın.`);
+        }
+        await this.userRepo.remove(user);
     }
     async createAgent(dto) {
         const existing = await this.findByEmail(dto.email);
@@ -142,6 +191,12 @@ exports.UsersService = UsersService;
 exports.UsersService = UsersService = UsersService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
+    __param(2, (0, typeorm_1.InjectRepository)(property_entity_1.Property)),
+    __param(3, (0, typeorm_1.InjectRepository)(transaction_entity_1.Transaction)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

@@ -38,6 +38,9 @@ export declare class User {
     powerStartCertificateNo: string | null;
     powerStartCertificateDate: string | null;
     passwordHash: string;
+    isActive: boolean;
+    resetTokenHash: string | null;
+    resetTokenExpiresAt: Date | null;
     role: UserRole;
     lastNotificationsSeenAt: Date | null;
     monthlyTarget: number | null;
