@@ -434,7 +434,7 @@ export default function AgentDashboardPage() {
                       const days = Math.floor((Date.now() - new Date(t.stageChangedAt || t.createdAt).getTime()) / 86400000);
                       const isStale = t.stage !== 'closed' && days >= 7;
                       return (
-                        <Link to="/islemler" className="kanban-card kanban-card--clickable" key={t.id}>
+                        <Link to={`/islemler/${t.id}`} className="kanban-card kanban-card--clickable" key={t.id}>
                           <div className="kanban-card__name">
                             {property?.title || t.externalPropertyLabel || 'Portföy belirtilmedi'}
                           </div>

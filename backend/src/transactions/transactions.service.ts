@@ -28,6 +28,14 @@ const DEFAULT_DEED_CHECKLIST: DeedChecklistItem[] = [
   { key: 'deed_appointment', label: 'Web-Tapu Başvurusu & Randevu Onayı', completed: false },
 ];
 
+const STAGE_LABELS: Record<string, string> = {
+  lead: 'Talep',
+  showing: 'Gösterme',
+  offer: 'Teklif',
+  deed: 'Tapu',
+  closed: 'Kapanış',
+};
+
 const DOC_TYPE_LABELS: Record<string, string> = {
   disclosure: 'Yer Gösterme Formu',
   offer: 'Teklif Belgesi',
@@ -104,6 +112,10 @@ export class TransactionsService {
     return transaction;
   }
 
+  async findOne(id: string, currentUser: CurrentUserPayload): Promise<Transaction> {
+    return this.findOneOwned(id, currentUser);
+  }
+
   async updateSplit(
     id: string,
     dto: UpdateSplitDto,
@@ -156,6 +168,9 @@ export class TransactionsService {
     const stageChanging = dto.stage !== undefined && dto.stage !== transaction.stage;
     const justClosed = stageChanging && dto.stage === TransactionStage.CLOSED;
     const dealJustApproved = dto.dealApproved === true && !transaction.dealApproved;
+    const previousStage = transaction.stage; // Object.assign'dan ONCE, degisimi yakalamak icin
+    const offerStatusChanging = dto.offerStatus !== undefined && dto.offerStatus !== transaction.offerStatus;
+    const previousOfferStatus = transaction.offerStatus;
 
     Object.assign(transaction, dto);
     if (stageChanging) {
@@ -165,6 +180,48 @@ export class TransactionsService {
       transaction.dealApprovedAt = new Date();
     }
     const saved = await this.transactionRepo.save(transaction);
+
+    // Piyasadaki profesyonel sistemlerin ortak deseni (Dotloop, SkySlope):
+    // her ONEMLI durum degisimi, danismanin elle yazmasina gerek kalmadan
+    // otomatik olarak Zaman Akisi'na (Aktivite Akisi) dusmeli. Boylece
+    // islem, basindan sonuna kadar KENDILIGINDEN olusan bir "dosya
+    // hikayesine" doner.
+    if (stageChanging) {
+      await this.noteRepo.save(
+        this.noteRepo.create({
+          transactionId: saved.id,
+          text: `🔄 Aşama değişti: ${STAGE_LABELS[previousStage as string] || previousStage} → ${STAGE_LABELS[dto.stage as string] || dto.stage}`,
+          authorId: currentUser.userId,
+          authorName: currentUser.name,
+        }),
+      );
+    }
+    if (offerStatusChanging) {
+      const OFFER_STATUS_LABELS: Record<string, string> = {
+        pending: 'Beklemede',
+        accepted: 'Kabul Edildi',
+        rejected: 'Reddedildi',
+        withdrawn: 'Geri Çekildi',
+      };
+      await this.noteRepo.save(
+        this.noteRepo.create({
+          transactionId: saved.id,
+          text: `🏷️ Teklif durumu güncellendi: ${OFFER_STATUS_LABELS[previousOfferStatus as string] || previousOfferStatus || 'Belirtilmemiş'} → ${OFFER_STATUS_LABELS[dto.offerStatus as string] || dto.offerStatus}`,
+          authorId: currentUser.userId,
+          authorName: currentUser.name,
+        }),
+      );
+    }
+    if (dealJustApproved) {
+      await this.noteRepo.save(
+        this.noteRepo.create({
+          transactionId: saved.id,
+          text: `✅ İşlem Broker (${currentUser.name}) tarafından onaylandı — komisyon süreci başladı.`,
+          authorId: currentUser.userId,
+          authorName: currentUser.name,
+        }),
+      );
+    }
 
     if (justClosed && saved.propertyId) {
       const property = await this.propertyRepo.findOne({ where: { id: saved.propertyId } });

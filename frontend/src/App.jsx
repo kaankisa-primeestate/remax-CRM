@@ -15,6 +15,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import AgentDashboardPage from './pages/AgentDashboardPage.jsx';
 import RequestsPage from './pages/RequestsPage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
+import TransactionDetailPage from './pages/TransactionDetailPage.jsx';
 import FinancePage from './pages/FinancePage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
@@ -292,6 +293,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <TransactionsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/islemler/:id"
+              element={
+                <ProtectedRoute>
+                  <TransactionDetailPage />
                 </ProtectedRoute>
               }
             />

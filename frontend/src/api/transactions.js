@@ -2,6 +2,7 @@ import { apiClient } from './client';
 
 export const transactionsApi = {
   list: () => apiClient.get('/transactions').then((r) => r.data),
+  get: (id) => apiClient.get(`/transactions/${id}`).then((r) => r.data),
   create: (payload) => apiClient.post('/transactions', payload).then((r) => r.data),
   update: (id, payload) => apiClient.patch(`/transactions/${id}`, payload).then((r) => r.data),
   remove: (id) => apiClient.delete(`/transactions/${id}`),

@@ -36,6 +36,12 @@ export class TransactionsController {
     return this.transactionsService.findAll(user);
   }
 
+  // GET /api/transactions/:id -- Islem Dosyasi (detay sayfasi) icin tek kayit
+  @Get(':id')
+  findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.findOne(id, user);
+  }
+
   // PATCH /api/transactions/:id
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateTransactionDto, @CurrentUser() user: CurrentUserPayload) {
