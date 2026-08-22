@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction, TransactionStage, OfferStatus, DeedChecklistItem } from './transaction.entity';
 import { TransactionNote } from './transaction-note.entity';
-import { TransactionDocument } from './transaction-document.entity';
+import { TransactionDocument, TransactionDocType } from './transaction-document.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { AddNoteDto } from './dto/add-note.dto';
@@ -27,6 +27,15 @@ const DEFAULT_DEED_CHECKLIST: DeedChecklistItem[] = [
   { key: 'financials', label: 'Ödeme, Kredi & Bloke Transfer Süreçleri', completed: false },
   { key: 'deed_appointment', label: 'Web-Tapu Başvurusu & Randevu Onayı', completed: false },
 ];
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  disclosure: 'Yer Gösterme Formu',
+  offer: 'Teklif Belgesi',
+  contract: 'Sözleşme',
+  deed: 'Tapu',
+  id: 'Kimlik',
+  other: 'Diğer Belge',
+};
 
 @Injectable()
 export class TransactionsService {
@@ -220,15 +229,84 @@ export class TransactionsService {
       fileName: dto.fileName || null,
       updatedByName: currentUser.name,
     });
-    return this.documentRepo.save(document);
+    const saved = await this.documentRepo.save(document);
+
+    // Piyasadaki profesyonel sistemlerin ortak deseni: her belge islemi
+    // (yukleme/duzenleme/silme) otomatik olarak Zaman Akisi'na (audit
+    // trail) dusmeli -- ayri bir "denetim log" tablosu kurmadan, zaten
+    // var olan not sistemini kullaniyoruz.
+    const typeLabel = DOC_TYPE_LABELS[dto.docType] || dto.docType;
+    await this.noteRepo.save(
+      this.noteRepo.create({
+        transactionId,
+        text: dto.fileUrl
+          ? `📎 ${typeLabel} yüklendi${dto.label ? ` (${dto.label})` : ''}`
+          : `✓ ${typeLabel} tamamlandı olarak işaretlendi`,
+        authorId: currentUser.userId,
+        authorName: currentUser.name,
+      }),
+    );
+
+    return saved;
   }
 
+  // Danisman kucuk/hassas alanlari (tarih, tutar, aciklama vb.) duzeltebilir
+  // -- ama SILME yetkisi yok (asagida, sadece Broker). Her duzenleme de
+  // otomatik not birakir, boylece "hangi alan ne zaman degisti" izlenebilir.
+  async updateDocument(
+    documentId: string,
+    dto: AddDocumentDto,
+    currentUser: CurrentUserPayload,
+  ): Promise<TransactionDocument> {
+    const document = await this.documentRepo.findOne({ where: { id: documentId } });
+    if (!document) {
+      throw new NotFoundException('Belge bulunamadı');
+    }
+    await this.findOneOwned(document.transactionId, currentUser);
+
+    document.label = dto.label ?? document.label;
+    if (dto.fileUrl !== undefined) document.fileUrl = dto.fileUrl;
+    if (dto.fileName !== undefined) document.fileName = dto.fileName;
+    if (dto.completed !== undefined) document.completed = dto.completed;
+    document.updatedByName = currentUser.name;
+    const saved = await this.documentRepo.save(document);
+
+    const typeLabel = DOC_TYPE_LABELS[document.docType] || document.docType;
+    await this.noteRepo.save(
+      this.noteRepo.create({
+        transactionId: document.transactionId,
+        text: `✎ ${typeLabel} güncellendi`,
+        authorId: currentUser.userId,
+        authorName: currentUser.name,
+      }),
+    );
+
+    return saved;
+  }
+
+  // SADECE Broker silebilir -- piyasadaki tum ciddi sistemlerde (Dotloop,
+  // SkySlope, Paperless Pipeline) denetime tabi belgelerin silinmesi
+  // yonetim/broker rolune kisitlidir, ajanlar sadece yukler/duzenler.
   async removeDocument(documentId: string, currentUser: CurrentUserPayload): Promise<void> {
     const document = await this.documentRepo.findOne({ where: { id: documentId } });
     if (!document) {
       throw new NotFoundException('Belge bulunamadı');
     }
     await this.findOneOwned(document.transactionId, currentUser);
+    if (currentUser.role !== 'broker') {
+      throw new ForbiddenException(
+        'Belgeleri sadece Broker silebilir. Bir düzeltme gerekiyorsa lütfen Zaman Akışı üzerinden Broker\'a bildirin.',
+      );
+    }
+    const typeLabel = DOC_TYPE_LABELS[document.docType] || document.docType;
     await this.documentRepo.remove(document);
+    await this.noteRepo.save(
+      this.noteRepo.create({
+        transactionId: document.transactionId,
+        text: `🗑 ${typeLabel} Broker tarafından silindi${document.label ? ` (${document.label})` : ''}`,
+        authorId: currentUser.userId,
+        authorName: currentUser.name,
+      }),
+    );
   }
 }

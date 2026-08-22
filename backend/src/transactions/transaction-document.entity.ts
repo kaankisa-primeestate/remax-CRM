@@ -18,6 +18,7 @@ import { Transaction } from './transaction.entity';
 // kullanici elle silerse silinir).
 export enum TransactionDocType {
   DISCLOSURE = 'disclosure', // Yer Gosterme Formu
+  OFFER = 'offer', // Teklif Belgesi (islak imzali teklif formu, foto/PDF)
   CONTRACT = 'contract', // Sozlesme
   DEED = 'deed', // Tapu
   ID = 'id', // Kimlik

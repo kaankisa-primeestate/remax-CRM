@@ -73,7 +73,14 @@ export class TransactionsController {
     return this.transactionsService.addDocument(id, dto, user);
   }
 
-  // DELETE /api/transactions/documents/:documentId
+  // PATCH /api/transactions/documents/:documentId -- Danisman kucuk
+  // duzeltmeler yapabilir (silme haric, bkz. asagisi)
+  @Patch('documents/:documentId')
+  updateDocument(@Param('documentId') documentId: string, @Body() dto: AddDocumentDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.transactionsService.updateDocument(documentId, dto, user);
+  }
+
+  // DELETE /api/transactions/documents/:documentId -- SADECE Broker
   @Delete('documents/:documentId')
   async removeDocument(@Param('documentId') documentId: string, @CurrentUser() user: CurrentUserPayload) {
     await this.transactionsService.removeDocument(documentId, user);

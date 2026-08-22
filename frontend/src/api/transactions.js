@@ -9,6 +9,7 @@ export const transactionsApi = {
   addNote: (id, text) => apiClient.post(`/transactions/${id}/notes`, { text }).then((r) => r.data),
   getDocuments: (id) => apiClient.get(`/transactions/${id}/documents`).then((r) => r.data),
   addDocument: (id, payload) => apiClient.post(`/transactions/${id}/documents`, payload).then((r) => r.data),
+  updateDocument: (documentId, payload) => apiClient.patch(`/transactions/documents/${documentId}`, payload).then((r) => r.data),
   removeDocument: (documentId) => apiClient.delete(`/transactions/documents/${documentId}`),
   updateSplit: (id, commissionSplitPercentage) =>
     apiClient.patch(`/transactions/${id}/split`, { commissionSplitPercentage }).then((r) => r.data),
@@ -28,6 +29,7 @@ export const TRANSACTION_STAGES = [
 // kontrol maddesi temsil eder.
 export const TRANSACTION_DOC_TYPES = [
   { value: 'disclosure', label: 'Yer Gösterme Formu' },
+  { value: 'offer', label: 'Teklif Belgesi' },
   { value: 'contract', label: 'Sözleşme' },
   { value: 'deed', label: 'Tapu' },
   { value: 'id', label: 'Kimlik' },

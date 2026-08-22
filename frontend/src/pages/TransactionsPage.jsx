@@ -400,6 +400,39 @@ export default function TransactionsPage() {
     try { await transactionsApi.removeDocument(documentId); } catch { if (detailTx) openDetail(detailTx); }
   }
 
+  // Danisman icin: dosyanin kendisini SILEMEDIGI durumlarda (yanlis
+  // yuklenmis, tarih yanlis vb.) Broker'a Zaman Akisi uzerinden bildirim
+  // birakabilmesi icin -- boylece "danisman soyler, Broker duzeltir"
+  // akisi sistem icinde, dagitilmis bir e-posta/mesaj yerine iz birakarak
+  // ilerler.
+  async function handleFlagForBroker(docLabel) {
+    if (!detailTx) return;
+    const note = prompt(`Broker'a hangi düzeltmeyi bildirmek istiyorsun? (${docLabel})`);
+    if (!note || !note.trim()) return;
+    try {
+      const saved = await transactionsApi.addNote(detailTx.id, `⚠️ Broker'a bildirim: ${note.trim()} (${docLabel})`);
+      setNotes((prev) => [saved, ...prev]);
+      alert("Broker'a bildirildi — Zaman Akışı'na kaydedildi.");
+    } catch {
+      alert('Bildirim gönderilemedi, tekrar deneyin.');
+    }
+  }
+
+  // Danisman, dosyanin KENDISINI silemez ama etiket/aciklama gibi kucuk
+  // alanlari duzeltebilir -- her duzenleme backend'de otomatik Zaman
+  // Akisi kaydi birakiyor.
+  async function handleEditDocumentLabel(doc) {
+    const newLabel = prompt('Belge açıklaması / etiketi:', doc.label || '');
+    if (newLabel === null) return;
+    try {
+      const updated = await transactionsApi.updateDocument(doc.id, { docType: doc.docType, label: newLabel });
+      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? updated : d)));
+    } catch {
+      alert('Güncellenemedi, tekrar deneyin.');
+    }
+  }
+
+
   async function handleUpdateSplit() {
     if (!detailTx) return;
     const pct = Number(splitDraft);
@@ -744,14 +777,66 @@ export default function TransactionsPage() {
                   {TRANSACTION_DOC_TYPES.map((dt) => {
                     const latest = latestDocFor(dt.value);
                     return (
-                      <div key={dt.value} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
-                        <span>{dt.label} {latest?.completed ? '✅' : '⬜'}</span>
-                        <label className="btn btn-secondary" style={{ fontSize: 11 }}>
-                          Yükle <input type="file" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleUploadDocument(dt.value, e.target.files[0])} />
-                        </label>
+                      <div key={dt.value} style={{ padding: '10px 0', borderBottom: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>
+                            {dt.label} {latest?.fileUrl || latest?.completed ? '✅' : '⬜'}
+                          </span>
+                          <label className="btn btn-secondary" style={{ fontSize: 11 }}>
+                            {latest?.fileUrl ? 'Değiştir' : 'Yükle'}
+                            <input type="file" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleUploadDocument(dt.value, e.target.files[0])} />
+                          </label>
+                        </div>
+                        {latest && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, fontSize: 11, color: 'var(--muted)' }}>
+                            <span>
+                              {latest.fileUrl && (
+                                <a href={latest.fileUrl} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>📎 {latest.fileName || 'Dosyayı Gör'}</a>
+                              )}
+                              {latest.label && `"${latest.label}" · `}
+                              {latest.updatedByName} tarafından
+                            </span>
+                            <span style={{ display: 'flex', gap: 6 }}>
+                              <button type="button" onClick={() => handleEditDocumentLabel(latest)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-navy)', fontSize: 11 }}>✎ Düzenle</button>
+                              {isBroker ? (
+                                <button type="button" onClick={() => handleDeleteDocument(latest.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 11 }}>🗑 Sil</button>
+                              ) : (
+                                <button type="button" onClick={() => handleFlagForBroker(dt.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6100', fontSize: 11 }}>⚠️ Broker'a Bildir</button>
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
+
+                  {/* Diger belgeler (serbest etiketli) -- entity destekliyordu, artik arayuzde de var */}
+                  <div style={{ marginTop: 14 }}>
+                    <h5 style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--muted)' }}>Diğer Belgeler</h5>
+                    {documents.filter((d) => d.docType === 'other').map((d) => (
+                      <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f0f0f0', fontSize: 11 }}>
+                        <span>
+                          {d.fileUrl && <a href={d.fileUrl} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>📎 {d.label || d.fileName}</a>}
+                          {!d.fileUrl && (d.label || 'Etiketsiz')}
+                        </span>
+                        <span style={{ display: 'flex', gap: 6 }}>
+                          <button type="button" onClick={() => handleEditDocumentLabel(d)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-navy)' }}>✎</button>
+                          {isBroker ? (
+                            <button type="button" onClick={() => handleDeleteDocument(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>🗑</button>
+                          ) : (
+                            <button type="button" onClick={() => handleFlagForBroker(d.label || 'Diğer Belge')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6100' }}>⚠️</button>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                      <input value={otherLabel} onChange={(e) => setOtherLabel(e.target.value)} placeholder="Belge adı (örn: Vekaletname)" style={{ flex: 1, fontSize: 12 }} />
+                      <label className="btn btn-secondary" style={{ fontSize: 11 }}>
+                        + Ekle
+                        <input type="file" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && otherLabel.trim() && handleUploadDocument('other', e.target.files[0], otherLabel.trim())} />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
 
