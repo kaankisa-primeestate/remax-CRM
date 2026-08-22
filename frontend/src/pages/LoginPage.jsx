@@ -37,6 +37,12 @@ export default function LoginPage() {
         <h1 className="login-card__title">PrimeCRM</h1>
         <p className="login-card__subtitle">Müşteri Kayıt Defteri'ne giriş yapın</p>
 
+        {location.state?.message && (
+          <div style={{ background: '#eef3f9', color: 'var(--ink-navy)', fontSize: 13, padding: '10px 14px', borderRadius: 6, marginBottom: 14 }}>
+            {location.state.message}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-field" style={{ marginBottom: 14 }}>
             <label>E-posta</label>

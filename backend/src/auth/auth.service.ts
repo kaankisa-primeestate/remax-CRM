@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
@@ -71,15 +71,19 @@ export class AuthService {
 
   async resetPassword(email: string, token: string, newPassword: string): Promise<void> {
     const user = await this.usersService.findByEmail(email);
+    // BadRequestException (400) kullaniyoruz -- 401 kullanmak, bu ekrani
+    // farkli bir sekmede aktif oturumu olan bir kullanicinin (nadir ama
+    // mumkun) oturumunu otomatik sonlandirirdi (bkz. changePassword'deki
+    // ayni sinif hata, orada tespit edilip duzeltildi).
     if (!user || !user.resetTokenHash || !user.resetTokenExpiresAt) {
-      throw new UnauthorizedException('Sıfırlama bağlantısı geçersiz veya süresi dolmuş.');
+      throw new BadRequestException('Sıfırlama bağlantısı geçersiz veya süresi dolmuş.');
     }
     if (new Date() > new Date(user.resetTokenExpiresAt)) {
-      throw new UnauthorizedException('Sıfırlama bağlantısının süresi dolmuş. Lütfen tekrar talep edin.');
+      throw new BadRequestException('Sıfırlama bağlantısının süresi dolmuş. Lütfen tekrar talep edin.');
     }
     const tokenMatches = await bcrypt.compare(token, user.resetTokenHash);
     if (!tokenMatches) {
-      throw new UnauthorizedException('Sıfırlama bağlantısı geçersiz.');
+      throw new BadRequestException('Sıfırlama bağlantısı geçersiz.');
     }
     await this.usersService.setPasswordAndClearResetToken(user.id, newPassword);
   }

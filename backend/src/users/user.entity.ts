@@ -141,6 +141,16 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   resetTokenExpiresAt: Date | null;
 
+  // Sifre EN SON ne zaman degisti -- dunya standardi guvenlik kurali:
+  // "sifre degisince, o an baska yerlerde acik kalmis TUM oturumlar
+  // otomatik sonlanmali" (bkz. JwtStrategy). Broker'in verdigi gecici
+  // sifre, e-postayla sifirlanan sifre, danismanin kendi sectigi sifre
+  // -- hangisi EN SON kaydedilirse GECERLI olan odur, bir onceki ANINDA
+  // ve OTOMATIK olarak gecersiz hale gelir. Ayni anda "birden fazla
+  // gecerli sifre" gibi bir durum sistemde hicbir zaman olusmaz.
+  @Column({ type: 'timestamp', nullable: true })
+  passwordChangedAt: Date | null;
+
   @Column({ type: 'enum', enum: UserRole, default: UserRole.AGENT })
   role: UserRole;
 

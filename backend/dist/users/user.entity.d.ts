@@ -41,6 +41,7 @@ export declare class User {
     isActive: boolean;
     resetTokenHash: string | null;
     resetTokenExpiresAt: Date | null;
+    passwordChangedAt: Date | null;
     role: UserRole;
     lastNotificationsSeenAt: Date | null;
     monthlyTarget: number | null;

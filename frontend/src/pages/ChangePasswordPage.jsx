@@ -1,8 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/auth';
+import { useAuth } from '../context/AuthContext.jsx';
 import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function ChangePasswordPage() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,9 +28,16 @@ export default function ChangePasswordPage() {
     try {
       await authApi.changePassword({ currentPassword, newPassword });
       setSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      // Dunya standardi guvenlik kurali: sifre degisince mevcut oturum
+      // (token) da teknik olarak gecersiz hale gelir (backend, JwtStrategy
+      // uzerinden bunu zaten uyguluyor). Kullaniciyi belirsiz bir sekilde
+      // "gecersiz oturum" hatasiyla karsilasmaya birakmak yerine, ACIKCA
+      // ve kontrollu bir sekilde cikis yapip yeni sifresiyle tekrar giris
+      // yapmasini istiyoruz -- boylece ne oldugunu tam anlar.
+      setTimeout(() => {
+        logout();
+        navigate('/login', { state: { message: 'Şifreniz değiştirildi. Lütfen yeni şifrenizle giriş yapın.' } });
+      }, 1800);
     } catch (err) {
       const message =
         err?.response?.data?.message ?? 'Şifre değiştirilemedi. Bilgilerinizi kontrol edin.';
@@ -56,7 +67,7 @@ export default function ChangePasswordPage() {
         {error && <div className="form-error">{error}</div>}
         {success && (
           <div style={{ color: 'var(--success)', fontSize: 14, marginBottom: 14 }}>
-            Şifreniz başarıyla değiştirildi.
+            ✓ Şifreniz başarıyla değiştirildi. Güvenlik gereği çıkış yapılıyor, yeni şifrenizle tekrar giriş yapmanız gerekecek…
           </div>
         )}
 

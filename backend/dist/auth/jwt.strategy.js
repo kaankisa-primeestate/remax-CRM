@@ -13,15 +13,24 @@ exports.JwtStrategy = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const passport_jwt_1 = require("passport-jwt");
+const users_service_1 = require("../users/users.service");
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
-    constructor() {
+    constructor(usersService) {
         super({
             jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
             secretOrKey: process.env.JWT_SECRET || 'dev-secret-degistirin',
         });
+        this.usersService = usersService;
     }
     async validate(payload) {
+        const user = await this.usersService.findById(payload.sub);
+        if (!user) {
+            throw new common_1.UnauthorizedException('Kullanıcı bulunamadı');
+        }
+        if (user.passwordChangedAt && payload.iat * 1000 < user.passwordChangedAt.getTime()) {
+            throw new common_1.UnauthorizedException('Şifreniz değiştirildi, lütfen tekrar giriş yapın.');
+        }
         return {
             userId: payload.sub,
             role: payload.role,
@@ -33,6 +42,6 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
 exports.JwtStrategy = JwtStrategy;
 exports.JwtStrategy = JwtStrategy = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [users_service_1.UsersService])
 ], JwtStrategy);
 //# sourceMappingURL=jwt.strategy.js.map

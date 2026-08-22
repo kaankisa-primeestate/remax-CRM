@@ -60,9 +60,10 @@ let UsersService = UsersService_1 = class UsersService {
         }
         const matches = await bcrypt.compare(currentPassword, user.passwordHash);
         if (!matches) {
-            throw new common_1.UnauthorizedException('Mevcut sifre hatali');
+            throw new common_1.BadRequestException('Mevcut şifre hatalı');
         }
         user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        user.passwordChangedAt = new Date();
         await this.userRepo.save(user);
     }
     async setResetToken(userId, tokenHash, expiresAt) {
@@ -70,7 +71,12 @@ let UsersService = UsersService_1 = class UsersService {
     }
     async setPasswordAndClearResetToken(userId, newPassword) {
         const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-        await this.userRepo.update(userId, { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null });
+        await this.userRepo.update(userId, {
+            passwordHash,
+            resetTokenHash: null,
+            resetTokenExpiresAt: null,
+            passwordChangedAt: new Date(),
+        });
     }
     async brokerResetPassword(agentId) {
         const user = await this.userRepo.findOne({ where: { id: agentId } });
@@ -79,6 +85,7 @@ let UsersService = UsersService_1 = class UsersService {
         }
         const tempPassword = crypto.randomBytes(6).toString('base64url');
         user.passwordHash = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+        user.passwordChangedAt = new Date();
         user.resetTokenHash = null;
         user.resetTokenExpiresAt = null;
         await this.userRepo.save(user);

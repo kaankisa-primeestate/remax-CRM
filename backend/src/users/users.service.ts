@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -79,9 +80,17 @@ export class UsersService implements OnModuleInit {
     }
     const matches = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!matches) {
-      throw new UnauthorizedException('Mevcut sifre hatali');
+      // BadRequestException (400) kullaniyoruz, UnauthorizedException (401)
+      // DEGIL -- sistemde 401 gelince kullaniciyi otomatik cikis yaptirip
+      // login'e yonlendiren genel bir kural var (token suresi doldu
+      // senaryosu icin). "Mevcut sifre yanlis girildi" ile "oturumun
+      // gecersiz" birbirinden TAMAMEN farkli durumlar -- 401 kullanmak,
+      // kullaniciyi gercek hata mesajini hic gormeden anlik olarak
+      // cikisa zorluyordu (gercek bug, canli ortamda tespit edildi).
+      throw new BadRequestException('Mevcut şifre hatalı');
     }
     user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.passwordChangedAt = new Date();
     await this.userRepo.save(user);
   }
 
@@ -91,7 +100,12 @@ export class UsersService implements OnModuleInit {
 
   async setPasswordAndClearResetToken(userId: string, newPassword: string): Promise<void> {
     const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    await this.userRepo.update(userId, { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null });
+    await this.userRepo.update(userId, {
+      passwordHash,
+      resetTokenHash: null,
+      resetTokenExpiresAt: null,
+      passwordChangedAt: new Date(),
+    });
   }
 
   // Broker acil durumda (danisman sifresini unuttu, e-posta calismiyor
@@ -105,6 +119,7 @@ export class UsersService implements OnModuleInit {
     }
     const tempPassword = crypto.randomBytes(6).toString('base64url'); // ~8 karakter, okunabilir
     user.passwordHash = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+    user.passwordChangedAt = new Date();
     user.resetTokenHash = null;
     user.resetTokenExpiresAt = null;
     await this.userRepo.save(user);

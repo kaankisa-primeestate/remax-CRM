@@ -67,14 +67,14 @@ let AuthService = class AuthService {
     async resetPassword(email, token, newPassword) {
         const user = await this.usersService.findByEmail(email);
         if (!user || !user.resetTokenHash || !user.resetTokenExpiresAt) {
-            throw new common_1.UnauthorizedException('Sıfırlama bağlantısı geçersiz veya süresi dolmuş.');
+            throw new common_1.BadRequestException('Sıfırlama bağlantısı geçersiz veya süresi dolmuş.');
         }
         if (new Date() > new Date(user.resetTokenExpiresAt)) {
-            throw new common_1.UnauthorizedException('Sıfırlama bağlantısının süresi dolmuş. Lütfen tekrar talep edin.');
+            throw new common_1.BadRequestException('Sıfırlama bağlantısının süresi dolmuş. Lütfen tekrar talep edin.');
         }
         const tokenMatches = await bcrypt.compare(token, user.resetTokenHash);
         if (!tokenMatches) {
-            throw new common_1.UnauthorizedException('Sıfırlama bağlantısı geçersiz.');
+            throw new common_1.BadRequestException('Sıfırlama bağlantısı geçersiz.');
         }
         await this.usersService.setPasswordAndClearResetToken(user.id, newPassword);
     }
