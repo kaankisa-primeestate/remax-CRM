@@ -28,8 +28,11 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         if (!user) {
             throw new common_1.UnauthorizedException('Kullanıcı bulunamadı');
         }
-        if (user.passwordChangedAt && payload.iat * 1000 < user.passwordChangedAt.getTime()) {
-            throw new common_1.UnauthorizedException('Şifreniz değiştirildi, lütfen tekrar giriş yapın.');
+        if (user.passwordChangedAt) {
+            const toleranceMs = 5000;
+            if (payload.iat * 1000 < new Date(user.passwordChangedAt).getTime() - toleranceMs) {
+                throw new common_1.UnauthorizedException('Şifreniz değiştirildi, lütfen tekrar giriş yapın.');
+            }
         }
         return {
             userId: payload.sub,

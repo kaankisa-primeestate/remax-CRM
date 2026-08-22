@@ -33,8 +33,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('Kullanıcı bulunamadı');
     }
-    if (user.passwordChangedAt && payload.iat * 1000 < user.passwordChangedAt.getTime()) {
-      throw new UnauthorizedException('Şifreniz değiştirildi, lütfen tekrar giriş yapın.');
+    if (user.passwordChangedAt) {
+      // JWT'nin "iat" alani SANIYE hassasiyetinde (Unix timestamp), ama
+      // veritabanindaki passwordChangedAt MILISANIYE hassasiyetinde.
+      // Sifre degisir degismez (AYNI saniye icinde) hemen giris yapilirsa,
+      // yeni olusturulan token'in iat'i saniyeye yuvarlandigi icin
+      // passwordChangedAt'ten "once" gibi gorunebiliyordu -- bu da YENI,
+      // GECERLI bir token'in yanlislikla reddedilmesine yol aciyordu
+      // (gercek bug, testte tespit edildi). 5 saniyelik bir tolerans
+      // payi birakiyoruz: gercek "sifre degistikten cok sonra kalmis eski
+      // bir token" senaryosunu hala dogru yakalar, ama bu saniyeye
+      // yuvarlama kaynakli yanlis pozitifi ortadan kaldirir.
+      const toleranceMs = 5000;
+      if (payload.iat * 1000 < new Date(user.passwordChangedAt).getTime() - toleranceMs) {
+        throw new UnauthorizedException('Şifreniz değiştirildi, lütfen tekrar giriş yapın.');
+      }
     }
     return {
       userId: payload.sub,
