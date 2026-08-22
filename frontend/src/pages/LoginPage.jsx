@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -49,12 +50,7 @@ export default function LoginPage() {
           </div>
           <div className="form-field" style={{ marginBottom: 14 }}>
             <label>Şifre</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
 
           {error && <div className="form-error">{error}</div>}

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { usersApi } from '../api/auth';
 import { announcementsApi } from '../api/announcements';
 import { uploadFile } from '../api/client';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 const AGENT_TABS = [
   { key: 'roster', label: '👥 Danışmanlar' },
@@ -257,16 +258,18 @@ export default function AgentsPage() {
   }
 
   // ACIL DURUM: danisman sifresini unuttu, e-posta calismiyor vb. --
-  // Broker aninda gecici bir sifre uretir, ekranda BIR KEZ gorur,
-  // telefon/WhatsApp ile danismana iletir. Hicbir dis servise ihtiyac
-  // duymaz, aninda calisir.
+  // Broker aninda gecici bir sifre uretir. alert() KULLANMIYORUZ --
+  // bazi tarayicilarda/mobilde alert() icindeki metni secip kopyalamak
+  // zor/imkansiz oluyor. Onun yerine tek tikla kopyalanabilen ozel bir
+  // pencere gosteriyoruz (asagida tempPasswordModal state'i).
+  const [tempPasswordModal, setTempPasswordModal] = useState(null); // { agentName, password }
+  const [copyFeedback, setCopyFeedback] = useState(false);
+
   async function handleBrokerResetPassword(agent) {
     if (!confirm(`${agent.name} için yeni bir geçici şifre oluşturulsun mu?`)) return;
     try {
       const { tempPassword } = await usersApi.brokerResetPassword(agent.id);
-      alert(
-        `${agent.name} için yeni geçici şifre:\n\n${tempPassword}\n\nBu şifreyi güvenli bir şekilde (telefon/WhatsApp) danışmana iletin. Danışman giriş yaptıktan sonra kendi şifresini değiştirebilir.`,
-      );
+      setTempPasswordModal({ agentName: agent.name, password: tempPassword });
     } catch {
       alert('Şifre sıfırlanamadı, tekrar deneyin.');
     }
@@ -741,8 +744,7 @@ export default function AgentsPage() {
               {!editingAgentId && (
                 <div className="form-field">
                   <label>Şifre * (giriş için gerekli)</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={form.password}
                     onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                     minLength={6}
@@ -1122,6 +1124,53 @@ export default function AgentsPage() {
       </div>
       )}
       </div>
+
+      {tempPasswordModal && (
+        <div className="modal-backdrop" onClick={() => setTempPasswordModal(null)}>
+          <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>🔑 Yeni Geçici Şifre</h2>
+            <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+              {tempPasswordModal.agentName} için yeni geçici şifre oluşturuldu. Aşağıdaki kutudan tek tıkla kopyalayıp
+              danışmana güvenli bir şekilde (telefon/WhatsApp) iletebilirsin. Danışman giriş yaptıktan sonra kendi
+              şifresini değiştirebilir.
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input
+                readOnly
+                value={tempPasswordModal.password}
+                onFocus={(e) => e.target.select()}
+                style={{
+                  flex: 1,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  letterSpacing: 1,
+                  background: 'var(--paper)',
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(tempPasswordModal.password);
+                    setCopyFeedback(true);
+                    setTimeout(() => setCopyFeedback(false), 2000);
+                  } catch {
+                    alert('Kopyalanamadı — kutudaki metni elle seçip kopyalayabilirsin.');
+                  }
+                }}
+              >
+                {copyFeedback ? '✓ Kopyalandı' : '📋 Kopyala'}
+              </button>
+            </div>
+            <button type="button" className="btn btn-secondary" style={{ width: '100%' }} onClick={() => setTempPasswordModal(null)}>
+              Kapat
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

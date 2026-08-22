@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { authApi } from '../api/auth';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -61,11 +62,11 @@ export default function ResetPasswordPage() {
           <form onSubmit={handleSubmit}>
             <div className="form-field" style={{ marginBottom: 14 }}>
               <label>Yeni Şifre</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoFocus required />
+              <PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoFocus required />
             </div>
             <div className="form-field" style={{ marginBottom: 14 }}>
               <label>Yeni Şifre (Tekrar)</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+              <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
             </div>
             {error && <div className="form-error">{error}</div>}
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { authApi } from '../api/auth';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -41,32 +42,15 @@ export default function ChangePasswordPage() {
       <form onSubmit={handleSubmit}>
         <div className="form-field" style={{ marginBottom: 14 }}>
           <label>Mevcut Şifre</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-          />
+          <PasswordInput value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
         </div>
         <div className="form-field" style={{ marginBottom: 14 }}>
           <label>Yeni Şifre</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            minLength={6}
-            required
-          />
+          <PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={6} required />
         </div>
         <div className="form-field" style={{ marginBottom: 14 }}>
           <label>Yeni Şifre (Tekrar)</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            minLength={6}
-            required
-          />
+          <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={6} required />
         </div>
 
         {error && <div className="form-error">{error}</div>}
