@@ -1,49 +1,48 @@
-import { IsInt, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import { PropertyGroup } from '../valuation.entity';
 
 export class CreateValuationDto {
   @IsOptional()
   @IsUUID()
   propertyId?: string;
 
-  // propertyId verilmisse bu alanlar o mulkten otomatik doldurulur (servis
-  // katmaninda) -- verilmemisse (henuz sistemde olmayan bir mulk icin)
-  // hepsi zorunludur.
-  @IsOptional()
-  @IsString()
-  subjectTitle?: string;
+  @IsEnum(PropertyGroup)
+  propertyGroup: PropertyGroup;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  subjectProvince?: string;
+  propertyType: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  subjectDistrict?: string;
+  subjectTitle: string;
+
+  @IsNotEmpty()
+  @IsString()
+  subjectProvince: string;
+
+  @IsNotEmpty()
+  @IsString()
+  subjectDistrict: string;
 
   @IsOptional()
   @IsString()
   subjectNeighborhood?: string;
 
   @IsOptional()
+  @IsString()
+  subjectAddressDetail?: string;
+
   @IsNumber()
-  @Min(1)
-  subjectAreaM2?: number;
-
-  @IsOptional()
-  @IsString()
-  subjectRooms?: string;
-
-  @IsOptional()
-  @IsInt()
-  subjectBuildingAge?: number;
-
-  @IsOptional()
-  @IsString()
-  subjectFloor?: string;
+  subjectAreaM2: number;
 
   @IsOptional()
   @IsString()
   subjectNotes?: string;
+
+  @IsOptional()
+  @IsObject()
+  groupData?: Record<string, any>;
 
   @IsOptional()
   @IsString()

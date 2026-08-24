@@ -10,17 +10,27 @@ import {
 //
 // ONEMLI HUKUKI NOT: Bu, Turkiye'de SPK lisansli Gayrimenkul Degerleme
 // Uzmanlarinin duzenledigi resmi "Gayrimenkul Degerleme Raporu" ILE AYNI
-// SEY DEGILDIR ve ASLA oyle sunulmamalidir -- o rapor sadece lisansli
-// eksperler tarafindan duzenlenebilir, SPK mevzuati bir kisinin ayni anda
-// hem lisansli eksper hem emlak danismani olmasini yasaklar (cikar
-// catismasi). Bu arac, danismanin KENDI piyasa gozlemine ve karsilastirmali
-// verilere dayanan GAYRI RESMI bir fiyat analizidir -- ABD'deki "CMA
-// (Comparative Market Analysis)" kavraminin Turkce karsiligi. Uretilen
-// her PDF raporda bu ayrim acikca belirtilir (bkz. valuations.service.ts
-// generatePdf metodu).
+// SEY DEGILDIR ve ASLA oyle sunulmamalidir. Bu arac, danismanin KENDI
+// piyasa gozlemine dayanan GAYRI RESMI bir fiyat analizidir (ABD'deki
+// "CMA" kavraminin karsiligi). Her PDF raporda bu ayrim acikca belirtilir.
+//
+// TASARIM KARARI: Arastirma sonucu netlesen su gercek -- konut, ticari/
+// gelir getiren, ve arazi mulkleri TAMAMEN FARKLI degerleme mantigi
+// gerektiriyor (konut: emsal karsilastirma; ticari: kira geliri/cap
+// orani; arazi: imar durumu/KAKS). Bunlari 3 ayri tabloya bolmek yerine,
+// TEK bir tabloda "groupData" (jsonb) alaninda gruba ozel alanlari
+// tutuyoruz -- boylece yeni bir grup/alan eklemek icin migration
+// gerekmez, ve tum analizler ayni listede/raporlama akisinda kalir.
 export enum ValuationStatus {
   DRAFT = 'draft',
   COMPLETED = 'completed',
+}
+
+export enum PropertyGroup {
+  RESIDENTIAL = 'residential', // Daire, Villa, Devre Mulk, Yeni Konut Projesi
+  COMMERCIAL = 'commercial', // Isyeri (Fabrika dahil), Ofis/Plaza, Otel
+  LAND = 'land', // Arsa, Tarla
+  MIXED = 'mixed', // Komple Bina
 }
 
 @Entity('property_valuations')
@@ -28,19 +38,28 @@ export class PropertyValuation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Mevcut bir portfoyle iliskilendirilebilir (opsiyonel) -- ya da bir
-  // danisman henuz sisteme eklenmemis, potansiyel bir portfoy icin de
-  // (orn. bir satici adayini ikna etmek icin) bu araci kullanabilir.
+  // Mevcut bir portfoyle iliskilendirilebilir (opsiyonel) -- ya da
+  // danisman henuz sisteme eklenmemis, harici bir mulk icin de bu araci
+  // kullanabilir (orn. henuz portfoye eklenmemis bir satici adayi icin).
   @Column({ type: 'uuid', nullable: true })
   propertyId: string | null;
 
   @Column({ type: 'uuid' })
   agentId: string;
 
-  // --- Degerlemesi yapilan mulkun (subject) anlik goruntusu ---
+  @Column({ type: 'enum', enum: PropertyGroup })
+  propertyGroup: PropertyGroup;
+
+  // Sistemdeki PropertyType degeriyle ayni sozluk (apartment/villa/land/
+  // field/commercial/office/hotel/building/timeshare/project) -- raporda
+  // "Daire" / "Fabrika" gibi dogru basligi gostermek icin.
+  @Column({ type: 'varchar' })
+  propertyType: string;
+
+  // --- Mulkun (subject) anlik goruntusu ---
   // propertyId verilirse bu alanlar o mulkten kopyalanir, ama HER ZAMAN
-  // ayri saklanir -- boylece kaynak Property daha sonra silinse/degisse
-  // bile analiz kendi icinde tutarli bir "o anki" kayit olarak kalir.
+  // ayri saklanir -- kaynak Property daha sonra silinse/degisse bile
+  // analiz kendi icinde tutarli bir "o anki" kayit olarak kalir.
   @Column()
   subjectTitle: string;
 
@@ -53,51 +72,59 @@ export class PropertyValuation {
   @Column({ type: 'varchar', nullable: true })
   subjectNeighborhood: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  subjectAddressDetail: string | null; // Sokak, apartman adi, daire no vb.
+
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   subjectAreaM2: number;
 
   @Column({ type: 'varchar', nullable: true })
-  subjectRooms: string | null;
-
-  @Column({ type: 'int', nullable: true })
-  subjectBuildingAge: number | null;
-
-  @Column({ type: 'varchar', nullable: true })
-  subjectFloor: string | null;
-
-  @Column({ type: 'varchar', nullable: true })
   subjectNotes: string | null;
 
+  // Gruba OZEL alanlar -- konut icin {rooms, buildingAge, floor,
+  // totalFloors, heatingType, view, hasParking, hasElevator}; ticari icin
+  // {monthlyRent, occupancyRate, capRate, tenantInfo}; arazi icin
+  // {zoningStatus, kaks, taks, roadFrontage, topography, irrigationStatus,
+  // cropInfo}; karma icin ikisinin birlesimi. Frontend, propertyGroup'a
+  // gore hangi alanlari gosterecegini/duzenleyecegini kendi bilir.
+  @Column({ type: 'jsonb', nullable: true })
+  groupData: Record<string, any> | null;
+
   // --- Tapu Bilgileri ve Cevre Notlari ---
-  // Bu bilgiler OTOMATIK CEKILMEZ -- TKGM/Sahibinden gibi kaynaklar bize
-  // acik/ucretsiz API sunmuyor (arastirdik, resmi kurumsal anlasma
-  // gerektiriyor). Danisman kendi arastirmasindan (TKGM'nin kendi
-  // sitesinden ada/parsel sorgulayarak, mahalleyi gezerek vb.) elle
-  // doldurur -- amac raporun ICERIK olarak zengin ve profesyonel
-  // gorunmesi, otomasyon degil.
+  // OTOMATIK CEKILMEZ (TKGM/Sahibinden acik API sunmuyor) -- danisman
+  // kendi arastirmasindan elle doldurur, amac raporun zengin gorunmesi.
   @Column({ type: 'varchar', nullable: true })
-  subjectParcelNo: string | null; // Ada / Parsel No
+  subjectParcelNo: string | null;
 
   @Column({ type: 'varchar', nullable: true })
-  subjectLandShare: string | null; // Arsa Payi, orn. "24/480"
+  subjectLandShare: string | null;
 
   @Column({ type: 'varchar', nullable: true })
-  subjectDeedType: string | null; // Tapu Turu, orn. "Kat Mulkiyeti"
+  subjectDeedType: string | null;
 
-  // Serbest metin -- metro/okul/hastane mesafesi, mahalle ozellikleri vb.
-  // danismanin kendi gozlemleri.
   @Column({ type: 'varchar', nullable: true })
   subjectEnvironmentNotes: string | null;
 
+  // --- SWOT ---
+  @Column({ type: 'text', nullable: true })
+  swotStrengths: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  swotWeaknesses: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  swotOpportunities: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  swotThreats: string | null;
+
   // --- Sonuc ---
-  // Otomatik hesaplanmiyor -- danismanin kendi karari, comps listesine
-  // bakarak elle girdigi bir aralik (CMA mantigi: nihai fiyat kanaati
-  // her zaman danismana aittir, sistem sadece veri saglar).
+  // Emsallerden ORTALAMA bir baslangic degeri otomatik hesaplanip bu
+  // alanlara ONERI olarak yazilir (frontend tarafinda) -- ama HER ZAMAN
+  // danisman tarafindan degistirilebilir, sistem kesin bir hukum vermez.
   @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
   estimatedValueMin: number | null;
 
-  // "Hedeflenen/Onerilen" fiyat -- min ve max arasinda, danismanin asil
-  // hedefledigi liste fiyati (3'lu profesyonel rapor gorunumu icin).
   @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
   estimatedValueTarget: number | null;
 

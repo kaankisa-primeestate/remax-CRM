@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
 import { CompType } from '../valuation-comp.entity';
 
 export class AddCompDto {
@@ -6,6 +6,7 @@ export class AddCompDto {
   @IsUUID()
   sourcePropertyId?: string;
 
+  @IsNotEmpty()
   @IsString()
   title: string;
 
@@ -25,26 +26,26 @@ export class AddCompDto {
   @IsString()
   rooms?: string;
 
+  @IsOptional()
   @IsNumber()
-  @Min(0)
-  price: number;
+  price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  monthlyRent?: number;
+
+  @IsOptional()
+  @IsNumber()
+  capRate?: number;
 
   @IsEnum(CompType)
   compType: CompType;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   transactionDate?: string;
 
   @IsOptional()
   @IsString()
   sourceNote?: string;
-
-  @IsOptional()
-  @IsNumber()
-  adjustmentAmount?: number;
-
-  @IsOptional()
-  @IsString()
-  adjustmentReason?: string;
 }

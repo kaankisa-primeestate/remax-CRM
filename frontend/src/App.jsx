@@ -23,7 +23,8 @@ import ReportsPage from './pages/ReportsPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
 import MarketPage from './pages/MarketPage.jsx';
-import ValuationsPage from './pages/ValuationsPage.jsx';
+import ValuationsListPage from './pages/ValuationsListPage.jsx';
+import ValuationWizardPage from './pages/ValuationWizardPage.jsx';
 import AgentLedgerStatementPage from './pages/AgentLedgerStatementPage.jsx';
 import AgentDuesPage from './pages/AgentDuesPage.jsx';
 import ContractsPage from './pages/ContractsPage.jsx';
@@ -354,7 +355,23 @@ export default function App() {
               path="/degerleme"
               element={
                 <ProtectedRoute>
-                  <ValuationsPage />
+                  <ValuationsListPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/degerleme/yeni"
+              element={
+                <ProtectedRoute>
+                  <ValuationWizardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/degerleme/:id"
+              element={
+                <ProtectedRoute>
+                  <ValuationWizardPage />
                 </ProtectedRoute>
               }
             />

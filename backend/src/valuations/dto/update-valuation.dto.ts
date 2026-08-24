@@ -1,59 +1,9 @@
-import { IsEnum, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { CreateValuationDto } from './create-valuation.dto';
 import { ValuationStatus } from '../valuation.entity';
 
-export class UpdateValuationDto {
-  @IsOptional()
-  @IsString()
-  subjectTitle?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectProvince?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectDistrict?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectNeighborhood?: string;
-
-  @IsOptional()
-  @IsNumber()
-  subjectAreaM2?: number;
-
-  @IsOptional()
-  @IsString()
-  subjectRooms?: string;
-
-  @IsOptional()
-  @IsInt()
-  subjectBuildingAge?: number;
-
-  @IsOptional()
-  @IsString()
-  subjectFloor?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectNotes?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectParcelNo?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectLandShare?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectDeedType?: string;
-
-  @IsOptional()
-  @IsString()
-  subjectEnvironmentNotes?: string;
-
+export class UpdateValuationDto extends PartialType(CreateValuationDto) {
   @IsOptional()
   @IsNumber()
   estimatedValueMin?: number;
@@ -69,6 +19,22 @@ export class UpdateValuationDto {
   @IsOptional()
   @IsString()
   conclusionNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  swotStrengths?: string;
+
+  @IsOptional()
+  @IsString()
+  swotWeaknesses?: string;
+
+  @IsOptional()
+  @IsString()
+  swotOpportunities?: string;
+
+  @IsOptional()
+  @IsString()
+  swotThreats?: string;
 
   @IsOptional()
   @IsEnum(ValuationStatus)

@@ -1,45 +1,11 @@
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
-import { CompType } from '../valuation-comp.entity';
+import { PartialType } from '@nestjs/mapped-types';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { AddCompDto } from './add-comp.dto';
 
-// Otomatik eslenen bir comp'un fiyat/alan gibi bilgilerini danisman elle
-// duzeltmek isterse kullanilir -- tum alanlar opsiyonel (kismi guncelleme).
-export class UpdateCompDto {
+export class UpdateCompDto extends PartialType(AddCompDto) {
   @IsOptional()
-  @IsString()
-  title?: string;
-
-  @IsOptional()
-  @IsString()
-  district?: string;
-
-  @IsOptional()
-  @IsString()
-  neighborhood?: string;
-
-  @IsOptional()
-  @IsNumber()
-  areaM2?: number;
-
-  @IsOptional()
-  @IsString()
-  rooms?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  price?: number;
-
-  @IsOptional()
-  @IsEnum(CompType)
-  compType?: CompType;
-
-  @IsOptional()
-  @IsString()
-  transactionDate?: string;
-
-  @IsOptional()
-  @IsString()
-  sourceNote?: string;
+  @IsBoolean()
+  includedInAnalysis?: boolean;
 
   @IsOptional()
   @IsNumber()
@@ -48,8 +14,4 @@ export class UpdateCompDto {
   @IsOptional()
   @IsString()
   adjustmentReason?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  includedInAnalysis?: boolean;
 }
