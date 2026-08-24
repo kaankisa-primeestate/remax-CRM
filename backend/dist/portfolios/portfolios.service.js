@@ -94,6 +94,9 @@ let PortfoliosService = class PortfoliosService {
         if (currentUser.role === 'agent') {
             if (query.scope === 'office') {
                 qb.andWhere('property.agentId != :ownAgentId', { ownAgentId: currentUser.userId });
+                qb.andWhere('property.status IN (:...visibleStatuses)', {
+                    visibleStatuses: [property_entity_1.PropertyStatus.ACTIVE, property_entity_1.PropertyStatus.SOLD, property_entity_1.PropertyStatus.RENTED],
+                });
             }
             else {
                 qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });

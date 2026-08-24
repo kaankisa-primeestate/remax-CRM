@@ -123,12 +123,20 @@ export class PortfoliosService {
 
     // Mahremiyet Duvarı: bir Danışman normalde sadece kendi portföyünü
     // görebilir. "Ofis Portföyü" sekmesi (scope=office) için, KENDİ
-    // ilanlari HARIC tum ofisin portfoylerini gorebilir -- "Portfoylerim"
-    // zaten kendi ilanlarini gosterdigi icin burada tekrar gormesine
-    // gerek yok, işbirlikli satış icin meslektaslarinin ilanlarini gorur.
+    // ilanlari HARIC tum ofisin portfoylerini gorebilir -- ama SADECE
+    // Aktif/Satildi/Kiralandi durumundakileri: "Onay Bekliyor" ve
+    // "Revizyon Istendi" durumundaki ilanlar Broker'in o danismana ozel
+    // yazdigi revizyon notunu icerebilir, bu yuzden findOne() (asagida)
+    // zaten bunlari SADECE sahibine/Broker'a acik tutuyor -- buradaki
+    // liste sorgusu da AYNI kurala uymali, aksi halde liste onay bekleyen
+    // bir ilani gosterip detay sayfasi acmayi reddediyor (tutarsizlik,
+    // canli ortamda tespit edildi).
     if (currentUser.role === 'agent') {
       if (query.scope === 'office') {
         qb.andWhere('property.agentId != :ownAgentId', { ownAgentId: currentUser.userId });
+        qb.andWhere('property.status IN (:...visibleStatuses)', {
+          visibleStatuses: [PropertyStatus.ACTIVE, PropertyStatus.SOLD, PropertyStatus.RENTED],
+        });
       } else {
         qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
       }
