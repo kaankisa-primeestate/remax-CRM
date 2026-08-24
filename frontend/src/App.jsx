@@ -25,6 +25,7 @@ import TasksPage from './pages/TasksPage.jsx';
 import MarketPage from './pages/MarketPage.jsx';
 import ValuationsListPage from './pages/ValuationsListPage.jsx';
 import ValuationWizardPage from './pages/ValuationWizardPage.jsx';
+import ExpenseCategoryDetailPage from './pages/ExpenseCategoryDetailPage.jsx';
 import AgentLedgerStatementPage from './pages/AgentLedgerStatementPage.jsx';
 import AgentDuesPage from './pages/AgentDuesPage.jsx';
 import ContractsPage from './pages/ContractsPage.jsx';
@@ -372,6 +373,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ValuationWizardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/giderler/:category"
+              element={
+                <ProtectedRoute>
+                  <ExpenseCategoryDetailPage />
                 </ProtectedRoute>
               }
             />

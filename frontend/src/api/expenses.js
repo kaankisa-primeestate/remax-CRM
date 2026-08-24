@@ -4,6 +4,9 @@ export const expensesApi = {
   list: () => apiClient.get('/expenses').then((r) => r.data),
   create: (payload) => apiClient.post('/expenses', payload).then((r) => r.data),
   remove: (id) => apiClient.delete(`/expenses/${id}`),
+  getSummary: (from, to) => apiClient.get('/expenses/summary', { params: { from, to } }).then((r) => r.data),
+  getCategoryDetail: (category, from, to) =>
+    apiClient.get(`/expenses/category/${category}`, { params: { from, to } }).then((r) => r.data),
 };
 
 export const EXPENSE_CATEGORIES = [

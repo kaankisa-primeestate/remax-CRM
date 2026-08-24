@@ -1,9 +1,50 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { expensesApi, EXPENSE_CATEGORIES } from '../../api/expenses';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 import { usersApi } from '../../api/auth';
 
+const PERIODS = [
+  { value: 'month', label: 'Bu Ay' },
+  { value: 'week', label: 'Bu Hafta' },
+  { value: 'year', label: 'Bu Yıl' },
+];
+
+function periodRange(period) {
+  const now = new Date();
+  const to = now.toISOString().slice(0, 10);
+  let fromDate;
+  if (period === 'week') {
+    fromDate = new Date(now);
+    const day = fromDate.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Pazartesi baslangicli hafta
+    fromDate.setDate(fromDate.getDate() + diff);
+  } else if (period === 'year') {
+    fromDate = new Date(now.getFullYear(), 0, 1);
+  } else {
+    fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+  return { from: fromDate.toISOString().slice(0, 10), to };
+}
+
 export default function ExpensesTab() {
+  const navigate = useNavigate();
+  const [summaryPeriod, setSummaryPeriod] = useState('month');
+  const [summary, setSummary] = useState([]);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    const { from, to } = periodRange(summaryPeriod);
+    const data = await expensesApi.getSummary(from, to).catch(() => []);
+    setSummary(data);
+    setSummaryLoading(false);
+  }, [summaryPeriod]);
+
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
+
   const [expenses, setExpenses] = useState([]);
   const [agents, setAgents] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -129,6 +170,7 @@ export default function ExpensesTab() {
       });
       resetForm();
       load();
+      loadSummary();
     } catch {
       alert('Gider eklenemedi, tekrar deneyin.');
     } finally {
@@ -142,6 +184,7 @@ export default function ExpensesTab() {
     try {
       await expensesApi.remove(id);
       load();
+      loadSummary();
     } catch {
       alert('Gider silinemedi, sayfa yenileniyor.');
       load();
@@ -150,6 +193,64 @@ export default function ExpensesTab() {
 
   return (
     <>
+      <div className="folder-panel" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>📊 Kategori Özeti — Nereye Ne Harcadım?</h3>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {PERIODS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setSummaryPeriod(p.value)}
+                style={{
+                  fontSize: 11, fontFamily: 'var(--font-mono)', padding: '4px 10px', borderRadius: 999,
+                  border: '1px solid var(--paper-line)', cursor: 'pointer',
+                  background: summaryPeriod === p.value ? 'var(--ink-navy)' : 'transparent',
+                  color: summaryPeriod === p.value ? 'white' : 'var(--muted)',
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {summaryLoading ? (
+          <div className="empty-state">Yükleniyor…</div>
+        ) : summary.length === 0 ? (
+          <div className="empty-state">Bu dönemde henüz bir gider kaydı yok.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+            {summary.map((s) => {
+              const changePercent = s.previousTotal > 0 ? Math.round(((s.total - s.previousTotal) / s.previousTotal) * 100) : null;
+              const isSpike = changePercent != null && changePercent >= 30;
+              return (
+                <button
+                  type="button"
+                  key={s.category}
+                  onClick={() => navigate(`/giderler/${s.category}?period=${summaryPeriod}`)}
+                  style={{
+                    textAlign: 'left', padding: 14, borderRadius: 8, cursor: 'pointer',
+                    border: isSpike ? '1px solid var(--danger)' : '1px solid var(--paper-line)',
+                    background: isSpike ? '#fbeeeb' : 'white',
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+                    {s.label} {isSpike && '⚠️'}
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{formatMoney(s.total)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                    {s.count} kalem
+                    {changePercent != null && (
+                      <span style={{ color: isSpike ? 'var(--danger)' : 'inherit' }}> · {changePercent >= 0 ? '+' : ''}{changePercent}% önceki döneme göre</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Gider Ekle</h3>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>

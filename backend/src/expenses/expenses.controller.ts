@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -21,6 +21,25 @@ export class ExpensesController {
   @Get()
   findAll() {
     return this.expensesService.findAll();
+  }
+
+  // GET /api/expenses/summary?from=&to= -- kategori bazli ozet ("bu ay
+  // nereye ne harcamisim") -- ":id" gibi bir rota OLMADIGI icin route
+  // sirasi sorun yaratmaz.
+  @Get('summary')
+  getSummaryByCategory(@Query('from') from: string, @Query('to') to: string) {
+    return this.expensesService.getSummaryByCategory(from, to);
+  }
+
+  // GET /api/expenses/category/:category?from=&to= -- bir kategorinin
+  // tam sayfa detay dokumu (kalem kalem, hangi hesaptan odendigi ile)
+  @Get('category/:category')
+  getCategoryDetail(
+    @Param('category') category: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.expensesService.getCategoryDetail(category, from, to);
   }
 
   @Delete(':id')
