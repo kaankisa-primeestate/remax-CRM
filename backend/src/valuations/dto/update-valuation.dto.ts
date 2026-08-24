@@ -1,7 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 import { CreateValuationDto } from './create-valuation.dto';
-import { ValuationStatus } from '../valuation.entity';
 
 export class UpdateValuationDto extends PartialType(CreateValuationDto) {
   @IsOptional()
@@ -37,6 +36,6 @@ export class UpdateValuationDto extends PartialType(CreateValuationDto) {
   swotThreats?: string;
 
   @IsOptional()
-  @IsEnum(ValuationStatus)
-  status?: ValuationStatus;
+  @IsIn(['draft', 'completed'])
+  status?: string;
 }

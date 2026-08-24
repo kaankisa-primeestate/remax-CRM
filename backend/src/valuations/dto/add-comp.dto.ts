@@ -1,5 +1,4 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
-import { CompType } from '../valuation-comp.entity';
+import { IsDateString, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class AddCompDto {
   @IsOptional()
@@ -38,8 +37,8 @@ export class AddCompDto {
   @IsNumber()
   capRate?: number;
 
-  @IsEnum(CompType)
-  compType: CompType;
+  @IsIn(['sold', 'rented', 'active_listing'])
+  compType: string;
 
   @IsOptional()
   @IsDateString()

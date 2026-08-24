@@ -1,13 +1,19 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
-import { PropertyGroup } from '../valuation.entity';
+import { IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
 
+// Enum degerlerini entity'den import edip @IsEnum() ile kullanmak yerine
+// duz string listesiyle @IsIn() kullaniyoruz -- entity enum'larini
+// decorator icinde DEGER olarak referans etmek bu ortamda derleme/runtime
+// asamasinda sessizce basarisiz oluyor (alan "taninmayan" sayilip
+// forbidNonWhitelisted tarafindan reddediliyor, gercek canli ortamda
+// tespit edildi). @IsIn + düz string projedeki diger DTO'larda zaten
+// kanitlanmis, guvenli desen.
 export class CreateValuationDto {
   @IsOptional()
   @IsUUID()
   propertyId?: string;
 
-  @IsEnum(PropertyGroup)
-  propertyGroup: PropertyGroup;
+  @IsIn(['residential', 'commercial', 'land', 'mixed'])
+  propertyGroup: string;
 
   @IsNotEmpty()
   @IsString()

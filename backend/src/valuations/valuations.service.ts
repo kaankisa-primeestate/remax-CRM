@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import * as path from 'path';
 import PDFDocument = require('pdfkit');
 import { PropertyValuation, ValuationStatus } from './valuation.entity';
@@ -106,10 +106,10 @@ export class ValuationsService {
 
   async create(dto: CreateValuationDto, currentUser: CurrentUserPayload): Promise<PropertyValuation> {
     const valuation = this.valuationRepo.create({
-      ...dto,
+      ...(dto as any),
       agentId: currentUser.userId,
       status: ValuationStatus.DRAFT,
-    });
+    } as DeepPartial<PropertyValuation>);
     return this.valuationRepo.save(valuation);
   }
 
@@ -127,10 +127,10 @@ export class ValuationsService {
   async addComp(valuationId: string, dto: AddCompDto, currentUser: CurrentUserPayload): Promise<ValuationComp> {
     await this.findOneOwned(valuationId, currentUser);
     const comp = this.compRepo.create({
-      ...dto,
+      ...(dto as any),
       valuationId,
       addedByName: currentUser.name,
-    });
+    } as DeepPartial<ValuationComp>);
     return this.compRepo.save(comp);
   }
 
