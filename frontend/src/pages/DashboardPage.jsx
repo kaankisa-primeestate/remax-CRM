@@ -119,21 +119,24 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { from, to } = period === 'custom' ? { from: customFrom, to: customTo } : rangeForPeriod(period);
-    const [summary, properties, activity] = await Promise.all([
-      dashboardApi.summary({ from, to }),
-      propertiesApi.list({}),
-      dashboardApi.agentActivity().catch(() => []),
-    ]);
-    setData(summary);
-    setAgentActivity(activity);
-    const active = properties.filter((p) => p.status === 'active');
-    setPropertyStats({
-      total: properties.length,
-      activeSale: active.filter((p) => p.listingType === 'sale').length,
-      activeRent: active.filter((p) => p.listingType === 'rent').length,
-    });
-    setLoading(false);
+    try {
+      const { from, to } = period === 'custom' ? { from: customFrom, to: customTo } : rangeForPeriod(period);
+      const [summary, properties, activity] = await Promise.all([
+        dashboardApi.summary({ from, to }),
+        propertiesApi.list({}),
+        dashboardApi.agentActivity().catch(() => []),
+      ]);
+      setData(summary);
+      setAgentActivity(activity);
+      const active = properties.filter((p) => p.status === 'active');
+      setPropertyStats({
+        total: properties.length,
+        activeSale: active.filter((p) => p.listingType === 'sale').length,
+        activeRent: active.filter((p) => p.listingType === 'rent').length,
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [period, customFrom, customTo]);
 
   useEffect(() => {

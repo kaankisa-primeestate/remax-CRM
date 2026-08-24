@@ -45,15 +45,18 @@ export default function TransactionsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [txs, custs, props] = await Promise.all([
-      transactionsApi.list(),
-      customersApi.list({}),
-      propertiesApi.list({}),
-    ]);
-    setTransactions(txs);
-    setCustomers(custs);
-    setProperties(props);
-    setLoading(false);
+    try {
+      const [txs, custs, props] = await Promise.all([
+        transactionsApi.list().catch(() => []),
+        customersApi.list({}).catch(() => []),
+        propertiesApi.list({}).catch(() => []),
+      ]);
+      setTransactions(txs);
+      setCustomers(custs);
+      setProperties(props);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

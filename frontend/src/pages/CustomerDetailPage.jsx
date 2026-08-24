@@ -26,9 +26,15 @@ export default function CustomerDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [matches, setMatches] = useState([]);
 
+  const [loadError, setLoadError] = useState(false);
+
   const load = useCallback(async () => {
-    const data = await customersApi.getOne(id);
-    setCustomer(data);
+    try {
+      const data = await customersApi.getOne(id);
+      setCustomer(data);
+    } catch {
+      setLoadError(true);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -89,6 +95,7 @@ export default function CustomerDetailPage() {
     }
   }
 
+  if (loadError) return <div className="empty-state">Müşteri yüklenemedi. Lütfen sayfayı yenileyin.</div>;
   if (!customer) return <div className="empty-state">Yükleniyor…</div>;
 
   const typeLabel = CUSTOMER_TYPES.find((t) => t.value === customer.type)?.label;

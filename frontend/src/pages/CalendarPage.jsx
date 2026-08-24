@@ -100,17 +100,20 @@ export default function CalendarPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [appts, tsks, custs, props] = await Promise.all([
-      appointmentsApi.list(),
-      tasksApi.list().catch(() => []),
-      customersApi.list({}),
-      propertiesApi.list({}),
-    ]);
-    setAppointments(appts);
-    setTasks(tsks);
-    setCustomers(custs);
-    setProperties(props);
-    setLoading(false);
+    try {
+      const [appts, tsks, custs, props] = await Promise.all([
+        appointmentsApi.list().catch(() => []),
+        tasksApi.list().catch(() => []),
+        customersApi.list({}).catch(() => []),
+        propertiesApi.list({}).catch(() => []),
+      ]);
+      setAppointments(appts);
+      setTasks(tsks);
+      setCustomers(custs);
+      setProperties(props);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

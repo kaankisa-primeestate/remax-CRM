@@ -110,14 +110,17 @@ export default function CommissionsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = buildFilters();
-    const [list, sum] = await Promise.all([
-      commissionsApi.list(params),
-      commissionsApi.summary(params),
-    ]);
-    setCommissions(list);
-    setSummary(sum);
-    setLoading(false);
+    try {
+      const params = buildFilters();
+      const [list, sum] = await Promise.all([
+        commissionsApi.list(params).catch(() => []),
+        commissionsApi.summary(params).catch(() => null),
+      ]);
+      setCommissions(list);
+      setSummary(sum);
+    } finally {
+      setLoading(false);
+    }
   }, [buildFilters]);
 
   useEffect(() => {

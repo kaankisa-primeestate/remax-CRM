@@ -23,24 +23,27 @@ export default function ContractsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [appts, custs, props, agentList] = await Promise.all([
-      appointmentsApi.list(),
-      customersApi.list({}),
-      propertiesApi.list({}),
-      usersApi.listAgents(),
-    ]);
-    const showingAppts = appts
-      .filter((a) => a.type === 'showing')
-      .sort((a, b) => {
-        const da = a.disclosureAcceptedAt || a.date;
-        const db = b.disclosureAcceptedAt || b.date;
-        return new Date(db).getTime() - new Date(da).getTime();
-      });
-    setShowings(showingAppts);
-    setCustomers(custs);
-    setProperties(props);
-    setAgents(agentList);
-    setLoading(false);
+    try {
+      const [appts, custs, props, agentList] = await Promise.all([
+        appointmentsApi.list().catch(() => []),
+        customersApi.list({}).catch(() => []),
+        propertiesApi.list({}).catch(() => []),
+        usersApi.listAgents().catch(() => []),
+      ]);
+      const showingAppts = appts
+        .filter((a) => a.type === 'showing')
+        .sort((a, b) => {
+          const da = a.disclosureAcceptedAt || a.date;
+          const db = b.disclosureAcceptedAt || b.date;
+          return new Date(db).getTime() - new Date(da).getTime();
+        });
+      setShowings(showingAppts);
+      setCustomers(custs);
+      setProperties(props);
+      setAgents(agentList);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

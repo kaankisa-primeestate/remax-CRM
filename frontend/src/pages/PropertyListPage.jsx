@@ -119,7 +119,7 @@ export default function PropertyListPage() {
     if (hasParking) params.hasParking = 'true';
     if (keyword) params.keyword = keyword;
 
-    const data = await propertiesApi.list(params);
+    const data = await propertiesApi.list(params).catch(() => []);
     setProperties(data);
     setLoading(false);
   }, [

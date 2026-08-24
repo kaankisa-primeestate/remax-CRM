@@ -96,7 +96,7 @@ export default function CustomerListPage() {
     if (maxBudget) params.maxBudget = maxBudget;
     if (keyword) params.keyword = keyword;
 
-    const data = await customersApi.list(params);
+    const data = await customersApi.list(params).catch(() => []);
     setCustomers(data);
     setLoading(false);
   }, [search, activeType, isBroker, agentId, minBudget, maxBudget, keyword]);

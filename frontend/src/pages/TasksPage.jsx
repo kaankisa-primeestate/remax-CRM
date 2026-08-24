@@ -33,7 +33,7 @@ export default function TasksPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await tasksApi.list();
+    const data = await tasksApi.list().catch(() => []);
     setTasks(data);
     setLoading(false);
   }, []);

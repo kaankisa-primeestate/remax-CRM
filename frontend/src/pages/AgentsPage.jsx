@@ -90,26 +90,29 @@ export default function AgentsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [data, announcements] = await Promise.all([
-      usersApi.listAgents(),
-      announcementsApi.list().catch(() => []),
-    ]);
-    setAgents(data);
-    setTargetDrafts(
-      Object.fromEntries(data.map((a) => [a.id, a.monthlyTarget != null ? String(a.monthlyTarget) : ''])),
-    );
-    setDuesDrafts(
-      Object.fromEntries(data.map((a) => [a.id, a.monthlyDuesAmount != null ? String(a.monthlyDuesAmount) : ''])),
-    );
-    setProfileDrafts(
-      Object.fromEntries(data.map((a) => [a.id, {
-        companyName: a.companyName || '',
-        taxId: a.taxId || '',
-        nationalId: a.nationalId || '',
-      }])),
-    );
-    setRecentAnnouncements(announcements.slice(0, 20));
-    setLoading(false);
+    try {
+      const [data, announcements] = await Promise.all([
+        usersApi.listAgents().catch(() => []),
+        announcementsApi.list().catch(() => []),
+      ]);
+      setAgents(data);
+      setTargetDrafts(
+        Object.fromEntries(data.map((a) => [a.id, a.monthlyTarget != null ? String(a.monthlyTarget) : ''])),
+      );
+      setDuesDrafts(
+        Object.fromEntries(data.map((a) => [a.id, a.monthlyDuesAmount != null ? String(a.monthlyDuesAmount) : ''])),
+      );
+      setProfileDrafts(
+        Object.fromEntries(data.map((a) => [a.id, {
+          companyName: a.companyName || '',
+          taxId: a.taxId || '',
+          nationalId: a.nationalId || '',
+        }])),
+      );
+      setRecentAnnouncements(announcements.slice(0, 20));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

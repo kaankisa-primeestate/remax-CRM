@@ -21,15 +21,18 @@ export default function AgentDuesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [duesData, agentsData, accountsData] = await Promise.all([
-      agentDuesApi.list(),
-      isBroker ? usersApi.listAgents() : Promise.resolve([]),
-      isBroker ? bankAccountsApi.list().catch(() => []) : Promise.resolve([]),
-    ]);
-    setDues(duesData);
-    setAgents(agentsData);
-    setAccounts(accountsData);
-    setLoading(false);
+    try {
+      const [duesData, agentsData, accountsData] = await Promise.all([
+        agentDuesApi.list().catch(() => []),
+        isBroker ? usersApi.listAgents() : Promise.resolve([]),
+        isBroker ? bankAccountsApi.list().catch(() => []) : Promise.resolve([]),
+      ]);
+      setDues(duesData);
+      setAgents(agentsData);
+      setAccounts(accountsData);
+    } finally {
+      setLoading(false);
+    }
   }, [isBroker]);
 
   useEffect(() => {

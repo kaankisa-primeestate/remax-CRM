@@ -21,9 +21,15 @@ export default function PropertyDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [matches, setMatches] = useState([]);
 
+  const [loadError, setLoadError] = useState(false);
+
   const load = useCallback(async () => {
-    const data = await propertiesApi.getOne(id);
-    setProperty(data);
+    try {
+      const data = await propertiesApi.getOne(id);
+      setProperty(data);
+    } catch {
+      setLoadError(true);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -56,6 +62,7 @@ export default function PropertyDetailPage() {
     }
   }
 
+  if (loadError) return <div className="empty-state">Portföy yüklenemedi. Lütfen sayfayı yenileyin.</div>;
   if (!property) return <div className="empty-state">Yükleniyor…</div>;
 
   const typeLabel = PROPERTY_TYPES.find((t) => t.value === property.propertyType)?.label;
