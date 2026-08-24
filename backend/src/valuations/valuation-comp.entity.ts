@@ -20,7 +20,8 @@ export enum CompType {
   ACTIVE_LISTING = 'active_listing',
 }
 
-@Entity('valuation_comps')
+// property_valuations ile ayni mantik -- eski tabloyla cakismayan yeni isim.
+@Entity('kpa_valuation_comps')
 export class ValuationComp {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -33,7 +33,13 @@ export enum PropertyGroup {
   MIXED = 'mixed', // Komple Bina
 }
 
-@Entity('property_valuations')
+// TABLO ADI NOTU: eski (kaldirilan) degerleme sisteminin tablosuyla ayni
+// isim ('property_valuations') kullanilinca, o eski tabloda kalan
+// satirlarin YENI zorunlu alanlari (orn. propertyGroup) bos oldugu icin
+// TypeORM'un synchronize:true semasi canli ortamda BASARISIZ oluyordu
+// (deploy "Exited with status 1" ile cokuyordu, tespit edildi). Tamamen
+// YENI, hicbir eski veriyle CAKISMAYAN bir tablo adi kullaniyoruz.
+@Entity('kpa_valuations')
 export class PropertyValuation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
