@@ -17,8 +17,8 @@ export const usersApi = {
     apiClient.patch('/users/change-password', payload).then((r) => r.data),
   setMonthlyTarget: (agentId, monthlyTarget) =>
     apiClient.patch(`/users/agents/${agentId}/target`, { monthlyTarget }).then((r) => r.data),
-  setMonthlyDues: (agentId, monthlyDuesAmount) =>
-    apiClient.patch(`/users/agents/${agentId}/dues`, { monthlyDuesAmount }).then((r) => r.data),
+  setMonthlyDues: (agentId, monthlyDuesAmount, duesStartDate) =>
+    apiClient.patch(`/users/agents/${agentId}/dues`, { monthlyDuesAmount, duesStartDate }).then((r) => r.data),
   updateAgentProfile: (agentId, payload) =>
     apiClient.patch(`/users/agents/${agentId}/profile`, payload).then((r) => r.data),
   brokerResetPassword: (agentId) => apiClient.post(`/users/agents/${agentId}/reset-password`).then((r) => r.data),

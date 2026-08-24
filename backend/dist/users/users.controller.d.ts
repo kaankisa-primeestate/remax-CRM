@@ -47,11 +47,12 @@ export declare class UsersController {
         lastNotificationsSeenAt: Date | null;
         monthlyTarget: number | null;
         monthlyDuesAmount: number | null;
+        duesStartDate: string | null;
         createdAt: Date;
     } | null>;
     createAgent(dto: CreateAgentDto): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     setMonthlyTarget(id: string, monthlyTarget: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
-    setMonthlyDues(id: string, monthlyDuesAmount: number): Promise<Omit<import("./user.entity").User, "passwordHash">>;
+    setMonthlyDues(id: string, monthlyDuesAmount: number, duesStartDate?: string): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     updateAgentProfile(id: string, dto: UpdateAgentProfileDto): Promise<Omit<import("./user.entity").User, "passwordHash">>;
     brokerResetPassword(id: string): Promise<{
         tempPassword: string;

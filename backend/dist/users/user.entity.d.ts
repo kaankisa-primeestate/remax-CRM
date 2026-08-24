@@ -46,5 +46,6 @@ export declare class User {
     lastNotificationsSeenAt: Date | null;
     monthlyTarget: number | null;
     monthlyDuesAmount: number | null;
+    duesStartDate: string | null;
     createdAt: Date;
 }

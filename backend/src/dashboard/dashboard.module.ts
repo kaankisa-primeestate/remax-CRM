@@ -9,9 +9,10 @@ import { Commission } from '../commissions/commission.entity';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { TransactionNote } from '../transactions/transaction-note.entity';
+import { AgentDue } from '../agent-dues/agent-due.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, Transaction, TransactionNote])],
+  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, Transaction, TransactionNote, AgentDue])],
   controllers: [DashboardController],
   providers: [DashboardService],
 })

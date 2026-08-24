@@ -57,8 +57,12 @@ export class UsersController {
   // PATCH /api/users/agents/:id/dues — Broker bir danismanin aylik aidat tutarini belirler
   @Patch('agents/:id/dues')
   @Roles(UserRole.BROKER)
-  setMonthlyDues(@Param('id') id: string, @Body('monthlyDuesAmount') monthlyDuesAmount: number) {
-    return this.usersService.setMonthlyDues(id, monthlyDuesAmount);
+  setMonthlyDues(
+    @Param('id') id: string,
+    @Body('monthlyDuesAmount') monthlyDuesAmount: number,
+    @Body('duesStartDate') duesStartDate?: string,
+  ) {
+    return this.usersService.setMonthlyDues(id, monthlyDuesAmount, duesStartDate);
   }
 
   // PATCH /api/users/agents/:id/profile — Broker kimlik/sirket bilgilerini gunceller

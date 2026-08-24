@@ -168,6 +168,13 @@ export class User {
   @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
   monthlyDuesAmount: number | null;
 
+  // Aidat muafiyet/baslangic tarihi -- BOS ise aidat HEMEN baslar (mevcut
+  // danismanlarla geriye donuk uyumluluk icin varsayilan budur). Bir
+  // tarih girilirse (orn. "1 Haziran"), o aydan ONCEKI donemler icin
+  // otomatik aidat OLUSTURULMAZ.
+  @Column({ type: 'date', nullable: true })
+  duesStartDate: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

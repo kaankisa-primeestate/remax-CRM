@@ -20,10 +20,19 @@ export class AgentDuesService {
   // tanimlanmis tum aktif danismanlar icin, o ay henuz kaydi yoksa
   // otomatik bir AgentDue acar. Idempotent: zaten var olan (agentId,
   // period) ciftleri icin ikinci bir kayit ACMAZ.
+  // Broker'in elle tetikledigi endpoint -- yetki kontrolu yapar, sonra
+  // asil isi generateForMonthInternal'a devreder.
   async generateForMonth(dto: GenerateDuesDto, currentUser: CurrentUserPayload): Promise<{ created: number; skipped: number }> {
     if (currentUser.role !== 'broker') {
       throw new ForbiddenException('Sadece Broker aidat kaydı oluşturabilir');
     }
+    return this.generateForMonthInternal(dto.period);
+  }
+
+  // Cron job (otomasyon) tarafindan cagrilan, yetki kontrolu OLMAYAN ic
+  // metod -- Broker'in elle tetikledigi generateForMonth ile AYNI
+  // idempotent/muafiyet mantigini kullanir.
+  async generateForMonthInternal(period: string): Promise<{ created: number; skipped: number }> {
     const agents = await this.userRepo.find({ where: { role: UserRole.AGENT } });
     let created = 0;
     let skipped = 0;
@@ -32,14 +41,23 @@ export class AgentDuesService {
         skipped++;
         continue;
       }
-      const existing = await this.dueRepo.findOne({ where: { agentId: agent.id, period: dto.period } });
+      // Muafiyet kontrolu: duesStartDate belirlenmisse VE istenen donem
+      // o tarihten ONCE ise, bu danisman icin aidat OLUSTURULMAZ.
+      if (agent.duesStartDate) {
+        const startPeriod = agent.duesStartDate.slice(0, 7); // 'YYYY-MM'
+        if (period < startPeriod) {
+          skipped++;
+          continue;
+        }
+      }
+      const existing = await this.dueRepo.findOne({ where: { agentId: agent.id, period } });
       if (existing) {
         skipped++;
         continue;
       }
       const due = this.dueRepo.create({
         agentId: agent.id,
-        period: dto.period,
+        period,
         expectedAmount: agent.monthlyDuesAmount,
       });
       await this.dueRepo.save(due);

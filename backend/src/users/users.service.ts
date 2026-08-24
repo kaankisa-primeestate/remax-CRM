@@ -232,12 +232,19 @@ export class UsersService implements OnModuleInit {
   }
 
   // Broker, bir danismanin aylik aidat tutarini belirler/gunceller.
-  async setMonthlyDues(agentId: string, monthlyDuesAmount: number): Promise<Omit<User, 'passwordHash'>> {
+  async setMonthlyDues(
+    agentId: string,
+    monthlyDuesAmount: number,
+    duesStartDate?: string,
+  ): Promise<Omit<User, 'passwordHash'>> {
     const agent = await this.userRepo.findOne({ where: { id: agentId, role: UserRole.AGENT } });
     if (!agent) {
       throw new NotFoundException('Danışman bulunamadı');
     }
     agent.monthlyDuesAmount = monthlyDuesAmount;
+    if (duesStartDate !== undefined) {
+      agent.duesStartDate = duesStartDate || null;
+    }
     const saved = await this.userRepo.save(agent);
     const { passwordHash, ...rest } = saved;
     return rest;

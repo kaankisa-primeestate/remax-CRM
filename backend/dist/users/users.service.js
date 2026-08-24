@@ -173,12 +173,15 @@ let UsersService = UsersService_1 = class UsersService {
         const { passwordHash, ...rest } = saved;
         return rest;
     }
-    async setMonthlyDues(agentId, monthlyDuesAmount) {
+    async setMonthlyDues(agentId, monthlyDuesAmount, duesStartDate) {
         const agent = await this.userRepo.findOne({ where: { id: agentId, role: user_entity_1.UserRole.AGENT } });
         if (!agent) {
             throw new common_1.NotFoundException('Danışman bulunamadı');
         }
         agent.monthlyDuesAmount = monthlyDuesAmount;
+        if (duesStartDate !== undefined) {
+            agent.duesStartDate = duesStartDate || null;
+        }
         const saved = await this.userRepo.save(agent);
         const { passwordHash, ...rest } = saved;
         return rest;

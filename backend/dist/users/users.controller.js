@@ -46,8 +46,8 @@ let UsersController = class UsersController {
     setMonthlyTarget(id, monthlyTarget) {
         return this.usersService.setMonthlyTarget(id, monthlyTarget);
     }
-    setMonthlyDues(id, monthlyDuesAmount) {
-        return this.usersService.setMonthlyDues(id, monthlyDuesAmount);
+    setMonthlyDues(id, monthlyDuesAmount, duesStartDate) {
+        return this.usersService.setMonthlyDues(id, monthlyDuesAmount, duesStartDate);
     }
     updateAgentProfile(id, dto) {
         return this.usersService.updateAgentProfile(id, dto);
@@ -111,8 +111,9 @@ __decorate([
     (0, roles_decorator_1.Roles)(user_entity_1.UserRole.BROKER),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)('monthlyDuesAmount')),
+    __param(2, (0, common_1.Body)('duesStartDate')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Number]),
+    __metadata("design:paramtypes", [String, Number, String]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "setMonthlyDues", null);
 __decorate([

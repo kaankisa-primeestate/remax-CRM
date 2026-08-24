@@ -73,6 +73,7 @@ export default function AgentsPage() {
   const [targetDrafts, setTargetDrafts] = useState({});
   const [savingTargetId, setSavingTargetId] = useState(null);
   const [duesDrafts, setDuesDrafts] = useState({});
+  const [duesStartDrafts, setDuesStartDrafts] = useState({});
   const [savingDuesId, setSavingDuesId] = useState(null);
   const [profileDrafts, setProfileDrafts] = useState({});
   const [savingProfileId, setSavingProfileId] = useState(null);
@@ -101,6 +102,9 @@ export default function AgentsPage() {
       );
       setDuesDrafts(
         Object.fromEntries(data.map((a) => [a.id, a.monthlyDuesAmount != null ? String(a.monthlyDuesAmount) : ''])),
+      );
+      setDuesStartDrafts(
+        Object.fromEntries(data.map((a) => [a.id, a.duesStartDate ? a.duesStartDate.slice(0, 10) : ''])),
       );
       setProfileDrafts(
         Object.fromEntries(data.map((a) => [a.id, {
@@ -424,8 +428,9 @@ export default function AgentsPage() {
     try {
       const raw = duesDrafts[agentId];
       const value = raw === '' ? 0 : Number(raw);
-      await usersApi.setMonthlyDues(agentId, value);
-      setAgents((prev) => prev.map((a) => (a.id === agentId ? { ...a, monthlyDuesAmount: value } : a)));
+      const duesStartDate = duesStartDrafts[agentId] || '';
+      await usersApi.setMonthlyDues(agentId, value, duesStartDate);
+      setAgents((prev) => prev.map((a) => (a.id === agentId ? { ...a, monthlyDuesAmount: value, duesStartDate: duesStartDate || null } : a)));
     } catch (err) {
       alert('Aidat tutarı kaydedilemedi, tekrar deneyin.');
     } finally {
@@ -624,6 +629,16 @@ export default function AgentsPage() {
                     value={duesDrafts[agent.id] ?? ''}
                     onChange={(e) => setDuesDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
                     style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
+                  />
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    Muafiyet Bitişi
+                  </label>
+                  <input
+                    type="date"
+                    value={duesStartDrafts[agent.id] ?? ''}
+                    onChange={(e) => setDuesStartDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
+                    title="Boş bırakılırsa aidat hemen başlar. Bir tarih seçilirse, o tarihten önceki aylar için aidat oluşturulmaz."
+                    style={{ padding: '6px 8px', fontSize: 13 }}
                   />
                   <button
                     type="button"

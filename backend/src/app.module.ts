@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CustomersModule } from './customers/customers.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -33,6 +34,7 @@ import { CalendarModule } from './calendar/calendar.module';
   imports: [
     // .env dosyasını global olarak yükle
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
 
     // Genel istek sinirlamasi (rate limiting) -- brute-force saldirilarina
     // karsi temel koruma. Asil siki sinir zaten login endpoint'ine ozel

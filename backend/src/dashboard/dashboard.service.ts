@@ -8,6 +8,7 @@ import { Commission } from '../commissions/commission.entity';
 import { User, UserRole } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { TransactionNote } from '../transactions/transaction-note.entity';
+import { AgentDue } from '../agent-dues/agent-due.entity';
 
 interface AgentStats {
   propertiesCount: number;
@@ -27,6 +28,7 @@ export class DashboardService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
     @InjectRepository(TransactionNote) private readonly noteRepo: Repository<TransactionNote>,
+    @InjectRepository(AgentDue) private readonly agentDueRepo: Repository<AgentDue>,
   ) {}
 
   async getSummary(from: Date, to: Date) {
@@ -367,7 +369,23 @@ export class DashboardService {
     // (bayraklar + kapanis onaylari + paylasim onaylari + portfoy
     // onaylari) hep en basta -- hepsi zaten "aksiyon bekliyor" turunde,
     // aralarinda en yeniden en eskiye siralaniyor.
-    return [...flagItems, ...dealItems, ...splitItems, ...propertyItems].sort(
+    // 5) Geciken aidatlar -- mevcut ayin KENDISI degil, ONCEKI aylardan
+    // odenmemis kalan kayitlar "gecikmis" sayilir. (agents/agentNameById
+    // zaten fonksiyonun basinda tanimli, tekrar tanimlamiyoruz.)
+    const currentPeriod = new Date().toISOString().slice(0, 7);
+    const overdueDues = await this.agentDueRepo.find({ where: { paid: false }, order: { period: 'ASC' } });
+    const overdueDueItems = overdueDues
+      .filter((d) => d.period < currentPeriod)
+      .map((d) => ({
+        kind: 'overdue_due' as const,
+        dueId: d.id,
+        title: `Gecikmiş Aidat: ${d.period}`,
+        agentName: agentNameById.get(d.agentId) || 'Bilinmeyen',
+        amount: d.expectedAmount,
+        createdAt: d.createdAt,
+      }));
+
+    return [...flagItems, ...dealItems, ...splitItems, ...overdueDueItems, ...propertyItems].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }

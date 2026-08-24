@@ -308,6 +308,19 @@ export default function DashboardPage() {
                     </div>
                   );
                 }
+                if (p.kind === 'overdue_due') {
+                  return (
+                    <Link to="/finans" className="action-item action-item--clickable" key={`due-${p.dueId}`}>
+                      <span className="action-item__dot">🔴</span>
+                      <div className="action-item__body">
+                        <div className="action-item__title">{p.title}</div>
+                        <div className="action-item__meta">
+                          {p.agentName} · {money(p.amount)} · Aidatlar sekmesinden işaretleyin →
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                }
                 // kind === 'property' (varsayilan, mevcut davranis)
                 return (
                   <div className="action-item" key={`property-${p.propertyId}`}>
