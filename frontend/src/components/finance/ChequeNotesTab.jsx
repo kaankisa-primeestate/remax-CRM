@@ -207,7 +207,7 @@ export default function ChequeNotesTab() {
                       <select value={collectBankAccountId} onChange={(e) => setCollectBankAccountId(e.target.value)}>
                         <option value="">Banka seçilmedi</option>
                         {accounts.map((acc) => (
-                          <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
+                          <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
                         ))}
                       </select>
                       <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px' }} disabled={collectSaving} onClick={() => handleCollect(item.id)}>

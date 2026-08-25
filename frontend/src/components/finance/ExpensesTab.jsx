@@ -287,7 +287,7 @@ export default function ExpensesTab() {
             <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)}>
               <option value="">Seçilmedi</option>
               {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
+                <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
               ))}
             </select>
           </div>

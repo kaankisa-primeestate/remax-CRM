@@ -155,7 +155,7 @@ export default function RecurringExpensesTab() {
             <select value={defaultBankAccountId} onChange={(e) => setDefaultBankAccountId(e.target.value)}>
               <option value="">Seçilmedi</option>
               {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
+                <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
               ))}
             </select>
           </div>
@@ -189,7 +189,7 @@ export default function RecurringExpensesTab() {
                   <select value={payBankAccountId} onChange={(e) => setPayBankAccountId(e.target.value)}>
                     <option value="">Banka seçilmedi</option>
                     {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
+                      <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
                     ))}
                   </select>
                   <input value={payReferenceNo} onChange={(e) => setPayReferenceNo(e.target.value)} placeholder="Fiş No (opsiyonel)" style={{ width: 110 }} />

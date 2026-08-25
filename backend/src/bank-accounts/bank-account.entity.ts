@@ -1,18 +1,34 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
-// Ofisin banka hesaplari. Bakiye ayri bir kolonda TUTULMAZ -- her zaman
-// ilgili BankTransaction kayitlarindan (giris - cikis) canli hesaplanir,
-// boylece hicbir zaman senkron kaymasi olmaz.
+// Ofisin PARA HESAPLARI -- sadece banka degil, kasa (nakit) ve kredi
+// karti da dahil. Daha once sadece "banka hesabi" varmis gibi
+// davranilmisti (bankName ZORUNLU alandi) -- bu, gercek bir isletmenin
+// mutlaka sahip oldugu nakit kasasini ve kredi kartini temsil etmeyi
+// IMKANSIZ kiliyordu (canli kullanimda tespit edildi, kritik bulgu).
+export enum AccountType {
+  BANK = 'bank',
+  CASH = 'cash',
+  CREDIT_CARD = 'credit_card',
+}
+
+// Bakiye ayri bir kolonda TUTULMAZ -- her zaman ilgili BankTransaction
+// kayitlarindan (giris - cikis) canli hesaplanir, boylece hicbir zaman
+// senkron kaymasi olmaz.
 @Entity('bank_accounts')
 export class BankAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  bankName: string; // orn. "İş Bankası"
+  @Column({ type: 'enum', enum: AccountType, default: AccountType.BANK })
+  type: AccountType;
+
+  // Kasa (CASH) icin banka adi anlamsizdir, bu yuzden OPSIYONEL --
+  // sadece Banka/Kredi Karti turlerinde anlamli.
+  @Column({ type: 'varchar', nullable: true })
+  bankName: string | null;
 
   @Column()
-  accountName: string; // orn. "Ana Hesap", "Kasa"
+  accountName: string; // orn. "Ana Hesap", "Ofis Kasası", "Şirket Kredi Kartı"
 
   @Column({ type: 'varchar', nullable: true })
   iban: string | null;

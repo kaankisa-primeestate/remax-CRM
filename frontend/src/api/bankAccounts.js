@@ -20,6 +20,12 @@ export const CURRENCIES = [
   { value: 'EUR', label: '€ EUR' },
 ];
 
+export const ACCOUNT_TYPES = [
+  { value: 'cash', label: 'Kasa (Nakit)', icon: '💵' },
+  { value: 'bank', label: 'Banka Hesabı', icon: '🏦' },
+  { value: 'credit_card', label: 'Kredi Kartı', icon: '💳' },
+];
+
 const CURRENCY_SYMBOLS = { TRY: '₺', USD: '$', EUR: '€' };
 
 export function formatMoney(amount, currency = 'TRY') {

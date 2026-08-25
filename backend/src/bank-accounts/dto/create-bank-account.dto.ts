@@ -1,9 +1,15 @@
 import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateBankAccountDto {
-  @IsNotEmpty()
+  @IsOptional()
+  @IsIn(['bank', 'cash', 'credit_card'])
+  type?: string;
+
+  // Kasa (cash) turunde bankName gonderilmeyebilir -- bu yuzden opsiyonel.
+  // Banka/Kredi Karti turunde frontend zaten zorunlu tutuyor.
+  @IsOptional()
   @IsString()
-  bankName: string;
+  bankName?: string;
 
   @IsNotEmpty()
   @IsString()

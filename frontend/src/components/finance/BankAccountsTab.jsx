@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { bankAccountsApi, CURRENCIES, formatMoney } from '../../api/bankAccounts';
+import { bankAccountsApi, CURRENCIES, ACCOUNT_TYPES, formatMoney } from '../../api/bankAccounts';
 
 // Banka Hesaplari sekmesi -- kendi verisini kendi yukler, disaridan prop
 // almaz. Boylece bagimsiz/tek basina test edilebilir/kullanilabilir bir
@@ -11,6 +11,7 @@ export default function BankAccountsTab() {
   const [expandedId, setExpandedId] = useState(null);
   const [transactions, setTransactions] = useState({});
 
+  const [accountType, setAccountType] = useState('bank');
   const [bankName, setBankName] = useState('');
   const [accountName, setAccountName] = useState('');
   const [iban, setIban] = useState('');
@@ -35,17 +36,23 @@ export default function BankAccountsTab() {
     load();
   }, [load]);
 
+  // Kasa (nakit) icin "banka adi" alani anlamsizdir ve gonderilmez --
+  // sadece Banka/Kredi Karti turlerinde zorunlu.
+  const needsBankName = accountType !== 'cash';
+
   async function handleAddAccount(e) {
     e.preventDefault();
-    if (!bankName.trim() || !accountName.trim()) return;
+    if (!accountName.trim() || (needsBankName && !bankName.trim())) return;
     setSaving(true);
     try {
       await bankAccountsApi.create({
-        bankName: bankName.trim(),
+        type: accountType,
+        bankName: needsBankName ? bankName.trim() : undefined,
         accountName: accountName.trim(),
         iban: iban.trim() || undefined,
         currency,
       });
+      setAccountType('bank');
       setBankName('');
       setAccountName('');
       setIban('');
@@ -128,18 +135,34 @@ export default function BankAccountsTab() {
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Banka Hesabı Ekle</h3>
         <form onSubmit={handleAddAccount} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
-            <label>Banka Adı</label>
-            <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Örn: İş Bankası" />
+          <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
+            <label>Hesap Türü</label>
+            <select value={accountType} onChange={(e) => setAccountType(e.target.value)}>
+              {ACCOUNT_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
+              ))}
+            </select>
           </div>
+          {needsBankName && (
+            <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+              <label>Banka Adı</label>
+              <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Örn: İş Bankası" />
+            </div>
+          )}
           <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
             <label>Hesap Etiketi</label>
-            <input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Örn: Ana Hesap" />
+            <input
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+              placeholder={accountType === 'cash' ? 'Örn: Ofis Kasası' : accountType === 'credit_card' ? 'Örn: Şirket Kredi Kartı' : 'Örn: Ana Hesap'}
+            />
           </div>
-          <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
-            <label>IBAN (opsiyonel)</label>
-            <input value={iban} onChange={(e) => setIban(e.target.value)} placeholder="TR.." />
-          </div>
+          {needsBankName && (
+            <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
+              <label>IBAN (opsiyonel)</label>
+              <input value={iban} onChange={(e) => setIban(e.target.value)} placeholder="TR.." />
+            </div>
+          )}
           <div className="form-field" style={{ margin: 0 }}>
             <label>Para Birimi</label>
             <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
@@ -148,7 +171,7 @@ export default function BankAccountsTab() {
               ))}
             </select>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={saving || !bankName.trim() || !accountName.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={saving || !accountName.trim() || (needsBankName && !bankName.trim())}>
             {saving ? 'Ekleniyor…' : '+ Hesap Ekle'}
           </button>
         </form>
@@ -166,7 +189,10 @@ export default function BankAccountsTab() {
               onClick={() => toggleExpand(acc.id)}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{acc.bankName} — {acc.accountName}</div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>
+                  {ACCOUNT_TYPES.find((t) => t.value === (acc.type || 'bank'))?.icon || '🏦'}{' '}
+                  {acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}
+                </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
                   {acc.iban || 'IBAN belirtilmedi'} · {acc.currency}
                 </div>

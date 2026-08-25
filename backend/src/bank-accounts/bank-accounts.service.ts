@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DeepPartial, In, Repository } from 'typeorm';
 import { BankAccount } from './bank-account.entity';
 import { BankTransaction, BankTransactionType } from './bank-transaction.entity';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
@@ -14,7 +14,7 @@ export class BankAccountsService {
   ) {}
 
   async create(dto: CreateBankAccountDto): Promise<BankAccount> {
-    const account = this.accountRepo.create({ ...dto, currency: dto.currency || 'TRY' });
+    const account = this.accountRepo.create({ ...dto, currency: dto.currency || 'TRY' } as DeepPartial<BankAccount>);
     return this.accountRepo.save(account);
   }
 
