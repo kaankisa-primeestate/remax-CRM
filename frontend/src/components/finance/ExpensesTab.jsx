@@ -61,6 +61,9 @@ export default function ExpensesTab() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [referenceNo, setReferenceNo] = useState('');
   const [bankAccountId, setBankAccountId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('account');
+  const [chequeDueDate, setChequeDueDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [chequeDrawerName, setChequeDrawerName] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -133,6 +136,8 @@ export default function ExpensesTab() {
     setDate(new Date().toISOString().slice(0, 10));
     setReferenceNo('');
     setBankAccountId('');
+    setPaymentMethod('account');
+    setChequeDrawerName('');
     setIsRecurring(false);
     setReceiptUrl(null);
     setSelectedAgentIds([]);
@@ -195,6 +200,9 @@ export default function ExpensesTab() {
         date,
         referenceNo: referenceNo.trim() || undefined,
         bankAccountId: bankAccountId || undefined,
+        paymentMethod,
+        chequeDueDate: paymentMethod !== 'account' ? chequeDueDate : undefined,
+        chequeDrawerName: paymentMethod !== 'account' ? chequeDrawerName.trim() || undefined : undefined,
         chargebacks: chargebacks.length > 0 ? chargebacks : undefined,
         isRecurring,
         receiptUrl: receiptUrl || undefined,
@@ -334,15 +342,36 @@ export default function ExpensesTab() {
             <label>Fiş/Fatura No</label>
             <input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="Opsiyonel" />
           </div>
-          <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
-            <label>Banka Hesabı (opsiyonel)</label>
-            <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)}>
-              <option value="">Seçilmedi</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
-              ))}
+          <div className="form-field" style={{ margin: 0 }}>
+            <label>Ödeme Yöntemi</label>
+            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <option value="account">Kasa / Banka / Kredi Kartı</option>
+              <option value="cheque">Çek Ver</option>
+              <option value="note">Senet Ver</option>
             </select>
           </div>
+          {paymentMethod === 'account' ? (
+            <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+              <label>Ödeme Kaynağı (opsiyonel)</label>
+              <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)}>
+                <option value="">Seçilmedi</option>
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <>
+              <div className="form-field" style={{ margin: 0 }}>
+                <label>Vade Tarihi</label>
+                <input type="date" value={chequeDueDate} onChange={(e) => setChequeDueDate(e.target.value)} />
+              </div>
+              <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
+                <label>Kime Verildi</label>
+                <input value={chequeDrawerName} onChange={(e) => setChequeDrawerName(e.target.value)} placeholder="Örn: ABC Tedarik" />
+              </div>
+            </>
+          )}
 
           <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
             <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} style={{ width: 'auto' }} />

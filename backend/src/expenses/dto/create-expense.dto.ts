@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsNumber, IsOptional, IsDateString, IsUUID, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import { IsEnum, IsString, IsNumber, IsOptional, IsDateString, IsUUID, IsBoolean, IsArray, IsIn, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExpenseCategory } from '../expense.entity';
 
@@ -45,6 +45,24 @@ export class CreateExpenseDto {
   @IsOptional()
   @IsUUID()
   bankAccountId?: string;
+
+  // Odeme "Cek Ver" veya "Senet Ver" ile yapiliyorsa -- para HENUZ
+  // hareket ETMEMISTIR (sadece vade tarihinde), bu yuzden bankAccountId
+  // ile HEMEN bir BankTransaction OLUSTURULMAZ. Bunun yerine bir
+  // ChequeNote (PAYABLE, henuz odenmedi) kaydi acilir -- gercek banka
+  // hareketi ancak ChequeNote "Odendi" isaretlendiginde (mevcut mekanizma
+  // ile) otomatik olusur.
+  @IsOptional()
+  @IsIn(['account', 'cheque', 'note'])
+  paymentMethod?: string;
+
+  @IsOptional()
+  @IsDateString()
+  chequeDueDate?: string;
+
+  @IsOptional()
+  @IsString()
+  chequeDrawerName?: string;
 
   @IsOptional()
   @IsUUID()

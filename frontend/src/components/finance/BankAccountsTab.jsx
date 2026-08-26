@@ -25,6 +25,9 @@ export default function BankAccountsTab() {
   const [txDescription, setTxDescription] = useState('');
   const [txReferenceNo, setTxReferenceNo] = useState('');
   const [txReceiptUrl, setTxReceiptUrl] = useState(null);
+  const [txPaymentMethod, setTxPaymentMethod] = useState('account');
+  const [txChequeDueDate, setTxChequeDueDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [txChequeDrawerName, setTxChequeDrawerName] = useState('');
   const [txSaving, setTxSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -96,6 +99,8 @@ export default function BankAccountsTab() {
     setTxDescription('');
     setTxReferenceNo('');
     setTxReceiptUrl(null);
+    setTxPaymentMethod('account');
+    setTxChequeDrawerName('');
   }
 
   async function handleAddTransaction(e, accountId) {
@@ -110,6 +115,9 @@ export default function BankAccountsTab() {
         description: txDescription.trim() || undefined,
         referenceNo: txReferenceNo.trim() || undefined,
         receiptUrl: txReceiptUrl || undefined,
+        paymentMethod: txPaymentMethod,
+        chequeDueDate: txPaymentMethod !== 'account' ? txChequeDueDate : undefined,
+        chequeDrawerName: txPaymentMethod !== 'account' ? txChequeDrawerName.trim() || undefined : undefined,
       });
       resetTxForm();
       const txs = await bankAccountsApi.listTransactions(accountId);
@@ -231,6 +239,26 @@ export default function BankAccountsTab() {
                     <label>Açıklama</label>
                     <input value={txDescription} onChange={(e) => setTxDescription(e.target.value)} placeholder="Opsiyonel" />
                   </div>
+                  <div className="form-field" style={{ margin: 0 }}>
+                    <label>Yöntem</label>
+                    <select value={txPaymentMethod} onChange={(e) => setTxPaymentMethod(e.target.value)}>
+                      <option value="account">Doğrudan Hesap</option>
+                      <option value="cheque">{txType === 'deposit' ? 'Çek Al' : 'Çek Ver'}</option>
+                      <option value="note">{txType === 'deposit' ? 'Senet Al' : 'Senet Ver'}</option>
+                    </select>
+                  </div>
+                  {txPaymentMethod !== 'account' && (
+                    <>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label>Vade Tarihi</label>
+                        <input type="date" value={txChequeDueDate} onChange={(e) => setTxChequeDueDate(e.target.value)} />
+                      </div>
+                      <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
+                        <label>Kesideci / Muhatap</label>
+                        <input value={txChequeDrawerName} onChange={(e) => setTxChequeDrawerName(e.target.value)} placeholder="Kim verdi/kime verildi" />
+                      </div>
+                    </>
+                  )}
                   <ReceiptUploader value={txReceiptUrl} onChange={setTxReceiptUrl} label="Dekont Ekle" />
                   <div className="form-field" style={{ margin: 0, minWidth: 120 }}>
                     <label>Fiş/Fatura No</label>

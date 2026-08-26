@@ -78,6 +78,9 @@ export default function CommissionsPage() {
   const [payAmount, setPayAmount] = useState('');
   const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [payAccountId, setPayAccountId] = useState('');
+  const [payMethod, setPayMethod] = useState('account');
+  const [payChequeDueDate, setPayChequeDueDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [payChequeDrawerName, setPayChequeDrawerName] = useState('');
   const [paySaving, setPaySaving] = useState(false);
 
   // Islemler sayfasindan "Tapu Onayla" ile geldiyse, formu otomatik ac
@@ -173,11 +176,16 @@ export default function CommissionsPage() {
         amount: Number(payAmount),
         date: payDate,
         bankAccountId: payAccountId || undefined,
+        paymentMethod: payMethod,
+        chequeDueDate: payMethod !== 'account' ? payChequeDueDate : undefined,
+        chequeDrawerName: payMethod !== 'account' ? payChequeDrawerName.trim() || undefined : undefined,
       });
       const list = await commissionsApi.getPayments(commissionId);
       setPayments((prev) => ({ ...prev, [commissionId]: list }));
       setPayAmount('');
       setPayAccountId('');
+      setPayMethod('account');
+      setPayChequeDrawerName('');
       load(); // komisyon durumu "Odendi"ye donmus olabilir
     } catch (err) {
       alert('Ödeme eklenemedi, tekrar deneyin.');
@@ -376,15 +384,36 @@ export default function CommissionsPage() {
                         <label>Tarih</label>
                         <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
                       </div>
-                      <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
-                        <label>Banka Hesabı (opsiyonel)</label>
-                        <select value={payAccountId} onChange={(e) => setPayAccountId(e.target.value)}>
-                          <option value="">Seçilmedi</option>
-                          {accounts.map((acc) => (
-                            <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
-                          ))}
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label>Ödeme Yöntemi</label>
+                        <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+                          <option value="account">Kasa / Banka / Kredi Kartı</option>
+                          <option value="cheque">Çek Ver</option>
+                          <option value="note">Senet Ver</option>
                         </select>
                       </div>
+                      {payMethod === 'account' ? (
+                        <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                          <label>Ödeme Kaynağı</label>
+                          <select value={payAccountId} onChange={(e) => setPayAccountId(e.target.value)}>
+                            <option value="">Seçilmedi</option>
+                            {accounts.map((acc) => (
+                              <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="form-field" style={{ margin: 0 }}>
+                            <label>Vade Tarihi</label>
+                            <input type="date" value={payChequeDueDate} onChange={(e) => setPayChequeDueDate(e.target.value)} />
+                          </div>
+                          <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
+                            <label>Kime Verildi</label>
+                            <input value={payChequeDrawerName} onChange={(e) => setPayChequeDrawerName(e.target.value)} placeholder="Danışman adı" />
+                          </div>
+                        </>
+                      )}
                       <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} disabled={paySaving || !payAmount} onClick={() => handleAddPayment(c.id)}>
                         {paySaving ? 'Ekleniyor…' : '+ Ödeme Kaydet'}
                       </button>

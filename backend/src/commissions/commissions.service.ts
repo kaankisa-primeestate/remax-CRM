@@ -11,6 +11,7 @@ import { CommissionPayment } from './commission-payment.entity';
 import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 import { Transaction } from '../transactions/transaction.entity';
+import { ChequeNote, ChequeNoteType, ChequeNoteDirection, ChequeNoteStatus } from '../cheque-notes/cheque-note.entity';
 
 @Injectable()
 export class CommissionsService {
@@ -23,6 +24,8 @@ export class CommissionsService {
     private bankTransactionRepository: Repository<BankTransaction>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
+    @InjectRepository(ChequeNote)
+    private chequeNoteRepository: Repository<ChequeNote>,
   ) {}
 
   private calculateAmounts(dto: {
@@ -334,8 +337,23 @@ export class CommissionsService {
     const saved = await this.paymentsRepository.save(payment);
 
     // Banka/kasa hesabi secildiyse, o hesaptan otomatik bir "cikis"
-    // hareketi olustur -- ofis danismana para odedigi icin.
-    if (dto.bankAccountId) {
+    // hareketi olustur -- ofis danismana para odedigi icin. AMA odeme
+    // "Cek/Senet VERILEREK" yapiliyorsa, para HENUZ hesaptan CIKMADI --
+    // bunun yerine bir ChequeNote (PAYABLE, henuz odenmedi) acilir,
+    // gercek banka hareketi ancak vade tarihinde/odendiginde olusur.
+    if (dto.paymentMethod === 'cheque' || dto.paymentMethod === 'note') {
+      const chequeNote = this.chequeNoteRepository.create({
+        type: dto.paymentMethod === 'cheque' ? ChequeNoteType.CHEQUE : ChequeNoteType.NOTE,
+        direction: ChequeNoteDirection.PAYABLE,
+        amount: dto.amount,
+        dueDate: dto.chequeDueDate,
+        drawerName: dto.chequeDrawerName || commission.propertyTitle || 'Danışman Ödemesi',
+        bankAccountId: dto.bankAccountId || null,
+        status: ChequeNoteStatus.PORTFOLIO,
+        notes: `Komisyon ödemesi: ${commission.propertyTitle || commission.id}`,
+      });
+      await this.chequeNoteRepository.save(chequeNote);
+    } else if (dto.bankAccountId) {
       const transaction = this.bankTransactionRepository.create({
         bankAccountId: dto.bankAccountId,
         type: BankTransactionType.WITHDRAWAL,

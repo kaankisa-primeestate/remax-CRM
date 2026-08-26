@@ -20,12 +20,14 @@ const commission_entity_1 = require("./commission.entity");
 const commission_payment_entity_1 = require("./commission-payment.entity");
 const bank_transaction_entity_1 = require("../bank-accounts/bank-transaction.entity");
 const transaction_entity_1 = require("../transactions/transaction.entity");
+const cheque_note_entity_1 = require("../cheque-notes/cheque-note.entity");
 let CommissionsService = class CommissionsService {
-    constructor(commissionsRepository, paymentsRepository, bankTransactionRepository, transactionRepository) {
+    constructor(commissionsRepository, paymentsRepository, bankTransactionRepository, transactionRepository, chequeNoteRepository) {
         this.commissionsRepository = commissionsRepository;
         this.paymentsRepository = paymentsRepository;
         this.bankTransactionRepository = bankTransactionRepository;
         this.transactionRepository = transactionRepository;
+        this.chequeNoteRepository = chequeNoteRepository;
     }
     calculateAmounts(dto) {
         const grossCommission = (dto.transactionAmount * dto.commissionRate) / 100;
@@ -222,7 +224,20 @@ let CommissionsService = class CommissionsService {
         }
         const payment = this.paymentsRepository.create({ ...dto, commissionId });
         const saved = await this.paymentsRepository.save(payment);
-        if (dto.bankAccountId) {
+        if (dto.paymentMethod === 'cheque' || dto.paymentMethod === 'note') {
+            const chequeNote = this.chequeNoteRepository.create({
+                type: dto.paymentMethod === 'cheque' ? cheque_note_entity_1.ChequeNoteType.CHEQUE : cheque_note_entity_1.ChequeNoteType.NOTE,
+                direction: cheque_note_entity_1.ChequeNoteDirection.PAYABLE,
+                amount: dto.amount,
+                dueDate: dto.chequeDueDate,
+                drawerName: dto.chequeDrawerName || commission.propertyTitle || 'Danışman Ödemesi',
+                bankAccountId: dto.bankAccountId || null,
+                status: cheque_note_entity_1.ChequeNoteStatus.PORTFOLIO,
+                notes: `Komisyon ödemesi: ${commission.propertyTitle || commission.id}`,
+            });
+            await this.chequeNoteRepository.save(chequeNote);
+        }
+        else if (dto.bankAccountId) {
             const transaction = this.bankTransactionRepository.create({
                 bankAccountId: dto.bankAccountId,
                 type: bank_transaction_entity_1.BankTransactionType.WITHDRAWAL,
@@ -294,7 +309,9 @@ exports.CommissionsService = CommissionsService = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(commission_payment_entity_1.CommissionPayment)),
     __param(2, (0, typeorm_1.InjectRepository)(bank_transaction_entity_1.BankTransaction)),
     __param(3, (0, typeorm_1.InjectRepository)(transaction_entity_1.Transaction)),
+    __param(4, (0, typeorm_1.InjectRepository)(cheque_note_entity_1.ChequeNote)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository])

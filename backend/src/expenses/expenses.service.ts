@@ -7,6 +7,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 import { BankAccount } from '../bank-accounts/bank-account.entity';
 import { AgentLedgerAdjustment, LedgerAdjustmentType } from '../agent-ledger/agent-ledger-adjustment.entity';
+import { ChequeNote, ChequeNoteType, ChequeNoteDirection, ChequeNoteStatus } from '../cheque-notes/cheque-note.entity';
 
 // Eski sabit enum degerlerinin varsayilan Turkce etiketleri -- SADECE
 // gecmis kayitlari yeni sisteme otomatik tasirken (migrateLegacyCategories)
@@ -47,6 +48,7 @@ export class ExpensesService implements OnModuleInit {
     @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
     @InjectRepository(AgentLedgerAdjustment) private readonly adjustmentRepo: Repository<AgentLedgerAdjustment>,
     @InjectRepository(BankAccount) private readonly bankAccountRepo: Repository<BankAccount>,
+    @InjectRepository(ChequeNote) private readonly chequeNoteRepo: Repository<ChequeNote>,
   ) {}
 
   // Sunucu her baslarken calisir: (1) hic kategori yoksa varsayilanlari
@@ -107,7 +109,24 @@ export class ExpensesService implements OnModuleInit {
     const expense = this.expenseRepo.create(dto);
     const saved = await this.expenseRepo.save(expense);
 
-    if (dto.bankAccountId) {
+    if (dto.paymentMethod === 'cheque' || dto.paymentMethod === 'note') {
+      // Odeme Cek/Senet VERILEREK yapiliyor -- para HENUZ hesaptan
+      // CIKMADI (sadece vade tarihinde cikacak). BankTransaction HEMEN
+      // olusturulmaz -- ChequeNote "Odendi" isaretlendiginde (mevcut
+      // mekanizma) otomatik olusur.
+      const chequeNote = this.chequeNoteRepo.create({
+        type: dto.paymentMethod === 'cheque' ? ChequeNoteType.CHEQUE : ChequeNoteType.NOTE,
+        direction: ChequeNoteDirection.PAYABLE,
+        amount: dto.amount,
+        dueDate: dto.chequeDueDate,
+        drawerName: dto.chequeDrawerName || dto.title,
+        bankAccountId: dto.bankAccountId || null,
+        status: ChequeNoteStatus.PORTFOLIO,
+        notes: `Gider ödemesi: ${dto.title}`,
+        receiptUrl: dto.receiptUrl || null,
+      });
+      await this.chequeNoteRepo.save(chequeNote);
+    } else if (dto.bankAccountId) {
       const transaction = this.bankTransactionRepo.create({
         bankAccountId: dto.bankAccountId,
         type: BankTransactionType.WITHDRAWAL,

@@ -5,12 +5,14 @@ import { BankAccount } from './bank-account.entity';
 import { BankTransaction, BankTransactionType } from './bank-transaction.entity';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
 import { CreateBankTransactionDto } from './dto/create-bank-transaction.dto';
+import { ChequeNote, ChequeNoteType, ChequeNoteDirection, ChequeNoteStatus } from '../cheque-notes/cheque-note.entity';
 
 @Injectable()
 export class BankAccountsService {
   constructor(
     @InjectRepository(BankAccount) private readonly accountRepo: Repository<BankAccount>,
     @InjectRepository(BankTransaction) private readonly transactionRepo: Repository<BankTransaction>,
+    @InjectRepository(ChequeNote) private readonly chequeNoteRepo: Repository<ChequeNote>,
   ) {}
 
   async create(dto: CreateBankAccountDto): Promise<BankAccount> {
@@ -65,11 +67,34 @@ export class BankAccountsService {
   async addTransaction(
     bankAccountId: string,
     dto: CreateBankTransactionDto,
-  ): Promise<BankTransaction> {
+  ): Promise<BankTransaction | ChequeNote> {
     const account = await this.accountRepo.findOne({ where: { id: bankAccountId } });
     if (!account) {
       throw new NotFoundException('Banka hesabı bulunamadı');
     }
+
+    // "Cek/Senet Alarak" bir giris (DEPOSIT) kaydediliyorsa -- orn.
+    // musteriden komisyon tahsilati cek ile yapildiysa -- para HENUZ
+    // hesaba GECMEMISTIR. Bunun yerine bir ChequeNote (RECEIVABLE, henuz
+    // tahsil edilmedi) acilir; gercek banka hareketi ancak tahsil
+    // edildiginde (mevcut mekanizma ile) otomatik olusur. "Cek/Senet
+    // Vererek" bir cikis (WITHDRAWAL) kaydediliyorsa, ChequeNote PAYABLE
+    // olur.
+    if (dto.paymentMethod === 'cheque' || dto.paymentMethod === 'note') {
+      const chequeNote = this.chequeNoteRepo.create({
+        type: dto.paymentMethod === 'cheque' ? ChequeNoteType.CHEQUE : ChequeNoteType.NOTE,
+        direction: dto.type === BankTransactionType.DEPOSIT ? ChequeNoteDirection.RECEIVABLE : ChequeNoteDirection.PAYABLE,
+        amount: dto.amount,
+        dueDate: dto.chequeDueDate,
+        drawerName: dto.chequeDrawerName || dto.description || 'Belirtilmedi',
+        bankAccountId,
+        status: ChequeNoteStatus.PORTFOLIO,
+        notes: dto.description || null,
+        receiptUrl: dto.receiptUrl || null,
+      });
+      return this.chequeNoteRepo.save(chequeNote);
+    }
+
     const transaction = this.transactionRepo.create({
       ...dto,
       bankAccountId,
