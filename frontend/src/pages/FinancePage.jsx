@@ -11,7 +11,7 @@ const FINANCE_TABS = [
   { key: 'accounts', label: '🏦 Banka Hesapları' },
   { key: 'expenses', label: '🧾 Giderler' },
   { key: 'recurring', label: '🔁 Sabit Giderler' },
-  { key: 'cheques', label: '📑 Çek/Senet' },
+  { key: 'cheques', label: '📑 Çek/Senet Takibi' },
   { key: 'cashflow', label: '📈 Nakit Akış' },
   { key: 'ledger', label: '👤 Danışman Cari Hesapları' },
   { key: 'partners', label: '🤝 Ortaklar' },
