@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { expensesApi } from '../../api/expenses';
+import { recurringExpensesApi } from '../../api/recurringExpenses';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 import { usersApi } from '../../api/auth';
 import ReceiptUploader from '../ReceiptUploader.jsx';
@@ -27,6 +28,8 @@ function periodRange(period) {
   }
   return { from: fromDate.toISOString().slice(0, 10), to };
 }
+
+const currentPeriod = () => new Date().toISOString().slice(0, 7); // YYYY-MM
 
 export default function ExpensesTab() {
   const navigate = useNavigate();
@@ -64,9 +67,24 @@ export default function ExpensesTab() {
   const [paymentMethod, setPaymentMethod] = useState('account');
   const [chequeDueDate, setChequeDueDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [chequeDrawerName, setChequeDrawerName] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // SABIT GIDER SABLONU (eskiden ayri "Sabit Giderler" sekmesindeydi,
+  // artik Gider ekleme akisinin bir SECENEGI -- kullanici her ay ayni
+  // bilgileri tekrar tekrar girmek yerine, daha once tanimlanmis bir
+  // sablon uzerinden tek tikla islem yapabiliyor.
+  const [expenseMode, setExpenseMode] = useState('single'); // 'single' | 'recurring'
+  const [recurringTemplates, setRecurringTemplates] = useState([]);
+  const [pendingRecurring, setPendingRecurring] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+  const [newTemplateTitle, setNewTemplateTitle] = useState('');
+  const [newTemplateCategory, setNewTemplateCategory] = useState('');
+  const [newTemplateAmount, setNewTemplateAmount] = useState('');
+  const [newTemplateDueDay, setNewTemplateDueDay] = useState('1');
+  const [newTemplateBankAccountId, setNewTemplateBankAccountId] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   // ÇOKLU DANIŞMAN YANSITMA VE ARAMA STATE'LERİ
   const [selectedAgentIds, setSelectedAgentIds] = useState([]);
@@ -97,10 +115,20 @@ export default function ExpensesTab() {
     setLoading(false);
   }, []);
 
+  const loadRecurring = useCallback(async () => {
+    const [templates, pending] = await Promise.all([
+      recurringExpensesApi.list().catch(() => []),
+      recurringExpensesApi.getPending(currentPeriod()).catch(() => []),
+    ]);
+    setRecurringTemplates(templates);
+    setPendingRecurring(pending);
+  }, []);
+
   useEffect(() => {
     load();
     loadCategories();
-  }, [load, loadCategories]);
+    loadRecurring();
+  }, [load, loadCategories, loadRecurring]);
 
   async function handleAddCategory() {
     if (!newCategoryName.trim()) return;
@@ -128,6 +156,67 @@ export default function ExpensesTab() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Bir sablon secilince, formu o sablonun varsayilan degerleriyle
+  // doldurur -- kullanici HALA hepsini degistirebilir.
+  function handleSelectTemplate(templateId) {
+    setSelectedTemplateId(templateId);
+    const t = recurringTemplates.find((x) => x.id === templateId);
+    if (!t) return;
+    setCategory(t.categoryId || '');
+    setTitle(t.title);
+    setAmount(String(t.defaultAmount));
+    setBankAccountId(t.defaultBankAccountId || '');
+  }
+
+  function handleModeChange(mode) {
+    setExpenseMode(mode);
+    if (mode === 'recurring' && recurringTemplates.length > 0 && !selectedTemplateId) {
+      handleSelectTemplate(recurringTemplates[0].id);
+    }
+  }
+
+  async function handleCreateTemplate() {
+    if (!newTemplateTitle.trim() || !newTemplateAmount || Number(newTemplateAmount) <= 0 || !newTemplateCategory) return;
+    setSavingTemplate(true);
+    try {
+      await recurringExpensesApi.create({
+        title: newTemplateTitle.trim(),
+        categoryId: newTemplateCategory,
+        defaultAmount: Number(newTemplateAmount),
+        dueDayOfMonth: Number(newTemplateDueDay),
+        defaultBankAccountId: newTemplateBankAccountId || undefined,
+      });
+      setNewTemplateTitle('');
+      setNewTemplateAmount('');
+      setNewTemplateDueDay('1');
+      setNewTemplateBankAccountId('');
+      loadRecurring();
+    } catch {
+      alert('Şablon eklenemedi, tekrar deneyin.');
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+
+  async function handleToggleTemplateActive(template) {
+    try {
+      await recurringExpensesApi.update(template.id, { isActive: !template.isActive });
+      loadRecurring();
+    } catch {
+      alert('Güncellenemedi, tekrar deneyin.');
+    }
+  }
+
+  async function handleDeleteTemplate(id) {
+    if (!confirm('Bu sabit gider şablonu silinsin mi? (Geçmiş ödemeler etkilenmez)')) return;
+    try {
+      await recurringExpensesApi.remove(id);
+      loadRecurring();
+    } catch {
+      alert('Silinemedi, tekrar deneyin.');
+    }
+  }
+
   function resetForm() {
     setCategory(categories.length > 0 ? categories[0].id : '');
     setTitle('');
@@ -138,8 +227,9 @@ export default function ExpensesTab() {
     setBankAccountId('');
     setPaymentMethod('account');
     setChequeDrawerName('');
-    setIsRecurring(false);
     setReceiptUrl(null);
+    setExpenseMode('single');
+    setSelectedTemplateId('');
     setSelectedAgentIds([]);
     setSplitType('equal');
     setCustomAmounts({});
@@ -171,6 +261,7 @@ export default function ExpensesTab() {
   async function handleAdd(e) {
     e.preventDefault();
     if (!title.trim() || !amount || Number(amount) <= 0) return;
+    if (expenseMode === 'recurring' && !selectedTemplateId) return;
     setSaving(true);
 
     const totalAmount = Number(amount);
@@ -192,24 +283,36 @@ export default function ExpensesTab() {
     }
 
     try {
-      await expensesApi.create({
-        categoryId: category,
-        title: title.trim(),
-        amount: totalAmount,
-        vatRate: vatRate ? Number(vatRate) : undefined,
-        date,
-        referenceNo: referenceNo.trim() || undefined,
-        bankAccountId: bankAccountId || undefined,
-        paymentMethod,
-        chequeDueDate: paymentMethod !== 'account' ? chequeDueDate : undefined,
-        chequeDrawerName: paymentMethod !== 'account' ? chequeDrawerName.trim() || undefined : undefined,
-        chargebacks: chargebacks.length > 0 ? chargebacks : undefined,
-        isRecurring,
-        receiptUrl: receiptUrl || undefined,
-      });
+      if (expenseMode === 'recurring') {
+        // Sablondan odeme -- backend HEM gercek bir Expense kaydi
+        // OLUSTURUR HEM sablonun bu ayki durumunu isaretler, boylece
+        // cift kayit olusmaz, tum hareketler Giderler listesinde de gorunur.
+        await recurringExpensesApi.pay(selectedTemplateId, {
+          amount: totalAmount,
+          date,
+          bankAccountId: bankAccountId || undefined,
+          referenceNo: referenceNo.trim() || undefined,
+        });
+      } else {
+        await expensesApi.create({
+          categoryId: category,
+          title: title.trim(),
+          amount: totalAmount,
+          vatRate: vatRate ? Number(vatRate) : undefined,
+          date,
+          referenceNo: referenceNo.trim() || undefined,
+          bankAccountId: bankAccountId || undefined,
+          paymentMethod,
+          chequeDueDate: paymentMethod !== 'account' ? chequeDueDate : undefined,
+          chequeDrawerName: paymentMethod !== 'account' ? chequeDrawerName.trim() || undefined : undefined,
+          chargebacks: chargebacks.length > 0 ? chargebacks : undefined,
+          receiptUrl: receiptUrl || undefined,
+        });
+      }
       resetForm();
       load();
       loadSummary();
+      loadRecurring();
     } catch {
       alert('Gider eklenemedi, tekrar deneyin.');
     } finally {
@@ -292,38 +395,69 @@ export default function ExpensesTab() {
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Gider Ekle</h3>
-        <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="form-field" style={{ margin: 0 }}>
-            <label>Kategori</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+
+        {pendingRecurring.length > 0 && (
+          <div style={{ background: '#fdf3e0', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12 }}>
+            ⚠ Bu ay <strong>{pendingRecurring.length}</strong> sabit gider henüz ödenmedi: {pendingRecurring.map((p) => p.template.title).join(', ')}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+          <button type="button" className={expenseMode === 'single' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => handleModeChange('single')}>
+            Tek Seferlik Gider
+          </button>
+          <button type="button" className={expenseMode === 'recurring' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => handleModeChange('recurring')} disabled={recurringTemplates.length === 0}>
+            🔁 Sabit Gider (Şablondan)
+          </button>
+        </div>
+
+        {expenseMode === 'recurring' && (
+          <div className="form-field" style={{ marginBottom: 14, maxWidth: 300 }}>
+            <label>Hangi Sabit Gider?</label>
+            <select value={selectedTemplateId} onChange={(e) => handleSelectTemplate(e.target.value)}>
+              {recurringTemplates.filter((t) => t.isActive).map((t) => (
+                <option key={t.id} value={t.id}>{t.title} ({formatMoney(t.defaultAmount)})</option>
               ))}
             </select>
           </div>
-          <div className="form-field" style={{ margin: 0, minWidth: 150 }}>
-            <label>+ Yeni Kategori</label>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <input
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Örn: Akaryakıt"
-                style={{ width: 110 }}
-              />
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleAddCategory}
-                disabled={addingCategory || !newCategoryName.trim()}
-                style={{ padding: '6px 10px', fontSize: 12 }}
-              >
-                Ekle
-              </button>
-            </div>
-          </div>
+        )}
+
+        <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          {expenseMode === 'single' && (
+            <>
+              <div className="form-field" style={{ margin: 0 }}>
+                <label>Kategori</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-field" style={{ margin: 0, minWidth: 150 }}>
+                <label>+ Yeni Kategori</label>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Örn: Akaryakıt"
+                    style={{ width: 110 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleAddCategory}
+                    disabled={addingCategory || !newCategoryName.trim()}
+                    style={{ padding: '6px 10px', fontSize: 12 }}
+                  >
+                    Ekle
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
           <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
             <label>Açıklama</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn: Ağustos Kirası" />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn: Ağustos Kirası" disabled={expenseMode === 'recurring'} />
           </div>
           <ReceiptUploader value={receiptUrl} onChange={setReceiptUrl} label="Fiş / Fatura Ekle" />
           <div className="form-field" style={{ margin: 0 }}>
@@ -342,15 +476,17 @@ export default function ExpensesTab() {
             <label>Fiş/Fatura No</label>
             <input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="Opsiyonel" />
           </div>
-          <div className="form-field" style={{ margin: 0 }}>
-            <label>Ödeme Yöntemi</label>
-            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-              <option value="account">Kasa / Banka / Kredi Kartı</option>
-              <option value="cheque">Çek Ver</option>
-              <option value="note">Senet Ver</option>
-            </select>
-          </div>
-          {paymentMethod === 'account' ? (
+          {expenseMode === 'single' && (
+            <div className="form-field" style={{ margin: 0 }}>
+              <label>Ödeme Yöntemi</label>
+              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                <option value="account">Kasa / Banka / Kredi Kartı</option>
+                <option value="cheque">Çek Ver</option>
+                <option value="note">Senet Ver</option>
+              </select>
+            </div>
+          )}
+          {expenseMode === 'recurring' || paymentMethod === 'account' ? (
             <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
               <label>Ödeme Kaynağı (opsiyonel)</label>
               <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)}>
@@ -373,11 +509,8 @@ export default function ExpensesTab() {
             </>
           )}
 
-          <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
-            <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} style={{ width: 'auto' }} />
-            <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>Sabit Gider (her ay tekrar eden)</label>
-          </div>
-
+          {expenseMode === 'single' && (
+          <>
           {/* ARAMALI VE AÇILIR MENÜLÜ ÇOKLU DANIŞMAN YANSITMA ALANI */}
           <div className="form-field full" ref={menuRef} style={{ marginTop: 10, padding: 12, border: '1px solid var(--paper-line, #e2e8f0)', borderRadius: 6, background: '#f8fafc', position: 'relative' }}>
             <label style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'block' }}>👥 Danışmanlara Masraf Yansıt (Opsiyonel)</label>
@@ -482,11 +615,73 @@ export default function ExpensesTab() {
               </div>
             )}
           </div>
+          </>
+          )}
 
           <button type="submit" className="btn btn-primary" disabled={saving || !title.trim() || !amount} style={{ marginTop: 10 }}>
             {saving ? 'Ekleniyor…' : '+ Gider Ekle'}
           </button>
         </form>
+      </div>
+
+      <div className="folder-panel" style={{ marginBottom: 20 }}>
+        <button type="button" onClick={() => setShowTemplateManager((v) => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
+          {showTemplateManager ? '▼' : '▶'} ⚙️ Sabit Gider Şablonlarını Yönet ({recurringTemplates.length})
+        </button>
+        {showTemplateManager && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', background: '#f8fafc', padding: 12, borderRadius: 6, marginBottom: 14 }}>
+              <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
+                <label>Başlık</label>
+                <input value={newTemplateTitle} onChange={(e) => setNewTemplateTitle(e.target.value)} placeholder="Örn: Ofis Kirası" />
+              </div>
+              <div className="form-field" style={{ margin: 0 }}>
+                <label>Kategori</label>
+                <select value={newTemplateCategory} onChange={(e) => setNewTemplateCategory(e.target.value)}>
+                  <option value="">Seçiniz</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-field" style={{ margin: 0 }}>
+                <label>Varsayılan Tutar</label>
+                <input type="number" min="0.01" step="0.01" value={newTemplateAmount} onChange={(e) => setNewTemplateAmount(e.target.value)} />
+              </div>
+              <div className="form-field" style={{ margin: 0, maxWidth: 130 }}>
+                <label>Ayın Kaçıncı Günü</label>
+                <input type="number" min="1" max="31" value={newTemplateDueDay} onChange={(e) => setNewTemplateDueDay(e.target.value)} />
+              </div>
+              <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                <label>Varsayılan Hesap (opsiyonel)</label>
+                <select value={newTemplateBankAccountId} onChange={(e) => setNewTemplateBankAccountId(e.target.value)}>
+                  <option value="">Seçilmedi</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="button" className="btn btn-primary" disabled={savingTemplate || !newTemplateTitle.trim() || !newTemplateAmount || !newTemplateCategory} onClick={handleCreateTemplate}>
+                {savingTemplate ? 'Ekleniyor…' : '+ Şablon Ekle'}
+              </button>
+            </div>
+            {recurringTemplates.length === 0 ? (
+              <div className="empty-state">Henüz şablon eklenmemiş.</div>
+            ) : (
+              recurringTemplates.map((t) => (
+                <div key={t.id} className="ledger-history-item" style={{ opacity: t.isActive ? 1 : 0.5 }}>
+                  <span style={{ flex: 1 }}>{t.title}</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{categories.find((c) => c.id === t.categoryId)?.name || '—'} · Her ayın {t.dueDayOfMonth}. günü</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(t.defaultAmount)}</span>
+                  <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => handleToggleTemplateActive(t)}>
+                    {t.isActive ? 'Pasifleştir' : 'Aktifleştir'}
+                  </button>
+                  <button type="button" className="task-row__delete" onClick={() => handleDeleteTemplate(t.id)} title="Sil">✕</button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className="folder-panel">
