@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { recurringExpensesApi } from '../../api/recurringExpenses';
-import { expensesApi, EXPENSE_CATEGORIES } from '../../api/expenses';
+import { expensesApi } from '../../api/expenses';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 
 const currentPeriod = () => new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -13,11 +13,12 @@ export default function RecurringExpensesTab() {
   const [templates, setTemplates] = useState([]);
   const [pending, setPending] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [period] = useState(currentPeriod());
 
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('rent');
+  const [category, setCategory] = useState(''); // categoryId
   const [defaultAmount, setDefaultAmount] = useState('');
   const [dueDayOfMonth, setDueDayOfMonth] = useState('1');
   const [defaultBankAccountId, setDefaultBankAccountId] = useState('');
@@ -32,14 +33,19 @@ export default function RecurringExpensesTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [templateData, pendingData, accData] = await Promise.all([
+    const [templateData, pendingData, accData, catData] = await Promise.all([
       recurringExpensesApi.list(),
       recurringExpensesApi.getPending(period),
       bankAccountsApi.list().catch(() => []),
+      expensesApi.listCategories().catch(() => []),
     ]);
     setTemplates(templateData);
     setPending(pendingData);
     setAccounts(accData);
+    setCategories(catData);
+    if (catData.length > 0) {
+      setCategory((prev) => prev || catData[0].id);
+    }
     setLoading(false);
   }, [period]);
 
@@ -49,7 +55,7 @@ export default function RecurringExpensesTab() {
 
   function resetForm() {
     setTitle('');
-    setCategory('rent');
+    setCategory(categories.length > 0 ? categories[0].id : '');
     setDefaultAmount('');
     setDueDayOfMonth('1');
     setDefaultBankAccountId('');
@@ -62,7 +68,7 @@ export default function RecurringExpensesTab() {
     try {
       await recurringExpensesApi.create({
         title: title.trim(),
-        category,
+        categoryId: category,
         defaultAmount: Number(defaultAmount),
         dueDayOfMonth: Number(dueDayOfMonth),
         defaultBankAccountId: defaultBankAccountId || undefined,
@@ -137,8 +143,8 @@ export default function RecurringExpensesTab() {
           <div className="form-field" style={{ margin: 0 }}>
             <label>Kategori</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {EXPENSE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
@@ -220,7 +226,7 @@ export default function RecurringExpensesTab() {
           templates.map((t) => (
             <div key={t.id} className="ledger-history-item" style={{ opacity: t.isActive ? 1 : 0.5 }}>
               <span style={{ flex: 1 }}>{t.title}</span>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{EXPENSE_CATEGORIES.find((c) => c.value === t.category)?.label} · Her ayın {t.dueDayOfMonth}. günü</span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{categories.find((c) => c.id === t.categoryId)?.name || t.category || '—'} · Her ayın {t.dueDayOfMonth}. günü</span>
               <span style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(t.defaultAmount)}</span>
               <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => handleToggleActive(t)}>
                 {t.isActive ? 'Pasifleştir' : 'Aktifleştir'}

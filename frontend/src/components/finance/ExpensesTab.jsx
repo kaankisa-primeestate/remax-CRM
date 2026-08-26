@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { expensesApi, EXPENSE_CATEGORIES } from '../../api/expenses';
+import { expensesApi } from '../../api/expenses';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 import { usersApi } from '../../api/auth';
 
@@ -50,7 +50,10 @@ export default function ExpensesTab() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [category, setCategory] = useState('rent');
+  const [category, setCategory] = useState(''); // artik categoryId tutuyor
+  const [categories, setCategories] = useState([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [addingCategory, setAddingCategory] = useState(false);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [vatRate, setVatRate] = useState('');
@@ -68,6 +71,14 @@ export default function ExpensesTab() {
   const [isAgentMenuOpen, setIsAgentMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
+  const loadCategories = useCallback(async () => {
+    const data = await expensesApi.listCategories().catch(() => []);
+    setCategories(data);
+    if (data.length > 0) {
+      setCategory((prev) => prev || data[0].id);
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     const [expData, agentData, accData] = await Promise.all([
@@ -83,7 +94,23 @@ export default function ExpensesTab() {
 
   useEffect(() => {
     load();
-  }, [load]);
+    loadCategories();
+  }, [load, loadCategories]);
+
+  async function handleAddCategory() {
+    if (!newCategoryName.trim()) return;
+    setAddingCategory(true);
+    try {
+      const created = await expensesApi.createCategory(newCategoryName.trim());
+      setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'tr')));
+      setCategory(created.id);
+      setNewCategoryName('');
+    } catch {
+      alert('Kategori eklenemedi, tekrar deneyin.');
+    } finally {
+      setAddingCategory(false);
+    }
+  }
 
   // Menü dışına tıklandığında açılır menüyü kapat
   useEffect(() => {
@@ -97,7 +124,7 @@ export default function ExpensesTab() {
   }, []);
 
   function resetForm() {
-    setCategory('rent');
+    setCategory(categories.length > 0 ? categories[0].id : '');
     setTitle('');
     setAmount('');
     setVatRate('');
@@ -158,7 +185,7 @@ export default function ExpensesTab() {
 
     try {
       await expensesApi.create({
-        category,
+        categoryId: category,
         title: title.trim(),
         amount: totalAmount,
         vatRate: vatRate ? Number(vatRate) : undefined,
@@ -226,8 +253,8 @@ export default function ExpensesTab() {
               return (
                 <button
                   type="button"
-                  key={s.category}
-                  onClick={() => navigate(`/giderler/${s.category}?period=${summaryPeriod}`)}
+                  key={s.categoryId}
+                  onClick={() => navigate(`/giderler/${s.categoryId}?period=${summaryPeriod}`)}
                   style={{
                     textAlign: 'left', padding: 14, borderRadius: 8, cursor: 'pointer',
                     border: isSpike ? '1px solid var(--danger)' : '1px solid var(--paper-line)',
@@ -257,10 +284,30 @@ export default function ExpensesTab() {
           <div className="form-field" style={{ margin: 0 }}>
             <label>Kategori</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {EXPENSE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+          </div>
+          <div className="form-field" style={{ margin: 0, minWidth: 150 }}>
+            <label>+ Yeni Kategori</label>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Örn: Akaryakıt"
+                style={{ width: 110 }}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleAddCategory}
+                disabled={addingCategory || !newCategoryName.trim()}
+                style={{ padding: '6px 10px', fontSize: 12 }}
+              >
+                Ekle
+              </button>
+            </div>
           </div>
           <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
             <label>Açıklama</label>
@@ -428,7 +475,7 @@ export default function ExpensesTab() {
               </thead>
               <tbody>
                 {expenses.map((exp) => {
-                  const catLabel = EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label;
+                  const catLabel = categories.find((c) => c.id === exp.categoryId)?.name || exp.category || '—';
                   return (
                     <tr key={exp.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
                       <td style={{ padding: '8px' }}>{new Date(exp.date).toLocaleDateString('tr-TR')}</td>

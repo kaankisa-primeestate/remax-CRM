@@ -7,8 +7,12 @@ export class CreateRecurringExpenseDto {
   title: string;
 
   @IsNotEmpty()
+  @IsUUID()
+  categoryId: string;
+
+  @IsOptional()
   @IsEnum(ExpenseCategory)
-  category: ExpenseCategory;
+  category?: ExpenseCategory;
 
   @IsNumber()
   @Min(0.01)

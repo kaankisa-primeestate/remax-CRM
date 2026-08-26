@@ -5,15 +5,11 @@ export const expensesApi = {
   create: (payload) => apiClient.post('/expenses', payload).then((r) => r.data),
   remove: (id) => apiClient.delete(`/expenses/${id}`),
   getSummary: (from, to) => apiClient.get('/expenses/summary', { params: { from, to } }).then((r) => r.data),
-  getCategoryDetail: (category, from, to) =>
-    apiClient.get(`/expenses/category/${category}`, { params: { from, to } }).then((r) => r.data),
+  getCategoryDetail: (categoryId, from, to) =>
+    apiClient.get(`/expenses/category/${categoryId}`, { params: { from, to } }).then((r) => r.data),
+  // YENI, serbest kategori sistemi -- artik sabit bir liste degil,
+  // kullanici kendi kategorilerini ekleyip yonetebiliyor.
+  listCategories: () => apiClient.get('/expenses/categories').then((r) => r.data),
+  createCategory: (name) => apiClient.post('/expenses/categories', { name }).then((r) => r.data),
+  deactivateCategory: (id) => apiClient.delete(`/expenses/categories/${id}`),
 };
-
-export const EXPENSE_CATEGORIES = [
-  { value: 'rent', label: 'Kira' },
-  { value: 'utility', label: 'Fatura' },
-  { value: 'salary', label: 'Maaş' },
-  { value: 'marketing', label: 'Pazarlama' },
-  { value: 'supplies', label: 'Ofis Malzemesi' },
-  { value: 'other', label: 'Diğer' },
-];

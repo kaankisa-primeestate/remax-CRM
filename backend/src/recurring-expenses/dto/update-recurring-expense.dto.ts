@@ -7,6 +7,10 @@ export class UpdateRecurringExpenseDto {
   title?: string;
 
   @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
+  @IsOptional()
   @IsEnum(ExpenseCategory)
   category?: ExpenseCategory;
 

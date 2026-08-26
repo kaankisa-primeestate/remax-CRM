@@ -16,8 +16,12 @@ export class RecurringExpense {
   @Column()
   title: string; // Orn: Ofis Kirasi, Internet, Koku Makinesi Kiralama
 
-  @Column({ type: 'enum', enum: ExpenseCategory })
-  category: ExpenseCategory;
+  @Column({ type: 'enum', enum: ExpenseCategory, nullable: true })
+  category: ExpenseCategory | null;
+
+  // YENI, esnek kategori sistemi -- artik yeni sablonlar bunu kullanir.
+  @Column({ type: 'uuid', nullable: true })
+  categoryId: string | null;
 
   @Column({ type: 'numeric', precision: 14, scale: 2 })
   defaultAmount: number;

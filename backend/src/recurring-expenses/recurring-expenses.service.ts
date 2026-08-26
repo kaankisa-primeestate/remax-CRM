@@ -87,7 +87,8 @@ export class RecurringExpensesService {
       throw new NotFoundException('Sabit gider şablonu bulunamadı');
     }
     return this.expensesService.create({
-      category: template.category,
+      categoryId: template.categoryId as string,
+      category: template.category || undefined,
       title: template.title,
       amount: dto.amount,
       date: dto.date,

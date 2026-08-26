@@ -20,8 +20,19 @@ export class Expense {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: ExpenseCategory })
-  category: ExpenseCategory;
+  // Eski, SABIT enum'lu kategori alani -- artik yeni giderler icin
+  // ZORUNLU DEGIL (nullable), yeni sistem categoryId kullanir. Gecmis
+  // kayitlarin veri butunlugu icin sutun SILINMEDI.
+  @Column({ type: 'enum', enum: ExpenseCategory, nullable: true })
+  category: ExpenseCategory | null;
+
+  // YENI, ESNEK kategori sistemi -- ExpenseCategoryDefinition tablosuna
+  // referans. Eski "category" (sabit enum) sutunu ile CAKISMAZ, GERIYE
+  // DONUK uyumluluk icin ikisi de duruyor. YENI giderler bunu kullanir,
+  // eski giderler otomatik olarak buna baglanir (bkz. expenses.service.ts
+  // migrateLegacyCategories metodu).
+  @Column({ type: 'uuid', nullable: true })
+  categoryId: string | null;
 
   @Column()
   title: string;

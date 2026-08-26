@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { expensesApi, EXPENSE_CATEGORIES } from '../api/expenses';
+import { expensesApi } from '../api/expenses';
 import { formatMoney } from '../api/bankAccounts';
 
 const PERIODS = [
@@ -27,22 +27,31 @@ function periodRange(period) {
 }
 
 export default function ExpenseCategoryDetailPage() {
-  const { category } = useParams();
+  const { categoryId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [period, setPeriod] = useState(searchParams.get('period') || 'month');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoryLabel, setCategoryLabel] = useState('');
 
-  const categoryLabel = EXPENSE_CATEGORIES.find((c) => c.value === category)?.label || category;
+  useEffect(() => {
+    if (categoryId === 'uncategorized') {
+      setCategoryLabel('Kategorisiz');
+      return;
+    }
+    expensesApi.listCategories().then((cats) => {
+      setCategoryLabel(cats.find((c) => c.id === categoryId)?.name || 'Kategori');
+    }).catch(() => setCategoryLabel('Kategori'));
+  }, [categoryId]);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { from, to } = periodRange(period);
-    const data = await expensesApi.getCategoryDetail(category, from, to).catch(() => []);
+    const data = await expensesApi.getCategoryDetail(categoryId, from, to).catch(() => []);
     setItems(data);
     setLoading(false);
-  }, [category, period]);
+  }, [categoryId, period]);
 
   useEffect(() => {
     load();

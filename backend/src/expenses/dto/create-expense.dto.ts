@@ -15,8 +15,15 @@ export class ExpenseChargebackDto {
 }
 
 export class CreateExpenseDto {
+  // YENI, esnek kategori sistemi -- artik zorunlu alan bu.
+  @IsUUID()
+  categoryId: string;
+
+  // Eski sabit enum -- artik OPSIYONEL, sadece geriye donuk uyumluluk
+  // icin duruyor, yeni giderler bunu ARTIK GONDERMEZ.
+  @IsOptional()
   @IsEnum(ExpenseCategory)
-  category: ExpenseCategory;
+  category?: ExpenseCategory;
 
   @IsString()
   title: string;

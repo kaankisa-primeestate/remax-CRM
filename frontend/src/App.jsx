@@ -377,7 +377,7 @@ export default function App() {
               }
             />
             <Route
-              path="/giderler/:category"
+              path="/giderler/:categoryId"
               element={
                 <ProtectedRoute>
                   <ExpenseCategoryDetailPage />
