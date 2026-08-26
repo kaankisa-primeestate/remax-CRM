@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { partnersApi } from '../../api/partners';
-import { formatMoney } from '../../api/bankAccounts';
+import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 
 function currentPeriod() {
   return new Date().toISOString().slice(0, 7);
@@ -18,6 +18,8 @@ export default function PartnersTab() {
   const [saving, setSaving] = useState(false);
 
   const [adjType, setAdjType] = useState('credit');
+  const [adjBankAccountId, setAdjBankAccountId] = useState('');
+  const [accounts, setAccounts] = useState([]);
   const [adjAmount, setAdjAmount] = useState('');
   const [adjDescription, setAdjDescription] = useState('');
   const [adjDate, setAdjDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -31,18 +33,26 @@ export default function PartnersTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [partnerData, balanceData] = await Promise.all([
+    const [partnerData, balanceData, accountData] = await Promise.all([
       partnersApi.list(),
       partnersApi.getSummary().catch(() => ({})),
+      bankAccountsApi.list().catch(() => []),
     ]);
     setPartners(partnerData);
     setBalances(balanceData);
+    setAccounts(accountData);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (accounts.length > 0) {
+      setAdjBankAccountId((prev) => prev || accounts[0].id);
+    }
+  }, [accounts]);
 
   const totalShare = partners.filter((p) => p.isActive).reduce((sum, p) => sum + Number(p.sharePercentage), 0);
 
@@ -98,10 +108,11 @@ export default function PartnersTab() {
     setAdjAmount('');
     setAdjDescription('');
     setAdjDate(new Date().toISOString().slice(0, 10));
+    setAdjBankAccountId(accounts.length > 0 ? accounts[0].id : '');
   }
 
   async function handleAddAdjustment(partnerId) {
-    if (!adjAmount || Number(adjAmount) <= 0 || !adjDescription.trim()) return;
+    if (!adjAmount || Number(adjAmount) <= 0 || !adjDescription.trim() || !adjBankAccountId) return;
     setAdjSaving(true);
     try {
       await partnersApi.addAdjustment(partnerId, {
@@ -109,6 +120,7 @@ export default function PartnersTab() {
         amount: Number(adjAmount),
         description: adjDescription.trim(),
         date: adjDate,
+        bankAccountId: adjBankAccountId,
       });
       resetAdjForm();
       const h = await partnersApi.getHistory(partnerId);
@@ -243,8 +255,16 @@ export default function PartnersTab() {
                       <div className="form-field" style={{ margin: 0 }}>
                         <label>Tür</label>
                         <select value={adjType} onChange={(e) => setAdjType(e.target.value)}>
-                          <option value="credit">Kâr Payı / Sermaye İadesi (bakiye artar)</option>
-                          <option value="debit">Sermaye Çekişi / Avans (bakiye azalır)</option>
+                          <option value="credit">Sermaye Girişi (ortak para yatırdı → hesap artar)</option>
+                          <option value="debit">Sermaye İadesi / Kâr Payı Ödemesi / Avans (ofis ödedi → hesap azalır)</option>
+                        </select>
+                      </div>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label>Ödeme Kaynağı</label>
+                        <select value={adjBankAccountId} onChange={(e) => setAdjBankAccountId(e.target.value)}>
+                          {accounts.map((acc) => (
+                            <option key={acc.id} value={acc.id}>{acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}</option>
+                          ))}
                         </select>
                       </div>
                       <div className="form-field" style={{ margin: 0 }}>
@@ -259,7 +279,7 @@ export default function PartnersTab() {
                         <label>Tarih</label>
                         <input type="date" value={adjDate} onChange={(e) => setAdjDate(e.target.value)} />
                       </div>
-                      <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} disabled={adjSaving || !adjAmount || !adjDescription.trim()} onClick={() => handleAddAdjustment(partner.id)}>
+                      <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} disabled={adjSaving || !adjAmount || !adjDescription.trim() || !adjBankAccountId} onClick={() => handleAddAdjustment(partner.id)}>
                         {adjSaving ? 'Ekleniyor…' : '+ Kayıt Ekle'}
                       </button>
                     </div>

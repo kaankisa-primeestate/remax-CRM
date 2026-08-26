@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { PartnerLedgerType } from '../partner-ledger-entry.entity';
 
 export class CreatePartnerAdjustmentDto {
@@ -16,4 +16,11 @@ export class CreatePartnerAdjustmentDto {
   @IsNotEmpty()
   @IsString()
   date: string;
+
+  // Bu para HANGI kasa/banka hesabina girdi/hangisinden cikti -- KRITIK
+  // duzeltme: onceden bu alan hic yoktu, sermaye girisi/iadesi banka
+  // bakiyesini HIC ETKILEMIYORDU (canli kullanimda tespit edildi).
+  @IsNotEmpty()
+  @IsUUID()
+  bankAccountId: string;
 }

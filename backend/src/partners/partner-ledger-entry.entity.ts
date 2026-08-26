@@ -43,6 +43,13 @@ export class PartnerLedgerEntry {
   @Column({ type: 'varchar', nullable: true })
   distributionPeriod: string | null; // 'YYYY-MM', sadece source='profit_distribution' icin
 
+  // Bu hareketin HANGI kasa/banka hesabina isledigi -- CREDIT (ortak para
+  // yatirdi) icin hesap ARTAR, DEBIT (ofis ortaga odeme yapti) icin hesap
+  // AZALIR. Nullable: distributeProfit ile olusan SADECE BORCLANDIRMA
+  // kayitlarinda (henuz fiilen odeme yapilmadigi icin) bos kalir.
+  @Column({ type: 'uuid', nullable: true })
+  bankAccountId: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

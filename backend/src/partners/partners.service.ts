@@ -7,12 +7,14 @@ import { CreatePartnerDto } from './dto/create-partner.dto';
 import { UpdatePartnerDto } from './dto/update-partner.dto';
 import { CreatePartnerAdjustmentDto } from './dto/create-partner-adjustment.dto';
 import { DistributeProfitDto } from './dto/distribute-profit.dto';
+import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 
 @Injectable()
 export class PartnersService {
   constructor(
     @InjectRepository(Partner) private readonly partnerRepo: Repository<Partner>,
     @InjectRepository(PartnerLedgerEntry) private readonly ledgerRepo: Repository<PartnerLedgerEntry>,
+    @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
   ) {}
 
   async create(dto: CreatePartnerDto): Promise<Partner> {
@@ -73,8 +75,28 @@ export class PartnersService {
       date: dto.date,
       source: 'manual',
       distributionPeriod: null,
+      bankAccountId: dto.bankAccountId,
     });
-    return this.ledgerRepo.save(entry);
+    const saved = await this.ledgerRepo.save(entry);
+
+    // KRITIK DUZELTME: hicbir para hareketi "havada" kalamaz -- diger 5
+    // finans modulunun (Gider, Aidat, Komisyon, Cek/Senet, Danisman
+    // Cari) hepsinin uydugu kurala Ortak Cari de artik uyuyor. CREDIT
+    // (ortak para YATIRDI) -> hesap ARTAR (DEPOSIT). DEBIT (ofis ortaga
+    // ODEME yapti -- sermaye iadesi/kar payi odemesi) -> hesap AZALIR
+    // (WITHDRAWAL).
+    const transaction = this.bankTransactionRepo.create({
+      bankAccountId: dto.bankAccountId,
+      type: dto.type === PartnerLedgerType.CREDIT ? BankTransactionType.DEPOSIT : BankTransactionType.WITHDRAWAL,
+      amount: dto.amount,
+      date: dto.date,
+      description: `Ortak Cari (${partner.name}): ${dto.description}`,
+      source: 'partner_ledger',
+      sourceId: saved.id,
+    });
+    await this.bankTransactionRepo.save(transaction);
+
+    return saved;
   }
 
   async removeAdjustment(entryId: string): Promise<void> {
@@ -82,6 +104,7 @@ export class PartnersService {
     if (!entry) {
       throw new NotFoundException('Hareket bulunamadı');
     }
+    await this.bankTransactionRepo.delete({ source: 'partner_ledger', sourceId: entryId });
     await this.ledgerRepo.remove(entry);
   }
 
