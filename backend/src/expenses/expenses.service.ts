@@ -116,6 +116,7 @@ export class ExpensesService implements OnModuleInit {
         description: `Gider: ${dto.title}`,
         source: 'expense',
         sourceId: saved.id,
+        receiptUrl: dto.receiptUrl || null,
       });
       await this.bankTransactionRepo.save(transaction);
     }

@@ -48,6 +48,7 @@ export class ChequeNotesService {
         description: `${saved.type === 'cheque' ? 'Çek' : 'Senet'} tahsilatı: ${saved.drawerName}`,
         source: 'cheque_note',
         sourceId: saved.id,
+        receiptUrl: saved.receiptUrl || null,
       });
       await this.bankTransactionRepo.save(transaction);
     }

@@ -60,6 +60,9 @@ export class ChequeNote {
   @Column({ type: 'varchar', nullable: true })
   notes: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  receiptUrl: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

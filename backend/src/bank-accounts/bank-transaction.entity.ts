@@ -47,6 +47,14 @@ export class BankTransaction {
   @Column({ type: 'uuid', nullable: true })
   sourceId: string | null;
 
+  // Dekont/fis/fatura gorseli (opsiyonel) -- merkezi yukleme servisi
+  // (POST /upload) uzerinden yuklenip URL'i buraya kaydedilir. TUM para
+  // hareketleri (gider, ortak sermaye, cek/senet, manuel banka girisi)
+  // AYNI tablodan (BankTransaction) gectigi icin, buraya eklenen tek bir
+  // alan hepsine hizmet ediyor.
+  @Column({ type: 'varchar', nullable: true })
+  receiptUrl: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

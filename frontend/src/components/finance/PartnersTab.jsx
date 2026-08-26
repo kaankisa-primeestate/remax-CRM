@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { partnersApi } from '../../api/partners';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
+import ReceiptUploader from '../ReceiptUploader.jsx';
 
 function currentPeriod() {
   return new Date().toISOString().slice(0, 7);
@@ -19,6 +20,7 @@ export default function PartnersTab() {
 
   const [adjType, setAdjType] = useState('credit');
   const [adjBankAccountId, setAdjBankAccountId] = useState('');
+  const [adjReceiptUrl, setAdjReceiptUrl] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [adjAmount, setAdjAmount] = useState('');
   const [adjDescription, setAdjDescription] = useState('');
@@ -109,6 +111,7 @@ export default function PartnersTab() {
     setAdjDescription('');
     setAdjDate(new Date().toISOString().slice(0, 10));
     setAdjBankAccountId(accounts.length > 0 ? accounts[0].id : '');
+    setAdjReceiptUrl(null);
   }
 
   async function handleAddAdjustment(partnerId) {
@@ -121,6 +124,7 @@ export default function PartnersTab() {
         description: adjDescription.trim(),
         date: adjDate,
         bankAccountId: adjBankAccountId,
+        receiptUrl: adjReceiptUrl || undefined,
       });
       resetAdjForm();
       const h = await partnersApi.getHistory(partnerId);
@@ -267,6 +271,7 @@ export default function PartnersTab() {
                           ))}
                         </select>
                       </div>
+                      <ReceiptUploader value={adjReceiptUrl} onChange={setAdjReceiptUrl} label="Dekont Ekle" />
                       <div className="form-field" style={{ margin: 0 }}>
                         <label>Tutar</label>
                         <input type="number" min="0.01" step="0.01" value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} style={{ width: 110 }} />

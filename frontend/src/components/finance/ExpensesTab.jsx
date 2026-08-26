@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { expensesApi } from '../../api/expenses';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 import { usersApi } from '../../api/auth';
+import ReceiptUploader from '../ReceiptUploader.jsx';
 
 const PERIODS = [
   { value: 'month', label: 'Bu Ay' },
@@ -61,6 +62,7 @@ export default function ExpensesTab() {
   const [referenceNo, setReferenceNo] = useState('');
   const [bankAccountId, setBankAccountId] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState(null);
   const [saving, setSaving] = useState(false);
 
   // ÇOKLU DANIŞMAN YANSITMA VE ARAMA STATE'LERİ
@@ -132,6 +134,7 @@ export default function ExpensesTab() {
     setReferenceNo('');
     setBankAccountId('');
     setIsRecurring(false);
+    setReceiptUrl(null);
     setSelectedAgentIds([]);
     setSplitType('equal');
     setCustomAmounts({});
@@ -194,6 +197,7 @@ export default function ExpensesTab() {
         bankAccountId: bankAccountId || undefined,
         chargebacks: chargebacks.length > 0 ? chargebacks : undefined,
         isRecurring,
+        receiptUrl: receiptUrl || undefined,
       });
       resetForm();
       load();
@@ -313,6 +317,7 @@ export default function ExpensesTab() {
             <label>Açıklama</label>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn: Ağustos Kirası" />
           </div>
+          <ReceiptUploader value={receiptUrl} onChange={setReceiptUrl} label="Fiş / Fatura Ekle" />
           <div className="form-field" style={{ margin: 0 }}>
             <label>Tutar (KDV dahil)</label>
             <input type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />

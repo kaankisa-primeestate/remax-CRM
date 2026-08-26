@@ -31,4 +31,8 @@ export class CreateChequeNoteDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  receiptUrl?: string;
 }

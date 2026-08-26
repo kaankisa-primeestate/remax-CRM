@@ -70,6 +70,13 @@ export class Expense {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  // Fis/fatura gorseli (opsiyonel) -- merkezi yukleme servisi uzerinden
+  // yuklenip URL'i buraya kaydedilir. create() metodu otomatik olusturdugu
+  // BankTransaction kaydina da AYNI URL'i kopyalar, boylece hem Giderler
+  // hem Banka Hesabi hareket dokumunde ayni belge gorunur.
+  @Column({ type: 'varchar', nullable: true })
+  receiptUrl: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

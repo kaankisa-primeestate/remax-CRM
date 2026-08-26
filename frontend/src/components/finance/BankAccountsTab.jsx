@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { bankAccountsApi, CURRENCIES, ACCOUNT_TYPES, formatMoney } from '../../api/bankAccounts';
+import ReceiptUploader from '../ReceiptUploader.jsx';
 
 // Banka Hesaplari sekmesi -- kendi verisini kendi yukler, disaridan prop
 // almaz. Boylece bagimsiz/tek basina test edilebilir/kullanilabilir bir
@@ -23,6 +24,7 @@ export default function BankAccountsTab() {
   const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [txDescription, setTxDescription] = useState('');
   const [txReferenceNo, setTxReferenceNo] = useState('');
+  const [txReceiptUrl, setTxReceiptUrl] = useState(null);
   const [txSaving, setTxSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -93,6 +95,7 @@ export default function BankAccountsTab() {
     setTxDate(new Date().toISOString().slice(0, 10));
     setTxDescription('');
     setTxReferenceNo('');
+    setTxReceiptUrl(null);
   }
 
   async function handleAddTransaction(e, accountId) {
@@ -106,6 +109,7 @@ export default function BankAccountsTab() {
         date: txDate,
         description: txDescription.trim() || undefined,
         referenceNo: txReferenceNo.trim() || undefined,
+        receiptUrl: txReceiptUrl || undefined,
       });
       resetTxForm();
       const txs = await bankAccountsApi.listTransactions(accountId);
@@ -227,6 +231,7 @@ export default function BankAccountsTab() {
                     <label>Açıklama</label>
                     <input value={txDescription} onChange={(e) => setTxDescription(e.target.value)} placeholder="Opsiyonel" />
                   </div>
+                  <ReceiptUploader value={txReceiptUrl} onChange={setTxReceiptUrl} label="Dekont Ekle" />
                   <div className="form-field" style={{ margin: 0, minWidth: 120 }}>
                     <label>Fiş/Fatura No</label>
                     <input value={txReferenceNo} onChange={(e) => setTxReferenceNo(e.target.value)} placeholder="Opsiyonel" />

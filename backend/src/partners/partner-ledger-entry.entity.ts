@@ -50,6 +50,9 @@ export class PartnerLedgerEntry {
   @Column({ type: 'uuid', nullable: true })
   bankAccountId: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  receiptUrl: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

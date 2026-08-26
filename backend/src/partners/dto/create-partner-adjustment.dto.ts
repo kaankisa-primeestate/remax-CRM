@@ -23,4 +23,8 @@ export class CreatePartnerAdjustmentDto {
   @IsNotEmpty()
   @IsUUID()
   bankAccountId: string;
+
+  @IsOptional()
+  @IsString()
+  receiptUrl?: string;
 }

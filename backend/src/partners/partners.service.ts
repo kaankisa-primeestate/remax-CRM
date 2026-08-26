@@ -76,6 +76,7 @@ export class PartnersService {
       source: 'manual',
       distributionPeriod: null,
       bankAccountId: dto.bankAccountId,
+      receiptUrl: dto.receiptUrl || null,
     });
     const saved = await this.ledgerRepo.save(entry);
 
@@ -93,6 +94,7 @@ export class PartnersService {
       description: `Ortak Cari (${partner.name}): ${dto.description}`,
       source: 'partner_ledger',
       sourceId: saved.id,
+      receiptUrl: dto.receiptUrl || null,
     });
     await this.bankTransactionRepo.save(transaction);
 

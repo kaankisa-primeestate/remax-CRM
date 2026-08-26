@@ -21,4 +21,8 @@ export class CreateBankTransactionDto {
   @IsOptional()
   @IsString()
   referenceNo?: string;
+
+  @IsOptional()
+  @IsString()
+  receiptUrl?: string;
 }
