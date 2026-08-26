@@ -5,21 +5,18 @@ import ChequeNotesTab from '../components/finance/ChequeNotesTab.jsx';
 import CashFlowTab from '../components/finance/CashFlowTab.jsx';
 import PartnersTab from '../components/finance/PartnersTab.jsx';
 import AgentLedgerTab from '../components/finance/AgentLedgerTab.jsx';
+import SummaryTab from '../components/finance/SummaryTab.jsx';
 
 const FINANCE_TABS = [
   { key: 'accounts', label: '🏦 Banka Hesapları' },
   { key: 'expenses', label: '🧾 Giderler' },
-  { key: 'cheques', label: '📑 Çek/Senet Takibi' },
+  { key: 'cheques', label: '📑 Çek/Senet' },
   { key: 'cashflow', label: '📈 Nakit Akış' },
   { key: 'ledger', label: '👤 Danışman Cari Hesapları' },
   { key: 'partners', label: '🤝 Ortaklar' },
   { key: 'summary', label: '📊 Özet' },
 ];
 
-// Finans: sekmeli (tab) bir "kabuk" -- her sekme KENDI dosyasinda,
-// KENDI verisini yukleyen, bagimsiz calisan bir bilesen (bkz.
-// components/finance/). Boylece hicbir sekme digerine bagimli degil,
-// her biri kendi icinde tam bir ekran gibi kullanilabilir/genisletilebilir.
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState('accounts');
 
@@ -46,19 +43,8 @@ export default function FinancePage() {
         {activeTab === 'cheques' && <ChequeNotesTab />}
         {activeTab === 'cashflow' && <CashFlowTab />}
         {activeTab === 'ledger' && <AgentLedgerTab />}
-
         {activeTab === 'partners' && <PartnersTab />}
-
-        {activeTab === 'summary' && (
-          <div className="finance-placeholder">
-            <div className="finance-placeholder__icon">📊</div>
-            <div className="finance-placeholder__title">Özet</div>
-            <p className="finance-placeholder__text">
-              Bu bölüm sırada: toplam gelir/gider, net kâr-zarar, banka bakiyeleri toplamı ve danışmanlara olan
-              toplam borç, hepsi bir arada burada görünecek.
-            </p>
-          </div>
-        )}
+        {activeTab === 'summary' && <SummaryTab />}
       </div>
     </div>
   );

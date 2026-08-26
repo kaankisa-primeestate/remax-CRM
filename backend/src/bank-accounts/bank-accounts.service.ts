@@ -1,113 +1,129 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, In, Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { BankAccount } from './bank-account.entity';
 import { BankTransaction, BankTransactionType } from './bank-transaction.entity';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
-import { CreateBankTransactionDto } from './dto/create-bank-transaction.dto';
-import { ChequeNote, ChequeNoteType, ChequeNoteDirection, ChequeNoteStatus } from '../cheque-notes/cheque-note.entity';
+import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 
 @Injectable()
 export class BankAccountsService {
   constructor(
     @InjectRepository(BankAccount) private readonly accountRepo: Repository<BankAccount>,
-    @InjectRepository(BankTransaction) private readonly transactionRepo: Repository<BankTransaction>,
-    @InjectRepository(ChequeNote) private readonly chequeNoteRepo: Repository<ChequeNote>,
+    @InjectRepository(BankTransaction) private readonly txRepo: Repository<BankTransaction>,
   ) {}
 
   async create(dto: CreateBankAccountDto): Promise<BankAccount> {
-    const account = this.accountRepo.create({ ...dto, currency: dto.currency || 'TRY' } as DeepPartial<BankAccount>);
+    const account = this.accountRepo.create({
+      bankName: dto.bankName,
+      accountName: dto.accountName,
+      iban: dto.iban || null,
+      currency: dto.currency || 'TRY',
+      accountType: dto.accountType || 'bank',
+      initialBalance: dto.initialBalance || 0,
+    });
     return this.accountRepo.save(account);
   }
 
-  // Tum hesaplari, HER BIRININ CANLI BAKIYESIYLE birlikte dondurur.
-  // Bakiye hic bir yerde saklanmaz -- her cagride hareketlerden toplanir,
-  // boylece asla senkron kaymasi olmaz.
-  async findAll(includeInactive = false): Promise<any[]> {
-    const accounts = await this.accountRepo.find({
-      where: includeInactive ? {} : { isActive: true },
-      order: { createdAt: 'ASC' },
-    });
-    if (accounts.length === 0) return [];
+  async findAll(): Promise<(BankAccount & { currentBalance: number })[]> {
+    const accounts = await this.accountRepo.find({ where: { isActive: true }, order: { createdAt: 'ASC' } });
+    const allTxs = await this.txRepo.find();
 
-    const allTransactions = await this.transactionRepo.find({
-      where: { bankAccountId: In(accounts.map((a) => a.id)) },
-    });
-
-    return accounts.map((account) => {
-      const txs = allTransactions.filter((t) => t.bankAccountId === account.id);
-      const balance = txs.reduce((sum, t) => {
+    return accounts.map((acc) => {
+      const txs = allTxs.filter((t) => t.bankAccountId === acc.id);
+      const txSum = txs.reduce((sum, t) => {
         const amt = Number(t.amount);
         return t.type === BankTransactionType.DEPOSIT ? sum + amt : sum - amt;
       }, 0);
-      return { ...account, balance };
+      const currentBalance = Number(acc.initialBalance || 0) + txSum;
+      return { ...acc, currentBalance };
     });
   }
 
-  async setActive(id: string, isActive: boolean): Promise<BankAccount> {
-    const account = await this.accountRepo.findOne({ where: { id } });
-    if (!account) {
-      throw new NotFoundException('Banka hesabı bulunamadı');
-    }
-    account.isActive = isActive;
-    return this.accountRepo.save(account);
+  async findOne(id: string): Promise<BankAccount & { currentBalance: number }> {
+    const acc = await this.accountRepo.findOne({ where: { id } });
+    if (!acc) throw new NotFoundException('Banka hesabı bulunamadı');
+
+    const txs = await this.txRepo.find({ where: { bankAccountId: id } });
+    const txSum = txs.reduce((sum, t) => {
+      const amt = Number(t.amount);
+      return t.type === BankTransactionType.DEPOSIT ? sum + amt : sum - amt;
+    }, 0);
+    const currentBalance = Number(acc.initialBalance || 0) + txSum;
+    return { ...acc, currentBalance };
   }
 
-  async findTransactions(bankAccountId: string): Promise<BankTransaction[]> {
-    const account = await this.accountRepo.findOne({ where: { id: bankAccountId } });
-    if (!account) {
-      throw new NotFoundException('Banka hesabı bulunamadı');
-    }
-    return this.transactionRepo.find({
+  async update(id: string, dto: UpdateBankAccountDto): Promise<BankAccount> {
+    const acc = await this.accountRepo.findOne({ where: { id } });
+    if (!acc) throw new NotFoundException('Banka hesabı bulunamadı');
+
+    if (dto.bankName !== undefined) acc.bankName = dto.bankName;
+    if (dto.accountName !== undefined) acc.accountName = dto.accountName;
+    if (dto.iban !== undefined) acc.iban = dto.iban || null;
+    if (dto.currency !== undefined) acc.currency = dto.currency;
+    if (dto.accountType !== undefined) acc.accountType = dto.accountType;
+    if (dto.initialBalance !== undefined) acc.initialBalance = dto.initialBalance;
+
+    return this.accountRepo.save(acc);
+  }
+
+  async remove(id: string): Promise<void> {
+    const acc = await this.accountRepo.findOne({ where: { id } });
+    if (!acc) throw new NotFoundException('Banka hesabı bulunamadı');
+    acc.isActive = false;
+    await this.accountRepo.save(acc);
+  }
+
+  async addTransaction(dto: CreateTransactionDto): Promise<BankTransaction> {
+    const acc = await this.accountRepo.findOne({ where: { id: dto.bankAccountId } });
+    if (!acc) throw new NotFoundException('Banka hesabı bulunamadı');
+
+    const tx = this.txRepo.create({
+      bankAccountId: dto.bankAccountId,
+      type: dto.type as BankTransactionType,
+      amount: dto.amount,
+      date: dto.date,
+      description: dto.description || null,
+      source: dto.source || 'manual',
+      sourceId: dto.sourceId || null,
+      receiptUrl: dto.receiptUrl || null,
+    });
+    return this.txRepo.save(tx);
+  }
+
+  async getHistory(bankAccountId: string): Promise<BankTransaction[]> {
+    return this.txRepo.find({
       where: { bankAccountId },
       order: { date: 'DESC', createdAt: 'DESC' },
     });
   }
 
-  async addTransaction(
-    bankAccountId: string,
-    dto: CreateBankTransactionDto,
-  ): Promise<BankTransaction | ChequeNote> {
-    const account = await this.accountRepo.findOne({ where: { id: bankAccountId } });
-    if (!account) {
-      throw new NotFoundException('Banka hesabı bulunamadı');
-    }
-
-    // "Cek/Senet Alarak" bir giris (DEPOSIT) kaydediliyorsa -- orn.
-    // musteriden komisyon tahsilati cek ile yapildiysa -- para HENUZ
-    // hesaba GECMEMISTIR. Bunun yerine bir ChequeNote (RECEIVABLE, henuz
-    // tahsil edilmedi) acilir; gercek banka hareketi ancak tahsil
-    // edildiginde (mevcut mekanizma ile) otomatik olusur. "Cek/Senet
-    // Vererek" bir cikis (WITHDRAWAL) kaydediliyorsa, ChequeNote PAYABLE
-    // olur.
-    if (dto.paymentMethod === 'cheque' || dto.paymentMethod === 'note') {
-      const chequeNote = this.chequeNoteRepo.create({
-        type: dto.paymentMethod === 'cheque' ? ChequeNoteType.CHEQUE : ChequeNoteType.NOTE,
-        direction: dto.type === BankTransactionType.DEPOSIT ? ChequeNoteDirection.RECEIVABLE : ChequeNoteDirection.PAYABLE,
-        amount: dto.amount,
-        dueDate: dto.chequeDueDate,
-        drawerName: dto.chequeDrawerName || dto.description || 'Belirtilmedi',
-        bankAccountId,
-        status: ChequeNoteStatus.PORTFOLIO,
-        notes: dto.description || null,
-        receiptUrl: dto.receiptUrl || null,
-      });
-      return this.chequeNoteRepo.save(chequeNote);
-    }
-
-    const transaction = this.transactionRepo.create({
-      ...dto,
-      bankAccountId,
-      source: 'manual',
+  async getFinanceSummary(from: Date, to: Date) {
+    const txs = await this.txRepo.find({
+      where: { date: Between(from.toISOString().slice(0, 10), to.toISOString().slice(0, 10)) },
     });
-    return this.transactionRepo.save(transaction);
-  }
 
-  async removeTransaction(id: string): Promise<void> {
-    const transaction = await this.transactionRepo.findOne({ where: { id } });
-    if (!transaction) {
-      throw new NotFoundException('Hareket bulunamadı');
+    const incomeBySourceMap: Record<string, number> = {};
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    for (const t of txs) {
+      const amt = Number(t.amount);
+      if (t.type === BankTransactionType.DEPOSIT) {
+        totalIncome += amt;
+        const srcKey = t.source || 'manual';
+        incomeBySourceMap[srcKey] = (incomeBySourceMap[srcKey] || 0) + amt;
+      } else {
+        totalExpense += amt;
+      }
     }
-    await this.transactionRepo.remove(transaction);
+
+    return {
+      totalIncome,
+      totalExpense,
+      netBalance: totalIncome - totalExpense,
+      incomeBySource: incomeBySourceMap,
+    };
   }
 }

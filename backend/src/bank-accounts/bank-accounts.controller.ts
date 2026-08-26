@@ -1,58 +1,57 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import { BankAccountsService } from './bank-accounts.service';
-import { CreateBankAccountDto } from './dto/create-bank-account.dto';
-import { CreateBankTransactionDto } from './dto/create-bank-transaction.dto';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { UserRole } from '../users/user.entity';
+import { BankAccountsService } from './bank-accounts.service';
+import { CreateBankAccountDto } from './dto/create-bank-account.dto';
+import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 
-// Finans modulu tamamen Broker'a ozel -- Danisman erisimi yok (mevcut
-// sidebar yapisinda zaten Finans sadece Broker menusunde).
 @Controller('bank-accounts')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.BROKER)
+@Roles('broker')
 export class BankAccountsController {
   constructor(private readonly bankAccountsService: BankAccountsService) {}
+
+  @Get()
+  findAll() {
+    return this.bankAccountsService.findAll();
+  }
+
+  @Get('finance-summary')
+  getFinanceSummary(@Query('from') from: string, @Query('to') to: string) {
+    const startDate = from ? new Date(from) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const endDate = to ? new Date(to) : new Date();
+    return this.bankAccountsService.getFinanceSummary(startDate, endDate);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.bankAccountsService.findOne(id);
+  }
 
   @Post()
   create(@Body() dto: CreateBankAccountDto) {
     return this.bankAccountsService.create(dto);
   }
 
-  @Get()
-  findAll(@Query('includeInactive') includeInactive?: string) {
-    return this.bankAccountsService.findAll(includeInactive === 'true');
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateBankAccountDto) {
+    return this.bankAccountsService.update(id, dto);
   }
 
-  @Patch(':id/active')
-  setActive(@Param('id') id: string, @Body('isActive') isActive: boolean) {
-    return this.bankAccountsService.setActive(id, isActive);
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.bankAccountsService.remove(id);
   }
 
-  @Get(':id/transactions')
-  findTransactions(@Param('id') id: string) {
-    return this.bankAccountsService.findTransactions(id);
+  @Post('transaction')
+  addTransaction(@Body() dto: CreateTransactionDto) {
+    return this.bankAccountsService.addTransaction(dto);
   }
 
-  @Post(':id/transactions')
-  addTransaction(@Param('id') id: string, @Body() dto: CreateBankTransactionDto) {
-    return this.bankAccountsService.addTransaction(id, dto);
-  }
-
-  @Delete('transactions/:transactionId')
-  async removeTransaction(@Param('transactionId') transactionId: string) {
-    await this.bankAccountsService.removeTransaction(transactionId);
-    return { success: true };
+  @Get(':id/history')
+  getHistory(@Param('id') id: string) {
+    return this.bankAccountsService.getHistory(id);
   }
 }
