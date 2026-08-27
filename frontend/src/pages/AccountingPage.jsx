@@ -876,15 +876,15 @@ export default function AccountingPage() {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+    <div className="accounting-page">
+      <div className="accounting-page__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
         <div>
           <h2 className="dossier__name" style={{ margin: 0 }}>Muhasebe</h2>
           <p style={{ color: 'var(--muted)', margin: '6px 0 0', maxWidth: 720, fontSize: 14 }}>
             Mevcut Finans bölümünden bağımsız, yönetimsel muhasebe ve cari takip alanı.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="accounting-page__filters" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <label style={{ color: 'var(--muted)', fontSize: 12 }} htmlFor="accounting-period">Dönem</label>
           <input
             id="accounting-period"

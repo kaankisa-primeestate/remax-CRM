@@ -2667,3 +2667,163 @@ button {
   color: var(--brass);
   text-transform: uppercase;
 }
+
+/* ================================================================
+   Muhasebe: kullanıcı dostu mobil görünüm
+   İşleyiş korunur; form, özet ve tablo yerleşimi dar ekrana uyarlanır.
+   ================================================================ */
+@media (max-width: 600px) {
+  .accounting-page {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .accounting-page .folder-panel {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .accounting-page .folder-panel h3 {
+    font-size: 17px !important;
+    line-height: 1.3;
+  }
+
+  .accounting-page form {
+    width: 100%;
+  }
+
+  .accounting-page .form-field {
+    width: 100%;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  .accounting-page .form-field input,
+  .accounting-page .form-field select,
+  .accounting-page .form-field textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+  }
+
+  .accounting-page form > .btn,
+  .accounting-page .folder-panel > .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .accounting-page .metric-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .accounting-page .metric-card {
+    padding: 13px 14px;
+  }
+
+  .accounting-page .metric-card__value {
+    font-size: 21px;
+  }
+
+  .accounting-page .panel-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .accounting-page .table-scroll {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .accounting-page .table-scroll table {
+    width: 100% !important;
+    min-width: 100% !important;
+    table-layout: fixed;
+    font-size: 11px !important;
+  }
+
+  .accounting-page .table-scroll th,
+  .accounting-page .table-scroll td {
+    padding: 7px 4px !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    vertical-align: top;
+  }
+
+  .accounting-page .table-scroll th {
+    font-size: 9px !important;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  .accounting-page .table-scroll td {
+    line-height: 1.35;
+  }
+
+  .accounting-page .table-scroll .btn {
+    width: 100%;
+    min-height: 38px;
+    padding: 6px 4px;
+    font-size: 10px;
+    white-space: normal;
+  }
+
+  .accounting-page .table-scroll td div {
+    overflow-wrap: anywhere;
+  }
+
+  .accounting-page .folder-tabs {
+    margin-right: -4px;
+    padding-bottom: 2px;
+  }
+
+  .accounting-page .folder-tab {
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .accounting-page .form-field {
+    min-width: 160px !important;
+    flex: 1 1 160px !important;
+  }
+
+  .accounting-page .table-scroll table {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accounting-page * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .accounting-page__header {
+    gap: 10px !important;
+  }
+
+  .accounting-page__header > div:first-child {
+    width: 100%;
+  }
+
+  .accounting-page__filters {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px 8px !important;
+    align-items: center !important;
+  }
+
+  .accounting-page__filters label {
+    font-size: 11px !important;
+  }
+
+  .accounting-page__filters input,
+  .accounting-page__filters select {
+    width: 100%;
+    min-width: 0 !important;
+    min-height: 40px;
+  }
+}
