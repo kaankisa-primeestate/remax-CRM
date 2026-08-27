@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository, SelectQueryBuilder } from 'typeorm';
+import { DataSource, IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import {
   AccountingAccount,
   AccountingAccountType,
@@ -25,6 +25,7 @@ import {
 import { AccountingRecurringExpense } from './accounting-recurring-expense.entity';
 import { AccountingCategory } from './accounting-category.entity';
 import { AccountingAuditAction, AccountingAuditLog } from './accounting-audit-log.entity';
+import { AccountingResetLog } from './accounting-reset-log.entity';
 import {
   AccountingEntry,
   AccountingEntryType,
@@ -77,6 +78,9 @@ export class AccountingService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(AccountingAuditLog)
     private readonly auditRepo: Repository<AccountingAuditLog>,
+    @InjectRepository(AccountingResetLog)
+    private readonly resetLogRepo: Repository<AccountingResetLog>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async listAccounts() {
@@ -1417,6 +1421,111 @@ export class AccountingService {
     };
   }
 
+  async getResetPreview() {
+    const [accounts, entries, commissions, rents, parties, recurringExpenses, categories, auditLogs, resetLog] = await Promise.all([
+      this.accountRepo.count(),
+      this.entryRepo.count(),
+      this.commissionRepo.count(),
+      this.rentRepo.count(),
+      this.partyRepo.count(),
+      this.recurringExpenseRepo.count(),
+      this.categoryRepo.count(),
+      this.auditRepo.count(),
+      this.resetLogRepo.findOne({ where: { scope: 'demo-accounting-reset-v1' } }),
+    ]);
+    const counts = { accounts, entries, commissions, rents, parties, recurringExpenses, categories, auditLogs };
+    return {
+      scope: 'demo-accounting-reset-v1',
+      canReset: !resetLog,
+      alreadyReset: Boolean(resetLog),
+      counts,
+      total: Object.values(counts).reduce((sum, value) => sum + value, 0),
+      protectedData: ['CRM kullanıcıları ve danışman kayıtları', 'Eski Finans tabloları ve kayıtları', 'Müşteriler, ilanlar ve diğer CRM verileri'],
+      message: resetLog
+        ? 'Muhasebe demo sıfırlaması daha önce çalıştırılmış; güvenlik nedeniyle tekrar çalıştırılamaz.'
+        : 'Bu işlem yalnızca yeni Muhasebe tablolarındaki deneme kayıtlarını temizler.',
+    };
+  }
+
+  async resetDemoData(confirmation: string, reason: string, createdBy: string) {
+    if (confirmation !== 'MUHASEBE DENEME KAYITLARINI SIFIRLA') {
+      throw new BadRequestException('Sıfırlama onayı geçersiz');
+    }
+    const normalizedReason = reason?.trim();
+    if (!normalizedReason || normalizedReason.length < 10) {
+      throw new BadRequestException('Sıfırlama gerekçesi en az 10 karakter olmalıdır');
+    }
+
+    const scope = 'demo-accounting-reset-v1';
+    const preview = await this.getResetPreview();
+    if (preview.alreadyReset) {
+      throw new ConflictException('Muhasebe demo sıfırlaması daha önce çalıştırılmış; tekrar çalıştırılamaz');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const resetRepo = manager.getRepository(AccountingResetLog);
+      const existing = await resetRepo.findOne({ where: { scope } });
+      if (existing) throw new ConflictException('Muhasebe demo sıfırlaması daha önce çalıştırılmış; tekrar çalıştırılamaz');
+
+      const accounts = await manager.getRepository(AccountingAccount).find();
+      const entries = await manager.getRepository(AccountingEntry).find();
+      const commissions = await manager.getRepository(AccountingCommission).find();
+      const rents = await manager.getRepository(AccountingRent).find();
+      const parties = await manager.getRepository(AccountingParty).find();
+      const recurringExpenses = await manager.getRepository(AccountingRecurringExpense).find();
+      const categories = await manager.getRepository(AccountingCategory).find();
+      const auditLogs = await manager.getRepository(AccountingAuditLog).find();
+      const counts = {
+        accounts: accounts.length,
+        entries: entries.length,
+        commissions: commissions.length,
+        rents: rents.length,
+        parties: parties.length,
+        recurringExpenses: recurringExpenses.length,
+        categories: categories.length,
+        auditLogs: auditLogs.length,
+      };
+      const snapshot = {
+        accounts: this.auditSnapshot(accounts),
+        entries: this.auditSnapshot(entries),
+        commissions: this.auditSnapshot(commissions),
+        rents: this.auditSnapshot(rents),
+        parties: this.auditSnapshot(parties),
+        recurringExpenses: this.auditSnapshot(recurringExpenses),
+        categories: this.auditSnapshot(categories),
+        auditLogs: this.auditSnapshot(auditLogs),
+      };
+
+      // Yalnızca yeni Muhasebe tabloları temizlenir. Eski Finans ve CRM entity’leri
+      // burada özellikle hiç kullanılmaz.
+      await manager.createQueryBuilder().delete().from(AccountingAuditLog).execute();
+      await manager.createQueryBuilder().delete().from(AccountingEntry).execute();
+      await manager.createQueryBuilder().delete().from(AccountingCommission).execute();
+      await manager.createQueryBuilder().delete().from(AccountingRent).execute();
+      await manager.createQueryBuilder().delete().from(AccountingRecurringExpense).execute();
+      await manager.createQueryBuilder().delete().from(AccountingCategory).execute();
+      await manager.createQueryBuilder().delete().from(AccountingParty).execute();
+      await manager.createQueryBuilder().delete().from(AccountingAccount).execute();
+
+      await resetRepo.save(resetRepo.create({
+        scope,
+        createdBy: createdBy || null,
+        reason: normalizedReason,
+        confirmation,
+        counts,
+        snapshot,
+      }));
+
+      return {
+        ok: true,
+        scope,
+        deleted: counts,
+        protectedData: preview.protectedData,
+        message: 'Yeni Muhasebe demo kayıtları sıfırlandı. Yedek snapshot saklandı; Eski Finans ve CRM verileri korunmuştur.',
+      };
+    });
+  }
+
   private async getRent(id: string) {
     const rent = await this.rentRepo.findOne({ where: { id } });
     if (!rent) {
@@ -1458,7 +1567,7 @@ export class AccountingService {
     return query.getMany();
   }
 
-  private auditSnapshot(value: Record<string, any>) {
+  private auditSnapshot(value: any) {
     return JSON.parse(JSON.stringify(value, (_key, item) => item instanceof Date ? item.toISOString() : item));
   }
 

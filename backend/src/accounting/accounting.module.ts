@@ -8,6 +8,7 @@ import { AccountingParty } from './accounting-party.entity';
 import { AccountingRecurringExpense } from './accounting-recurring-expense.entity';
 import { AccountingCategory } from './accounting-category.entity';
 import { AccountingAuditLog } from './accounting-audit-log.entity';
+import { AccountingResetLog } from './accounting-reset-log.entity';
 import { User } from '../users/user.entity';
 import { BankAccount } from '../bank-accounts/bank-account.entity';
 import { BankTransaction } from '../bank-accounts/bank-transaction.entity';
@@ -35,6 +36,7 @@ import { AccountingMigrationService } from './accounting-migration.service';
     AccountingRecurringExpense,
     AccountingCategory,
     AccountingAuditLog,
+    AccountingResetLog,
     User,
     BankAccount,
     BankTransaction,

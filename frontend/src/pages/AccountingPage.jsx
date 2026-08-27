@@ -73,6 +73,16 @@ const INCOME_CATEGORIES = [
 
 const NEW_CATEGORY_VALUE = '__new_category__';
 const PARTY_PAGE_SIZE = 20;
+const RESET_COUNT_LABELS = {
+  accounts: 'Muhasebe hesapları',
+  entries: 'Para hareketleri',
+  commissions: 'Komisyon kayıtları',
+  rents: 'Kira kayıtları',
+  parties: 'Cari kartlar',
+  recurringExpenses: 'Tekrarlayan gider şablonları',
+  categories: 'Özel kategoriler',
+  auditLogs: 'Muhasebe audit kayıtları',
+};
 
 function categoryNames(defaults, savedCategories) {
   const savedNames = (savedCategories || []).map((category) => category.name).filter(Boolean);
@@ -250,6 +260,11 @@ export default function AccountingPage() {
   const [managementReportLoading, setManagementReportLoading] = useState(false);
   const [migrationPreview, setMigrationPreview] = useState(null);
   const [migrationLoading, setMigrationLoading] = useState(false);
+  const [resetPreview, setResetPreview] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState('');
+  const [resetReason, setResetReason] = useState('');
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditTarget, setAuditTarget] = useState(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -437,6 +452,39 @@ export default function AccountingPage() {
       setMigrationLoading(false);
     }
   }, []);
+
+  const loadResetPreview = useCallback(async () => {
+    setResetLoading(true);
+    setError('');
+    try {
+      const preview = await accountingApi.getResetPreview();
+      setResetPreview(preview || null);
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Muhasebe sıfırlama önizlemesi yüklenemedi.');
+    } finally {
+      setResetLoading(false);
+    }
+  }, []);
+
+  const handleResetDemo = async (event) => {
+    event.preventDefault();
+    if (!resetPreview?.canReset || resetConfirmation !== 'MUHASEBE DENEME KAYITLARINI SIFIRLA' || resetReason.trim().length < 10) return;
+    const confirmed = window.confirm('Bu işlem yalnızca yeni Muhasebe demo kayıtlarını kalıcı olarak silecek ve saklanan yedek snapshot oluşturacaktır. Eski Finans ve CRM kayıtlarına dokunulmayacaktır. Devam edilsin mi?');
+    if (!confirmed) return;
+    setResetting(true);
+    setError('');
+    try {
+      const result = await accountingApi.resetDemoData({ confirmation: resetConfirmation, reason: resetReason.trim() });
+      setResetPreview({ ...resetPreview, alreadyReset: true, canReset: false, counts: Object.fromEntries(Object.keys(resetPreview.counts || {}).map((key) => [key, 0])), total: 0, message: result.message });
+      setResetConfirmation('');
+      setResetReason('');
+      await loadData();
+    } catch (resetError) {
+      setError(resetError.response?.data?.message || 'Muhasebe demo kayıtları sıfırlanamadı. Hiçbir kayıt silinmemiş olabilir; lütfen önizlemeyi yenileyin.');
+    } finally {
+      setResetting(false);
+    }
+  };
 
   useEffect(() => {
     if (activeTab !== 'migration') return undefined;
@@ -2364,6 +2412,64 @@ export default function AccountingPage() {
               </div>
             </>
           )}
+
+          <div className="folder-panel" style={{ marginTop: 24, border: '1px solid #d38b7c', background: '#fffaf8' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 19 }}>Muhasebe Temiz Başlangıç</h3>
+                <p style={{ color: 'var(--muted)', margin: '5px 0 0', fontSize: 13 }}>
+                  Excel ile gerçek veri girişinden önce yalnızca yeni Muhasebe deneme kayıtlarını güvenli biçimde temizler.
+                </p>
+              </div>
+              <span style={{ color: 'var(--danger)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Destructive · Broker</span>
+            </div>
+            <div style={{ background: '#fbe0dc', border: '1px solid #d38b7c', borderRadius: 6, padding: '10px 12px', color: 'var(--danger)', fontSize: 13, marginBottom: 14 }}>
+              Bu işlem geri alınamaz; ancak silme işleminden hemen önce tüm hedef Muhasebe kayıtlarının geri yüklenebilir JSON snapshot yedeği saklanır. Eski Finans ve CRM verileri bu işleme dahil değildir.
+            </div>
+            <button type="button" className="btn btn-secondary" onClick={loadResetPreview} disabled={resetLoading || resetting}>
+              {resetLoading ? 'Sıfırlama sayımı hazırlanıyor…' : resetPreview ? 'Sıfırlama sayımını yenile' : 'Sıfırlama önizlemesini getir'}
+            </button>
+
+            {resetPreview && (
+              <>
+                <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
+                  {Object.entries(resetPreview.counts || {}).map(([key, count]) => (
+                    <div key={key} style={{ border: '1px solid var(--paper-line)', borderRadius: 6, padding: '10px 12px', background: 'var(--paper)' }}>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{RESET_COUNT_LABELS[key] || key}</div>
+                      <strong style={{ display: 'block', marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 20 }}>{count}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 14, background: '#e6f4ea', border: '1px solid #9bc4a5', borderRadius: 6, padding: '10px 12px', color: '#245c32', fontSize: 13 }}>
+                  <strong>Korunan kapsam:</strong> {(resetPreview.protectedData || []).join(' · ')}
+                </div>
+                <div style={{ marginTop: 10, color: 'var(--muted)', fontSize: 13 }}>{resetPreview.message}</div>
+
+                {resetPreview.canReset ? (
+                  <form onSubmit={handleResetDemo} style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+                    <div className="form-field full" style={{ margin: 0 }}>
+                      <label htmlFor="accounting-reset-reason">İşlem gerekçesi</label>
+                      <textarea id="accounting-reset-reason" rows={3} value={resetReason} onChange={(event) => setResetReason(event.target.value)} placeholder="Örn. Excel ile gerçek veri girişinden önce deneme kayıtlarını temizleme" required />
+                    </div>
+                    <div className="form-field full" style={{ margin: 0 }}>
+                      <label htmlFor="accounting-reset-confirmation">Güvenlik onayı</label>
+                      <input id="accounting-reset-confirmation" value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value)} placeholder="MUHASEBE DENEME KAYITLARINI SIFIRLA" autoComplete="off" required />
+                    </div>
+                    <div>
+                      <button type="submit" className="btn btn-danger" disabled={resetting || resetConfirmation !== 'MUHASEBE DENEME KAYITLARINI SIFIRLA' || resetReason.trim().length < 10}>
+                        {resetting ? 'Sıfırlanıyor…' : 'Yeni Muhasebe deneme kayıtlarını sıfırla'}
+                      </button>
+                      <div style={{ marginTop: 8, color: 'var(--muted)', fontSize: 12 }}>Devam etmeden önce sayımdaki kayıtların deneme verisi olduğunu kontrol edin.</div>
+                    </div>
+                  </form>
+                ) : (
+                  <div style={{ marginTop: 14, background: '#e6f4ea', border: '1px solid #9bc4a5', borderRadius: 6, padding: '10px 12px', color: '#245c32', fontSize: 13 }}>
+                    Sıfırlama kilidi mevcut. İşlem kaydı ve geri yüklenebilir snapshot yedeği korunuyor.
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </>
       )}
     </div>

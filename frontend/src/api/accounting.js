@@ -37,6 +37,8 @@ export const accountingApi = {
   getSummary: (params = {}) => apiClient.get('/accounting/summary', { params }).then((response) => response.data),
   getManagementReport: (params = {}) => apiClient.get('/accounting/reports/management', { params }).then((response) => response.data),
   getMigrationPreview: () => apiClient.get('/accounting/migration/preview').then((response) => response.data),
+  getResetPreview: () => apiClient.get('/accounting/reset/preview').then((response) => response.data),
+  resetDemoData: (payload) => apiClient.post('/accounting/reset/demo', payload).then((response) => response.data),
   listAuditLogs: (params = {}) => apiClient.get('/accounting/audit-logs', { params }).then((response) => response.data),
   listCommissions: () => apiClient.get('/accounting/commissions').then((response) => response.data),
   createCommission: (payload) => apiClient.post('/accounting/commissions', payload).then((response) => response.data),

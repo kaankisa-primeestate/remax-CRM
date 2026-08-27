@@ -28,6 +28,7 @@ import {
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
 import { CorrectAccountingEntryDto } from './dto/correct-accounting-entry.dto';
 import { VoidAccountingRecordDto } from './dto/void-accounting-record.dto';
+import { ResetAccountingDemoDto } from './dto/reset-accounting-demo.dto';
 import {
   UpdateAccountingAccountDto,
   UpdateAccountingPartyDto,
@@ -52,6 +53,16 @@ export class AccountingController {
   @Get('migration/preview')
   getMigrationPreview() {
     return this.migrationService.preview();
+  }
+
+  @Get('reset/preview')
+  getResetPreview() {
+    return this.accountingService.getResetPreview();
+  }
+
+  @Post('reset/demo')
+  resetDemo(@Body() dto: ResetAccountingDemoDto, @Req() req: any) {
+    return this.accountingService.resetDemoData(dto.confirmation, dto.reason, req.user.userId);
   }
 
   @Get('audit-logs')
