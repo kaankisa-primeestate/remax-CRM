@@ -171,25 +171,39 @@ export default function AccountingPage() {
     loadData();
   }, [loadData]);
 
-  const loadCommissionData = useCallback(async () => {
-    setCommissionLoading(true);
+  const loadAgents = useCallback(async () => {
     try {
-      const [agentList, commissionList] = await Promise.all([
-        usersApi.listAgents(),
-        accountingApi.listCommissions(),
-      ]);
+      const agentList = await usersApi.listAgents();
       setAgents(agentList || []);
-      setCommissions(commissionList || []);
+      return true;
     } catch (loadError) {
-      setError(loadError.response?.data?.message || 'Komisyon verileri yüklenemedi.');
-    } finally {
-      setCommissionLoading(false);
+      setError(loadError.response?.data?.message || 'Danışman listesi yüklenemedi.');
+      return false;
     }
   }, []);
 
+  const loadCommissions = useCallback(async () => {
+    try {
+      const commissionList = await accountingApi.listCommissions();
+      setCommissions(commissionList || []);
+      return true;
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Komisyon verileri yüklenemedi.');
+      return false;
+    }
+  }, []);
+
+  const loadCommissionData = useCallback(async () => {
+    setCommissionLoading(true);
+    await Promise.allSettled([loadAgents(), loadCommissions()]);
+    setCommissionLoading(false);
+  }, [loadAgents, loadCommissions]);
+
   useEffect(() => {
+    if (activeTab !== 'commissions') return undefined;
     loadCommissionData();
-  }, [loadCommissionData]);
+    return undefined;
+  }, [activeTab, loadCommissionData]);
 
   const currencyAccounts = useMemo(
     () => accounts.filter((account) => account.currency === entryForm.currency && account.isActive !== false),
@@ -242,8 +256,10 @@ export default function AccountingPage() {
         referenceNo: entryForm.referenceNo || undefined,
       });
       setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
-      await loadData();
       setActiveTab('entries');
+      // Kayıt POST isteği başarılı olduktan sonra ekran yenilemesini
+      // kullanıcıyı bekletmeden arka planda yap.
+      loadData().catch(() => undefined);
     } catch (saveError) {
       setError(saveError.response?.data?.message || 'Muhasebe hareketi kaydedilemedi.');
     } finally {
@@ -267,7 +283,7 @@ export default function AccountingPage() {
         notes: commissionForm.notes.trim() || undefined,
       });
       setCommissionForm({ ...EMPTY_COMMISSION_FORM, date: new Date().toISOString().slice(0, 10), currency });
-      await loadCommissionData();
+      loadCommissionData().catch(() => undefined);
     } catch (saveError) {
       setError(saveError.response?.data?.message || 'Komisyon kaydı oluşturulamadı.');
     } finally {
@@ -304,7 +320,7 @@ export default function AccountingPage() {
       } else {
         await accountingApi.payCommission(commission.id, payload);
       }
-      await Promise.all([loadCommissionData(), loadData()]);
+      Promise.all([loadCommissionData(), loadData()]).catch(() => undefined);
     } catch (actionError) {
       setError(actionError.response?.data?.message || 'Komisyon işlemi kaydedilemedi.');
     } finally {
@@ -329,8 +345,8 @@ export default function AccountingPage() {
         openingBalance: accountForm.openingBalance ? Number(accountForm.openingBalance) : 0,
       });
       setAccountForm({ ...accountForm, name: '', bankName: '', iban: '', openingBalance: '' });
-      await loadData();
       setActiveTab('accounts');
+      loadData().catch(() => undefined);
     } catch (saveError) {
       setError(saveError.response?.data?.message || 'Muhasebe hesabı oluşturulamadı.');
     } finally {
@@ -755,7 +771,7 @@ export default function AccountingPage() {
                                 )}
                               </div>
                             )}
-                            {matchingAccounts.length === 0 && commission.status !== 'paid' && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
+                            {matchingAccounts.length === 0 && commission.status !== 'agent_paid' && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
                           </td>
                         </tr>
                       );

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import {
   AccountingAccount,
   AccountingAccountType,
@@ -42,14 +42,48 @@ export class AccountingService {
   ) {}
 
   async listAccounts() {
-    const [accounts, entries] = await Promise.all([
+    const [accounts, primaryRows, counterRows] = await Promise.all([
       this.accountRepo.find({ order: { isActive: 'DESC', createdAt: 'ASC' } }),
-      this.entryRepo.find({ where: { voidedAt: IsNull() } }),
+      this.entryRepo
+        .createQueryBuilder('entry')
+        .select('entry.accountId', 'accountId')
+        .addSelect(
+          `SUM(CASE
+            WHEN entry.type = :income THEN entry.amount
+            WHEN entry.type = :expense THEN -entry.amount
+            WHEN entry.type = :transfer THEN -entry.amount
+            ELSE 0
+          END)`,
+          'delta',
+        )
+        .where('entry.voidedAt IS NULL')
+        .andWhere('entry.accountId IS NOT NULL')
+        .setParameters({
+          income: AccountingEntryType.INCOME,
+          expense: AccountingEntryType.EXPENSE,
+          transfer: AccountingEntryType.TRANSFER,
+        })
+        .groupBy('entry.accountId')
+        .getRawMany(),
+      this.entryRepo
+        .createQueryBuilder('entry')
+        .select('entry.counterAccountId', 'accountId')
+        .addSelect('SUM(entry.amount)', 'delta')
+        .where('entry.voidedAt IS NULL')
+        .andWhere('entry.type = :transfer', { transfer: AccountingEntryType.TRANSFER })
+        .andWhere('entry.counterAccountId IS NOT NULL')
+        .groupBy('entry.counterAccountId')
+        .getRawMany(),
     ]);
+
+    const deltas = new Map<string, number>();
+    for (const row of [...primaryRows, ...counterRows]) {
+      deltas.set(row.accountId, (deltas.get(row.accountId) || 0) + Number(row.delta || 0));
+    }
 
     return accounts.map((account) => ({
       ...account,
-      currentBalance: this.calculateBalance(account, entries),
+      currentBalance: Number(account.openingBalance || 0) + (deltas.get(account.id) || 0),
     }));
   }
 
@@ -73,25 +107,26 @@ export class AccountingService {
     currency?: string;
     type?: AccountingEntryType;
   }) {
-    const entries = await this.entryRepo.find({
-      where: { voidedAt: IsNull() },
-      order: { date: 'DESC', createdAt: 'DESC' },
-    });
-    const accounts = await this.accountRepo.find();
+    const query = this.entryRepo
+      .createQueryBuilder('entry')
+      .where('entry.voidedAt IS NULL')
+      .orderBy('entry.date', 'DESC')
+      .addOrderBy('entry.createdAt', 'DESC');
+    this.applyEntryFilters(query, filters);
+
+    const [entries, accounts] = await Promise.all([
+      query.getMany(),
+      this.accountRepo.find(),
+    ]);
     const accountMap = new Map(accounts.map((account) => [account.id, account]));
 
-    return entries
-      .filter((entry) => !filters.from || entry.date >= filters.from)
-      .filter((entry) => !filters.to || entry.date <= filters.to)
-      .filter((entry) => !filters.currency || entry.currency === filters.currency)
-      .filter((entry) => !filters.type || entry.type === filters.type)
-      .map((entry) => ({
-        ...entry,
-        accountName: entry.accountId ? accountMap.get(entry.accountId)?.name || null : null,
-        counterAccountName: entry.counterAccountId
-          ? accountMap.get(entry.counterAccountId)?.name || null
-          : null,
-      }));
+    return entries.map((entry) => ({
+      ...entry,
+      accountName: entry.accountId ? accountMap.get(entry.accountId)?.name || null : null,
+      counterAccountName: entry.counterAccountId
+        ? accountMap.get(entry.counterAccountId)?.name || null
+        : null,
+    }));
   }
 
   async createEntry(dto: CreateAccountingEntryDto, createdBy: string) {
@@ -297,20 +332,34 @@ export class AccountingService {
   }
 
   async getSummary(filters: { from?: string; to?: string; currency?: string }) {
-    const entries = await this.listEntries(filters);
-    const income = entries
-      .filter((entry) => entry.type === AccountingEntryType.INCOME)
-      .reduce((sum, entry) => sum + Number(entry.amount), 0);
-    const expense = entries
-      .filter((entry) => entry.type === AccountingEntryType.EXPENSE)
-      .reduce((sum, entry) => sum + Number(entry.amount), 0);
+    const query = this.entryRepo
+      .createQueryBuilder('entry')
+      .select(
+        `COALESCE(SUM(CASE WHEN entry.type = :income THEN entry.amount ELSE 0 END), 0)`,
+        'totalIncome',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN entry.type = :expense THEN entry.amount ELSE 0 END), 0)`,
+        'totalExpense',
+      )
+      .addSelect('COUNT(entry.id)', 'entryCount')
+      .where('entry.voidedAt IS NULL')
+      .setParameters({
+        income: AccountingEntryType.INCOME,
+        expense: AccountingEntryType.EXPENSE,
+      });
+    this.applyEntryFilters(query, filters);
+
+    const row = await query.getRawOne();
+    const income = Number(row?.totalIncome || 0);
+    const expense = Number(row?.totalExpense || 0);
 
     return {
       currency: filters.currency || 'ALL',
       totalIncome: income,
       totalExpense: expense,
       netOperatingResult: income - expense,
-      entryCount: entries.length,
+      entryCount: Number(row?.entryCount || 0),
     };
   }
 
@@ -330,23 +379,14 @@ export class AccountingService {
     return account;
   }
 
-  private calculateBalance(account: AccountingAccount, entries: AccountingEntry[]) {
-    return entries.reduce((balance, entry) => {
-      if (entry.currency !== account.currency) return balance;
-      const amount = Number(entry.amount);
-
-      if (entry.type === AccountingEntryType.INCOME && entry.accountId === account.id) {
-        return balance + amount;
-      }
-      if (entry.type === AccountingEntryType.EXPENSE && entry.accountId === account.id) {
-        return balance - amount;
-      }
-      if (entry.type === AccountingEntryType.TRANSFER) {
-        if (entry.accountId === account.id) return balance - amount;
-        if (entry.counterAccountId === account.id) return balance + amount;
-      }
-      return balance;
-    }, Number(account.openingBalance || 0));
+  private applyEntryFilters(
+    query: SelectQueryBuilder<AccountingEntry>,
+    filters: { from?: string; to?: string; currency?: string; type?: AccountingEntryType },
+  ) {
+    if (filters.from) query.andWhere('entry.date >= :from', { from: filters.from });
+    if (filters.to) query.andWhere('entry.date <= :to', { to: filters.to });
+    if (filters.currency) query.andWhere('entry.currency = :currency', { currency: filters.currency });
+    if (filters.type) query.andWhere('entry.type = :entryType', { entryType: filters.type });
   }
 
   private money(value: number) {

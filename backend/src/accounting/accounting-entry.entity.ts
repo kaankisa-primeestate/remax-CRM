@@ -24,6 +24,7 @@ export enum AccountingPartyType {
 @Entity('accounting_entries')
 @Index(['date'])
 @Index(['currency', 'date'])
+@Index(['voidedAt', 'currency', 'date'])
 @Index(['sourceType', 'sourceId'])
 export class AccountingEntry {
   @PrimaryGeneratedColumn('uuid')
