@@ -4,6 +4,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  MaxLength,
   IsOptional,
   IsString,
   IsUUID,
@@ -56,4 +57,9 @@ export class CreateAccountingEntryDto {
   @IsOptional()
   @IsString()
   referenceNo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  idempotencyKey?: string;
 }

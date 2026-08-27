@@ -118,9 +118,11 @@ export class AccountingService {
 
   async createAccount(dto: CreateAccountingAccountDto) {
     this.assertCurrency(dto.currency);
+    const name = dto.name.trim();
+    if (!name) throw new BadRequestException('Hesap adı boş bırakılamaz');
     const account = this.accountRepo.create({
       type: dto.type as AccountingAccountType,
-      name: dto.name.trim(),
+      name,
       bankName: dto.bankName?.trim() || null,
       iban: dto.iban?.trim() || null,
       currency: dto.currency,
@@ -160,6 +162,22 @@ export class AccountingService {
 
   async createEntry(dto: CreateAccountingEntryDto, createdBy: string) {
     this.assertCurrency(dto.currency);
+    const category = dto.category.trim();
+    if (dto.type !== AccountingEntryType.TRANSFER && !category) {
+      throw new BadRequestException('Gelir veya gider kategorisi boş bırakılamaz');
+    }
+    if (dto.type === AccountingEntryType.TRANSFER && (dto.partyType || dto.partyId || dto.partyName)) {
+      throw new BadRequestException('Transfer hareketi cari kart bilgisi içeremez');
+    }
+    if (dto.partyId && !dto.partyType) {
+      throw new BadRequestException('Cari hareket için cari kart türü de belirtilmelidir');
+    }
+
+    const sourceKey = dto.idempotencyKey?.trim() ? `manual:${dto.idempotencyKey.trim()}` : null;
+    if (sourceKey) {
+      const existing = await this.entryRepo.findOne({ where: { sourceKey } });
+      if (existing) return existing;
+    }
 
     const account = dto.accountId
       ? await this.getActiveAccount(dto.accountId)
@@ -184,6 +202,18 @@ export class AccountingService {
       throw new BadRequestException('Hareketin para birimi hesap para birimiyle aynı olmalıdır');
     }
 
+    if (dto.partyId) {
+      if (dto.partyType === AccountingPartyType.AGENT) {
+        const agent = await this.userRepo.findOne({ where: { id: dto.partyId, role: UserRole.AGENT } });
+        if (!agent) throw new BadRequestException('Seçilen danışman cari kartı bulunamadı');
+        if (dto.currency !== 'TRY') throw new BadRequestException('Danışman cari hareketleri ilk sürümde yalnızca TL olabilir');
+      } else {
+        const party = await this.partyRepo.findOne({ where: { id: dto.partyId, type: dto.partyType, isActive: true } });
+        if (!party) throw new BadRequestException('Seçilen cari kart bulunamadı veya türü eşleşmiyor');
+        if (party.currency !== dto.currency) throw new BadRequestException('Cari kart ve hareket para birimi aynı olmalıdır');
+      }
+    }
+
     const entry = this.entryRepo.create({
       type: dto.type,
       date: dto.date,
@@ -193,19 +223,38 @@ export class AccountingService {
       counterAccountId: counterAccount?.id || null,
       category: dto.type === AccountingEntryType.TRANSFER
         ? 'Hesaplar Arası Transfer'
-        : dto.category.trim(),
+        : category,
       partyType: dto.partyType || null,
       partyId: dto.partyId || null,
       partyName: dto.partyName?.trim() || null,
       description: dto.description?.trim() || null,
       referenceNo: dto.referenceNo?.trim() || null,
-      sourceKey: null,
+      sourceKey,
       sourceType: 'manual',
       sourceId: null,
       createdBy,
       voidedAt: null,
     });
 
+    try {
+      return await this.entryRepo.save(entry);
+    } catch (error: any) {
+      if (sourceKey && error?.code === '23505') {
+        const existing = await this.entryRepo.findOne({ where: { sourceKey } });
+        if (existing) return existing;
+      }
+      throw error;
+    }
+  }
+
+  async voidEntry(id: string, createdBy: string) {
+    const entry = await this.entryRepo.findOne({ where: { id, voidedAt: IsNull() } });
+    if (!entry) throw new NotFoundException('Aktif muhasebe hareketi bulunamadı');
+    if (!['manual', 'accounting_recurring_expense'].includes(entry.sourceType || '')) {
+      throw new ConflictException('Komisyon ve kira hareketleri kendi ekranından iptal edilmelidir');
+    }
+    entry.voidedAt = new Date();
+    entry.description = [entry.description, `İptal edildi (${createdBy})`].filter(Boolean).join(' · ');
     return this.entryRepo.save(entry);
   }
 
@@ -220,12 +269,14 @@ export class AccountingService {
         .addSelect('entry.currency', 'currency')
         .addSelect(`SUM(CASE WHEN entry.type = '${AccountingEntryType.INCOME}' THEN entry.amount ELSE 0 END)`, 'income')
         .addSelect(`SUM(CASE WHEN entry.type = '${AccountingEntryType.EXPENSE}' THEN entry.amount ELSE 0 END)`, 'expense')
+        .addSelect('entry.category', 'category')
         .addSelect('COUNT(entry.id)', 'movementCount')
         .where('entry.voidedAt IS NULL')
         .andWhere('entry.partyId IS NOT NULL')
         .groupBy('entry.partyId')
         .addGroupBy('entry.partyType')
         .addGroupBy('entry.currency')
+        .addGroupBy('entry.category')
         .getRawMany(),
       this.commissionRepo
         .createQueryBuilder('commission')
@@ -264,7 +315,22 @@ export class AccountingService {
       }));
     if (missingAgents.length > 0) await this.partyRepo.save(missingAgents, { chunk: 100 });
     const allParties = [...parties, ...missingAgents];
-    const entryMap = new Map(entryRows.map((row) => [`${row.partyType}:${row.partyId}:${row.currency}`, row]));
+    const entryMap = new Map<string, { income: number; expense: number; movementCount: number; byCategory: Map<string, { income: number; expense: number }> }>();
+    for (const row of entryRows) {
+      const key = `${row.partyType}:${row.partyId}:${row.currency}`;
+      const current = entryMap.get(key) || { income: 0, expense: 0, movementCount: 0, byCategory: new Map() };
+      const income = Number(row.income || 0);
+      const expense = Number(row.expense || 0);
+      current.income += income;
+      current.expense += expense;
+      current.movementCount += Number(row.movementCount || 0);
+      const categoryKey = row.category || '';
+      const categoryCurrent = current.byCategory.get(categoryKey) || { income: 0, expense: 0 };
+      categoryCurrent.income += income;
+      categoryCurrent.expense += expense;
+      current.byCategory.set(categoryKey, categoryCurrent);
+      entryMap.set(key, current);
+    }
     const commissionMap = new Map(commissionRows.map((row) => [`${row.agentId}:${row.currency}`, Number(row.payable || 0)]));
     const rentMap = new Map(rentRows.map((row) => [`${row.agentId}:${row.currency}`, Number(row.receivable || 0)]));
 
@@ -272,23 +338,36 @@ export class AccountingService {
       .filter((party) => !filters.currency || party.currency === filters.currency || party.type === AccountingPartyType.AGENT)
       .map((party) => {
         const currency = party.type === AccountingPartyType.AGENT ? 'TRY' : party.currency;
-        const entry = entryMap.get(`${party.type}:${party.linkedUserId || party.id}:${currency}`) || {};
+        const entry = entryMap.get(`${party.type}:${party.linkedUserId || party.id}:${currency}`) || { income: 0, expense: 0, movementCount: 0, byCategory: new Map() };
         const opening = Number(party.openingBalance || 0);
         const openingReceivable = party.openingBalanceDirection === AccountingPartyBalanceDirection.RECEIVABLE ? opening : 0;
         const openingPayable = party.openingBalanceDirection === AccountingPartyBalanceDirection.PAYABLE ? opening : 0;
         const rentReceivable = party.linkedUserId ? (rentMap.get(`${party.linkedUserId}:${currency}`) || 0) : 0;
         const commissionPayable = party.linkedUserId ? (commissionMap.get(`${party.linkedUserId}:${currency}`) || 0) : 0;
-        const entryIncome = Number(entry.income || 0);
-        const entryExpense = Number(entry.expense || 0);
         let receivable = openingReceivable + rentReceivable;
         let payable = openingPayable + commissionPayable;
-        if (party.type === AccountingPartyType.PARTNER) {
+        if (party.type === AccountingPartyType.AGENT) {
+          // Kira tahsilatı danışmanın şirkete borcunu azaltır; komisyon tahsilatı
+          // danışman carisini değiştirmez. Diğer danışman hareketleri hakediş
+          // borcunu artırır/azaltır ve ekstre mantığıyla aynı tutulur.
+          const rentCollection = entry.byCategory.get('Danışman Kirası Tahsilatı');
+          const commissionCollection = entry.byCategory.get('Komisyon Tahsilatı');
+          receivable -= Number(rentCollection?.income || 0);
+          payable += entry.income - entry.expense
+            - Number(rentCollection?.income || 0)
+            - Number(commissionCollection?.income || 0);
+        } else if (party.type === AccountingPartyType.PARTNER) {
           // Şirkete giren ortak parası, ortaklar cari hesabında şirketin borcudur;
           // ortağa yapılan çekiş/geri ödeme bu borcu azaltır.
-          payable += entryIncome - entryExpense;
+          payable += entry.income - entry.expense;
         } else if (party.type === AccountingPartyType.CUSTOMER) {
-          // Müşteriden gelen tahsilat, müşteriden olan alacağı azaltır.
-          receivable -= entryIncome;
+          // Müşteriden gelen tahsilat alacağı azaltır; müşteriye yapılan iade/
+          // ödeme ise alacağı artırır.
+          receivable += entry.expense - entry.income;
+        } else {
+          // Tedarikçi ve diğer cari kartlarda şirkete giriş borcu artırır,
+          // şirkete ait ödeme borcu azaltır.
+          payable += entry.income - entry.expense;
         }
         receivable = this.money(Math.max(0, receivable));
         payable = this.money(Math.max(0, payable));
@@ -298,10 +377,10 @@ export class AccountingService {
           receivable,
           payable,
           balance: this.money(receivable - payable),
-          incomeMovement: entryIncome,
-          expenseMovement: entryExpense,
-          movementCount: Number(entry.movementCount || 0),
-          pendingRentCount: party.linkedUserId ? rentRows.filter((row) => row.agentId === party.linkedUserId && row.currency === currency).length : 0,
+          incomeMovement: this.money(entry.income),
+          expenseMovement: this.money(entry.expense),
+          movementCount: entry.movementCount,
+          pendingRentCount: party.linkedUserId ? rentRows.filter((row) => row.agentId === party.linkedUserId && row.currency === currency && row.status === AccountingRentStatus.PENDING).length : 0,
           pendingCommissionAmount: commissionPayable,
         };
       });
@@ -312,9 +391,11 @@ export class AccountingService {
     if (dto.type === AccountingPartyType.AGENT) {
       throw new BadRequestException('Danışman cari kartları Danışman kayıtlarından otomatik oluşturulur');
     }
+    const name = dto.name.trim();
+    if (!name) throw new BadRequestException('Cari kart adı boş bırakılamaz');
     const party = this.partyRepo.create({
       type: dto.type as AccountingPartyType,
-      name: dto.name.trim(),
+      name,
       linkedUserId: null,
       companyName: dto.companyName?.trim() || null,
       phone: dto.phone?.trim() || null,
@@ -514,9 +595,13 @@ export class AccountingService {
       if (party.currency !== dto.currency) throw new BadRequestException('Gider şablonu ve cari kartın para birimi aynı olmalıdır');
       partyName = party.name;
     }
+    const title = dto.title.trim();
+    const category = dto.category.trim();
+    if (!title) throw new BadRequestException('Tekrarlayan gider adı boş bırakılamaz');
+    if (!category) throw new BadRequestException('Tekrarlayan gider kategorisi boş bırakılamaz');
     const template = this.recurringExpenseRepo.create({
-      title: dto.title.trim(),
-      category: dto.category.trim(),
+      title,
+      category,
       amount: this.money(dto.amount),
       currency: dto.currency,
       dueDay: dto.dueDay,

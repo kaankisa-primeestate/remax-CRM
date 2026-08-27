@@ -71,6 +71,11 @@ export class AccountingController {
     return this.accountingService.createEntry(dto, req.user.userId);
   }
 
+  @Post('entries/:id/void')
+  voidEntry(@Param('id') id: string, @Req() req: any) {
+    return this.accountingService.voidEntry(id, req.user.userId);
+  }
+
   @Get('reports/management')
   getManagementReport(
     @Query('from') from?: string,

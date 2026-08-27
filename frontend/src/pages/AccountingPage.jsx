@@ -263,6 +263,7 @@ export default function AccountingPage() {
     partyId: '',
   });
   const commissionIdempotencyKeyRef = useRef(null);
+  const entryIdempotencyKeyRef = useRef(null);
 
   const periodParams = useMemo(() => ({ ...getPeriodBounds(period), currency }), [period, currency]);
 
@@ -693,6 +694,24 @@ export default function AccountingPage() {
     }
   }
 
+  async function handleVoidEntry(entry) {
+    if (!['manual', 'accounting_recurring_expense'].includes(entry.sourceType)) {
+      setError('Komisyon ve kira hareketleri kendi ekranından iptal edilmelidir.');
+      return;
+    }
+    if (!window.confirm('Bu manuel hareket iptal edilsin mi? Kayıt silinmeyecek; bakiyelerden çıkarılıp geçmişte korunacak.')) return;
+    setSaving(true);
+    setError('');
+    try {
+      await accountingApi.voidEntry(entry.id);
+      await loadData();
+    } catch (voidError) {
+      setError(voidError.response?.data?.message || 'Muhasebe hareketi iptal edilemedi.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleCreateEntry(event) {
     event.preventDefault();
     if (!entryForm.amount || Number(entryForm.amount) <= 0) {
@@ -724,6 +743,10 @@ export default function AccountingPage() {
     setSaving(true);
     setError('');
     try {
+      const idempotencyKey = entryIdempotencyKeyRef.current
+        || window.crypto?.randomUUID?.()
+        || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      entryIdempotencyKeyRef.current = idempotencyKey;
       if (entryForm.type !== 'transfer' && ![...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].includes(selectedCategory)) {
         await accountingApi.createCategory({ type: entryForm.type, name: selectedCategory });
         await loadCategories();
@@ -738,7 +761,9 @@ export default function AccountingPage() {
         partyName: entryForm.type === 'transfer' ? undefined : selectedParty?.name || entryForm.partyName || undefined,
         counterAccountId: entryForm.type === 'transfer' ? entryForm.counterAccountId : undefined,
         referenceNo: entryForm.referenceNo || undefined,
+        idempotencyKey,
       });
+      entryIdempotencyKeyRef.current = null;
       setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
       setActiveTab('entries');
       // Kayıt POST isteği başarılı olduktan sonra ekran yenilemesini
@@ -1109,6 +1134,7 @@ export default function AccountingPage() {
                       <th style={{ padding: '7px 8px' }}>Hesap</th>
                       <th style={{ padding: '7px 8px' }}>Cari / açıklama</th>
                       <th style={{ padding: '7px 8px', textAlign: 'right' }}>Tutar</th>
+                      <th style={{ padding: '7px 8px' }}>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1123,6 +1149,10 @@ export default function AccountingPage() {
                         <td style={{ padding: '9px 8px' }}>{entry.partyName || entry.description || '—'}</td>
                         <td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: entry.type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
                           {formatAccountingMoney(entry.amount, entry.currency)}
+                        </td>
+                        <td style={{ padding: '9px 8px' }}>
+                          {['manual', 'accounting_recurring_expense'].includes(entry.sourceType) && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleVoidEntry(entry)}>İptal Et</button>}
+                          {!['manual', 'accounting_recurring_expense'].includes(entry.sourceType) && <span style={{ color: 'var(--muted)', fontSize: 11 }}>Komisyon/kira kaynağı</span>}
                         </td>
                       </tr>
                     ))}

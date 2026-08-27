@@ -30,6 +30,7 @@ export const accountingApi = {
   createAccount: (payload) => apiClient.post('/accounting/accounts', payload).then((response) => response.data),
   listEntries: (params = {}) => apiClient.get('/accounting/entries', { params }).then((response) => response.data),
   createEntry: (payload) => apiClient.post('/accounting/entries', payload).then((response) => response.data),
+  voidEntry: (id) => apiClient.post(`/accounting/entries/${id}/void`).then((response) => response.data),
   getSummary: (params = {}) => apiClient.get('/accounting/summary', { params }).then((response) => response.data),
   getManagementReport: (params = {}) => apiClient.get('/accounting/reports/management', { params }).then((response) => response.data),
   getMigrationPreview: () => apiClient.get('/accounting/migration/preview').then((response) => response.data),
