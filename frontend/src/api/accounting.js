@@ -43,6 +43,8 @@ export const accountingApi = {
   listParties: (params = {}) => apiClient.get('/accounting/parties', { params }).then((response) => response.data),
   createParty: (payload) => apiClient.post('/accounting/parties', payload).then((response) => response.data),
   listPartyEntries: (id) => apiClient.get(`/accounting/parties/${id}/entries`).then((response) => response.data),
+  listCategories: (params = {}) => apiClient.get('/accounting/categories', { params }).then((response) => response.data),
+  createCategory: (payload) => apiClient.post('/accounting/categories', payload).then((response) => response.data),
   listRecurringExpenses: (params = {}) => apiClient.get('/accounting/recurring-expenses', { params }).then((response) => response.data),
   createRecurringExpense: (payload) => apiClient.post('/accounting/recurring-expenses', payload).then((response) => response.data),
   generateRecurringExpenses: (payload) => apiClient.post('/accounting/recurring-expenses/generate', payload).then((response) => response.data),

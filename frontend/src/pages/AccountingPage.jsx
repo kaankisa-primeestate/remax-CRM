@@ -70,6 +70,13 @@ const INCOME_CATEGORIES = [
   'Diğer Gelir',
 ];
 
+const NEW_CATEGORY_VALUE = '__new_category__';
+
+function categoryNames(defaults, savedCategories) {
+  const savedNames = (savedCategories || []).map((category) => category.name).filter(Boolean);
+  return [...defaults, ...savedNames.filter((name) => !defaults.includes(name))];
+}
+
 const PARTNER_MOVEMENT_TYPES = [
   { value: 'capital_in', label: 'Ortak sermaye katkısı', type: 'income', category: 'Ortak Sermaye Katkısı' },
   { value: 'loan_in', label: 'Ortaklardan şirkete borç girişi', type: 'income', category: 'Ortak Borç Girişi' },
@@ -86,6 +93,7 @@ const EMPTY_ENTRY_FORM = {
   accountId: '',
   counterAccountId: '',
   category: 'Genel',
+  customCategory: '',
   partyId: '',
   partyName: '',
   description: '',
@@ -206,9 +214,11 @@ export default function AccountingPage() {
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [recurringSaving, setRecurringSaving] = useState(false);
   const [recurringGenerating, setRecurringGenerating] = useState(false);
+  const [customCategories, setCustomCategories] = useState({ income: [], expense: [] });
   const [recurringForm, setRecurringForm] = useState({
     title: '',
     category: EXPENSE_CATEGORIES[2],
+    customCategory: '',
     amount: '',
     currency: 'TRY',
     dueDay: '1',
@@ -296,6 +306,21 @@ export default function AccountingPage() {
     }
   }, [currency]);
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const [expenseList, incomeList] = await Promise.all([
+        accountingApi.listCategories({ type: 'expense' }),
+        accountingApi.listCategories({ type: 'income' }),
+      ]);
+      setCustomCategories({
+        expense: expenseList || [],
+        income: incomeList || [],
+      });
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Muhasebe kategorileri yüklenemedi.');
+    }
+  }, []);
+
   const loadRecurringExpenses = useCallback(async () => {
     setRecurringLoading(true);
     try {
@@ -332,9 +357,25 @@ export default function AccountingPage() {
     return undefined;
   }, [activeTab, loadRecurringExpenses]);
 
+  useEffect(() => {
+    if (activeTab !== 'entries' && activeTab !== 'recurring') return undefined;
+    loadCategories();
+    return undefined;
+  }, [activeTab, loadCategories]);
+
   const currencyAccounts = useMemo(
     () => accounts.filter((account) => account.currency === entryForm.currency && account.isActive !== false),
     [accounts, entryForm.currency],
+  );
+  const entryCategoryOptions = useMemo(
+    () => entryForm.type === 'expense'
+      ? categoryNames(EXPENSE_CATEGORIES, customCategories.expense)
+      : categoryNames(INCOME_CATEGORIES, customCategories.income),
+    [entryForm.type, customCategories],
+  );
+  const recurringCategoryOptions = useMemo(
+    () => categoryNames(EXPENSE_CATEGORIES, customCategories.expense),
+    [customCategories],
   );
 
   function handleEntryChange(event) {
@@ -347,17 +388,24 @@ export default function AccountingPage() {
       }
       if (name === 'type' && value === 'transfer') {
         next.category = 'Hesaplar Arası Transfer';
+        next.customCategory = '';
         next.partyId = '';
         next.partyName = '';
       }
       if (name === 'type' && value === 'expense') {
         next.category = EXPENSE_CATEGORIES[0];
+        next.customCategory = '';
       }
       if (name === 'type' && value === 'income') {
         next.category = INCOME_CATEGORIES[0];
+        next.customCategory = '';
       }
       if (name === 'type' && value !== 'transfer' && previous.type === 'transfer') {
         next.category = value === 'expense' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0];
+        next.customCategory = '';
+      }
+      if (name === 'category' && value !== NEW_CATEGORY_VALUE) {
+        next.customCategory = '';
       }
       return next;
     });
@@ -461,12 +509,23 @@ export default function AccountingPage() {
       setError('Tekrarlayan gider için varsayılan ödeme hesabı seçin.');
       return;
     }
+    const selectedCategory = recurringForm.category === NEW_CATEGORY_VALUE
+      ? recurringForm.customCategory.trim()
+      : recurringForm.category;
+    if (!selectedCategory) {
+      setError('Yeni kategori adı boş bırakılamaz.');
+      return;
+    }
     setRecurringSaving(true);
     setError('');
     try {
+      if (!EXPENSE_CATEGORIES.includes(selectedCategory)) {
+        await accountingApi.createCategory({ type: 'expense', name: selectedCategory });
+        await loadCategories();
+      }
       await accountingApi.createRecurringExpense({
         title: recurringForm.title.trim(),
-        category: recurringForm.category,
+        category: selectedCategory,
         amount: Number(recurringForm.amount),
         currency: recurringForm.currency,
         dueDay: Number(recurringForm.dueDay),
@@ -478,6 +537,7 @@ export default function AccountingPage() {
       setRecurringForm({
         title: '',
         category: EXPENSE_CATEGORIES[2],
+        customCategory: '',
         amount: '',
         currency,
         dueDay: '1',
@@ -524,6 +584,14 @@ export default function AccountingPage() {
       return;
     }
 
+    const selectedCategory = entryForm.category === NEW_CATEGORY_VALUE
+      ? entryForm.customCategory.trim()
+      : entryForm.category;
+    if (entryForm.type !== 'transfer' && !selectedCategory) {
+      setError('Yeni kategori adı boş bırakılamaz.');
+      return;
+    }
+
     const selectedParty = entryForm.partyId ? parties.find((party) => party.id === entryForm.partyId) : null;
     if (entryForm.partyId && !selectedParty) {
       setError('Seçilen cari kart bulunamadı.');
@@ -532,10 +600,15 @@ export default function AccountingPage() {
     setSaving(true);
     setError('');
     try {
+      if (entryForm.type !== 'transfer' && ![...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].includes(selectedCategory)) {
+        await accountingApi.createCategory({ type: entryForm.type, name: selectedCategory });
+        await loadCategories();
+      }
+      const { customCategory: _customCategory, ...entryPayload } = entryForm;
       await accountingApi.createEntry({
-        ...entryForm,
+        ...entryPayload,
         amount: Number(entryForm.amount),
-        category: entryForm.type === 'transfer' ? 'Hesaplar Arası Transfer' : entryForm.category,
+        category: entryForm.type === 'transfer' ? 'Hesaplar Arası Transfer' : selectedCategory,
         partyType: entryForm.type === 'transfer' ? undefined : selectedParty?.type,
         partyId: entryForm.type === 'transfer' ? undefined : selectedParty ? (selectedParty.linkedUserId || selectedParty.id) : undefined,
         partyName: entryForm.type === 'transfer' ? undefined : selectedParty?.name || entryForm.partyName || undefined,
@@ -852,10 +925,16 @@ export default function AccountingPage() {
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && (
-                <FormField label="Kategori">
+                <FormField label="Kategori" style={{ minWidth: 220 }}>
                   <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
-                    {(entryForm.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map((category) => <option value={category} key={category}>{category}</option>)}
+                    {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
+                    <option value={NEW_CATEGORY_VALUE}>+ Yeni kategori ekle</option>
                   </select>
+                </FormField>
+              )}
+              {entryForm.type !== 'transfer' && entryForm.category === NEW_CATEGORY_VALUE && (
+                <FormField label="Yeni kategori adı" style={{ minWidth: 220 }}>
+                  <input name="customCategory" value={entryForm.customCategory} onChange={handleEntryChange} placeholder="Örn. Reklam gideri" required />
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && (
@@ -1448,11 +1527,17 @@ export default function AccountingPage() {
               <FormField label="Gider adı" style={{ minWidth: 210 }}>
                 <input value={recurringForm.title} onChange={(event) => setRecurringForm({ ...recurringForm, title: event.target.value })} placeholder="Örn. Ofis kirası" required />
               </FormField>
-              <FormField label="Kategori" style={{ minWidth: 190 }}>
-                <select value={recurringForm.category} onChange={(event) => setRecurringForm({ ...recurringForm, category: event.target.value })}>
-                  {EXPENSE_CATEGORIES.map((category) => <option value={category} key={category}>{category}</option>)}
+              <FormField label="Kategori" style={{ minWidth: 210 }}>
+                <select value={recurringForm.category} onChange={(event) => setRecurringForm({ ...recurringForm, category: event.target.value, customCategory: event.target.value === NEW_CATEGORY_VALUE ? recurringForm.customCategory : '' })}>
+                  {recurringCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
+                  <option value={NEW_CATEGORY_VALUE}>+ Yeni kategori ekle</option>
                 </select>
               </FormField>
+              {recurringForm.category === NEW_CATEGORY_VALUE && (
+                <FormField label="Yeni kategori adı" style={{ minWidth: 210 }}>
+                  <input value={recurringForm.customCategory} onChange={(event) => setRecurringForm({ ...recurringForm, customCategory: event.target.value })} placeholder="Örn. Reklam gideri" required />
+                </FormField>
+              )}
               <FormField label="Aylık tutar" style={{ minWidth: 140 }}>
                 <input type="number" min="0.01" step="0.01" value={recurringForm.amount} onChange={(event) => setRecurringForm({ ...recurringForm, amount: event.target.value })} placeholder="0,00" required />
               </FormField>

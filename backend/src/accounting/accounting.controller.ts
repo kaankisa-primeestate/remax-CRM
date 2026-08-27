@@ -25,6 +25,7 @@ import {
 } from './dto/accounting-rent.dto';
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
 import { CreateAccountingPartyDto } from './dto/create-accounting-party.dto';
+import { CreateAccountingCategoryDto } from './dto/create-accounting-category.dto';
 import {
   CreateAccountingRecurringExpenseDto,
   GenerateAccountingRecurringExpenseDto,
@@ -110,6 +111,16 @@ export class AccountingController {
   @Get('parties/:id/entries')
   listPartyEntries(@Param('id') id: string) {
     return this.accountingService.listPartyEntries(id);
+  }
+
+  @Get('categories')
+  listCategories(@Query('type') type?: AccountingEntryType) {
+    return this.accountingService.listCategories({ type });
+  }
+
+  @Post('categories')
+  createCategory(@Body() dto: CreateAccountingCategoryDto) {
+    return this.accountingService.createCategory(dto);
   }
 
   @Get('recurring-expenses')

@@ -23,6 +23,7 @@ import {
   AccountingPartyBalanceDirection,
 } from './accounting-party.entity';
 import { AccountingRecurringExpense } from './accounting-recurring-expense.entity';
+import { AccountingCategory } from './accounting-category.entity';
 import {
   AccountingEntry,
   AccountingEntryType,
@@ -43,6 +44,7 @@ import {
   CreateAccountingRecurringExpenseDto,
   GenerateAccountingRecurringExpenseDto,
 } from './dto/accounting-recurring-expense.dto';
+import { CreateAccountingCategoryDto } from './dto/create-accounting-category.dto';
 import { User, UserRole } from '../users/user.entity';
 
 const SUPPORTED_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
@@ -62,6 +64,8 @@ export class AccountingService {
     private readonly partyRepo: Repository<AccountingParty>,
     @InjectRepository(AccountingRecurringExpense)
     private readonly recurringExpenseRepo: Repository<AccountingRecurringExpense>,
+    @InjectRepository(AccountingCategory)
+    private readonly categoryRepo: Repository<AccountingCategory>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
@@ -330,6 +334,31 @@ export class AccountingService {
       where: { partyId: entryPartyId, voidedAt: IsNull() },
       order: { date: 'DESC', createdAt: 'DESC' },
     });
+  }
+
+  async listCategories(filters: { type?: AccountingEntryType }) {
+    const where = filters.type
+      ? { type: filters.type, isActive: true }
+      : { isActive: true };
+    return this.categoryRepo.find({
+      where,
+      order: { type: 'ASC', name: 'ASC' },
+    });
+  }
+
+  async createCategory(dto: CreateAccountingCategoryDto) {
+    if (dto.type === AccountingEntryType.TRANSFER) {
+      throw new BadRequestException('Hesaplar arası transfer için kategori oluşturulamaz');
+    }
+    const name = dto.name.trim().replace(/\s+/g, ' ');
+    if (!name) throw new BadRequestException('Kategori adı boş bırakılamaz');
+    const existing = await this.categoryRepo.findOne({ where: { type: dto.type, name } });
+    if (existing) return existing;
+    return this.categoryRepo.save(this.categoryRepo.create({
+      type: dto.type,
+      name,
+      isActive: true,
+    }));
   }
 
   async listRecurringExpenses(filters: { currency?: string }) {
