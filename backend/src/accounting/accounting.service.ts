@@ -22,6 +22,7 @@ import {
   AccountingParty,
   AccountingPartyBalanceDirection,
 } from './accounting-party.entity';
+import { AccountingRecurringExpense } from './accounting-recurring-expense.entity';
 import {
   AccountingEntry,
   AccountingEntryType,
@@ -38,6 +39,10 @@ import {
   SettleAccountingRentDto,
 } from './dto/accounting-rent.dto';
 import { CreateAccountingPartyDto } from './dto/create-accounting-party.dto';
+import {
+  CreateAccountingRecurringExpenseDto,
+  GenerateAccountingRecurringExpenseDto,
+} from './dto/accounting-recurring-expense.dto';
 import { User, UserRole } from '../users/user.entity';
 
 const SUPPORTED_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
@@ -55,6 +60,8 @@ export class AccountingService {
     private readonly rentRepo: Repository<AccountingRent>,
     @InjectRepository(AccountingParty)
     private readonly partyRepo: Repository<AccountingParty>,
+    @InjectRepository(AccountingRecurringExpense)
+    private readonly recurringExpenseRepo: Repository<AccountingRecurringExpense>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
@@ -323,6 +330,112 @@ export class AccountingService {
       where: { partyId: entryPartyId, voidedAt: IsNull() },
       order: { date: 'DESC', createdAt: 'DESC' },
     });
+  }
+
+  async listRecurringExpenses(filters: { currency?: string }) {
+    const [templates, accounts, parties] = await Promise.all([
+      this.recurringExpenseRepo.find({ where: { isActive: true }, order: { title: 'ASC' } }),
+      this.accountRepo.find(),
+      this.partyRepo.find({ where: { isActive: true } }),
+    ]);
+    const accountMap = new Map(accounts.map((account) => [account.id, account]));
+    const partyMap = new Map(parties.map((party) => [party.id, party]));
+    return templates
+      .filter((template) => !filters.currency || template.currency === filters.currency)
+      .map((template) => ({
+        ...template,
+        accountName: accountMap.get(template.defaultAccountId)?.name || null,
+        partyName: template.partyId ? partyMap.get(template.partyId)?.name || template.partyName : template.partyName,
+      }));
+  }
+
+  async createRecurringExpense(dto: CreateAccountingRecurringExpenseDto, createdBy: string) {
+    this.assertCurrency(dto.currency);
+    if (dto.endPeriod && dto.endPeriod < dto.startPeriod) {
+      throw new BadRequestException('Bitiş dönemi başlangıç döneminden önce olamaz');
+    }
+    const account = await this.getActiveAccount(dto.defaultAccountId);
+    if (account.currency !== dto.currency) {
+      throw new BadRequestException('Gider şablonu ve ödeme hesabının para birimi aynı olmalıdır');
+    }
+    let partyName: string | null = null;
+    if (dto.partyId) {
+      const party = await this.partyRepo.findOne({ where: { id: dto.partyId, isActive: true } });
+      if (!party) throw new NotFoundException('Giderin cari kartı bulunamadı');
+      if (party.currency !== dto.currency) throw new BadRequestException('Gider şablonu ve cari kartın para birimi aynı olmalıdır');
+      partyName = party.name;
+    }
+    const template = this.recurringExpenseRepo.create({
+      title: dto.title.trim(),
+      category: dto.category.trim(),
+      amount: this.money(dto.amount),
+      currency: dto.currency,
+      dueDay: dto.dueDay,
+      startPeriod: dto.startPeriod,
+      endPeriod: dto.endPeriod || null,
+      defaultAccountId: account.id,
+      partyId: dto.partyId || null,
+      partyName,
+      isActive: true,
+    });
+    return this.recurringExpenseRepo.save(template);
+  }
+
+  async generateRecurringExpenses(dto: GenerateAccountingRecurringExpenseDto, createdBy: string) {
+    this.assertCurrency(dto.currency);
+    const [templates, accounts, parties, existing] = await Promise.all([
+      this.recurringExpenseRepo.find({ where: { isActive: true, currency: dto.currency } }),
+      this.accountRepo.find({ where: { isActive: true, currency: dto.currency } }),
+      this.partyRepo.find({ where: { isActive: true } }),
+      this.entryRepo.find({ where: { sourceType: 'accounting_recurring_expense' } }),
+    ]);
+    const accountMap = new Map(accounts.map((account) => [account.id, account]));
+    const partyMap = new Map(parties.map((party) => [party.id, party]));
+    const existingKeys = new Set(existing.map((entry) => entry.sourceKey).filter(Boolean));
+    const entries: AccountingEntry[] = [];
+    let skipped = 0;
+
+    for (const template of templates) {
+      if (dto.period < template.startPeriod || (template.endPeriod && dto.period > template.endPeriod)) {
+        skipped++;
+        continue;
+      }
+      const sourceKey = `recurring-expense:${template.id}:${dto.period}`;
+      if (existingKeys.has(sourceKey)) {
+        skipped++;
+        continue;
+      }
+      const account = accountMap.get(template.defaultAccountId);
+      if (!account) {
+        skipped++;
+        continue;
+      }
+      const [year, month] = dto.period.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      const dueDay = Math.min(template.dueDay, lastDay);
+      const party = template.partyId ? partyMap.get(template.partyId) : null;
+      entries.push(this.entryRepo.create({
+        type: AccountingEntryType.EXPENSE,
+        date: `${dto.period}-${String(dueDay).padStart(2, '0')}`,
+        amount: template.amount,
+        currency: template.currency,
+        accountId: account.id,
+        counterAccountId: null,
+        category: template.category,
+        partyType: party?.type || null,
+        partyId: party?.linkedUserId || party?.id || null,
+        partyName: party?.name || template.partyName || null,
+        description: `${template.title} · ${dto.period}`,
+        referenceNo: null,
+        sourceKey,
+        sourceType: 'accounting_recurring_expense',
+        sourceId: template.id,
+        createdBy,
+        voidedAt: null,
+      }));
+    }
+    if (entries.length > 0) await this.entryRepo.save(entries, { chunk: 100 });
+    return { period: dto.period, currency: dto.currency, created: entries.length, skipped };
   }
 
   async listCommissions() {

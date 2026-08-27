@@ -25,6 +25,10 @@ import {
 } from './dto/accounting-rent.dto';
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
 import { CreateAccountingPartyDto } from './dto/create-accounting-party.dto';
+import {
+  CreateAccountingRecurringExpenseDto,
+  GenerateAccountingRecurringExpenseDto,
+} from './dto/accounting-recurring-expense.dto';
 
 @Controller('accounting')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -106,6 +110,21 @@ export class AccountingController {
   @Get('parties/:id/entries')
   listPartyEntries(@Param('id') id: string) {
     return this.accountingService.listPartyEntries(id);
+  }
+
+  @Get('recurring-expenses')
+  listRecurringExpenses(@Query('currency') currency?: string) {
+    return this.accountingService.listRecurringExpenses({ currency });
+  }
+
+  @Post('recurring-expenses')
+  createRecurringExpense(@Body() dto: CreateAccountingRecurringExpenseDto, @Req() req: any) {
+    return this.accountingService.createRecurringExpense(dto, req.user.userId);
+  }
+
+  @Post('recurring-expenses/generate')
+  generateRecurringExpenses(@Body() dto: GenerateAccountingRecurringExpenseDto, @Req() req: any) {
+    return this.accountingService.generateRecurringExpenses(dto, req.user.userId);
   }
 
   @Get('commissions')
