@@ -666,6 +666,49 @@ button {
   min-height: 60px;
 }
 
+.accounting-amount-hint {
+  min-height: 15px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.accounting-save-notice {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid #9bc4a5;
+  border-left: 4px solid var(--success);
+  border-radius: 6px;
+  background: #e6f4ea;
+  color: #245c32;
+}
+
+.accounting-save-notice__title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.accounting-save-notice__summary {
+  margin-top: 3px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.accounting-save-notice__details {
+  margin-top: 3px;
+  color: #477354;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.accounting-recurring-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* --- Wizard: Öne Çıkan Özellikler (checkbox) ızgarası --- */
 .feature-grid {
   display: grid;
@@ -901,6 +944,15 @@ button {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  .accounting-recurring-actions {
+    width: 100%;
+  }
+  .accounting-recurring-actions .form-field {
+    flex: 1 1 150px;
+  }
+  .accounting-recurring-actions .btn {
+    flex: 1 1 190px;
   }
   .folder-tab {
     padding: 8px 12px 7px;

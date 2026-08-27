@@ -189,6 +189,65 @@ function FormField({ label, children, style }) {
   );
 }
 
+function parseAccountingAmount(value) {
+  if (typeof value === 'number') return value;
+  const raw = String(value ?? '').trim().replace(/\s/g, '');
+  if (!raw) return NaN;
+  if (raw.includes(',')) return Number(raw.replace(/\./g, '').replace(',', '.'));
+  const dotParts = raw.split('.');
+  if (dotParts.length > 1 && dotParts.slice(1).every((part) => part.length === 3)) {
+    return Number(dotParts.join(''));
+  }
+  return Number(raw);
+}
+
+function addMonthsToDate(dateString, count = 1) {
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  date.setMonth(date.getMonth() + count);
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftPeriod(period, count = 1) {
+  const [year, month] = period.split('-').map(Number);
+  const date = new Date(year, month - 1 + count, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function AmountInput({ value, currency, onChange, id, ...props }) {
+  const parsed = parseAccountingAmount(value);
+  const hintId = id ? `${id}-hint` : undefined;
+  return (
+    <>
+      <input
+        {...props}
+        id={id}
+        type="text"
+        inputMode="decimal"
+        value={value ?? ''}
+        onChange={onChange}
+        aria-describedby={hintId}
+      />
+      <div id={hintId} className="accounting-amount-hint" aria-live="polite">
+        {value && Number.isFinite(parsed)
+          ? `Görünen tutar: ${formatAccountingMoney(parsed, currency)}`
+          : 'Nokta veya virgül kullanabilirsiniz; sistem tutarı böyle gösterecek.'}
+      </div>
+    </>
+  );
+}
+
+function SavedRecordNotice({ notice }) {
+  if (!notice) return null;
+  return (
+    <div className="accounting-save-notice" role="status" aria-live="polite">
+      <div className="accounting-save-notice__title">Kayıt oldu</div>
+      <div className="accounting-save-notice__summary">{notice.title}</div>
+      <div className="accounting-save-notice__details">{notice.details}</div>
+    </div>
+  );
+}
+
 export default function AccountingPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [period, setPeriod] = useState(getCurrentPeriod());
@@ -198,7 +257,9 @@ export default function AccountingPage() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [entrySaveNotice, setEntrySaveNotice] = useState(null);
   const [accountSaving, setAccountSaving] = useState(false);
+  const [accountSaveNotice, setAccountSaveNotice] = useState(null);
   const [error, setError] = useState('');
   const [entryForm, setEntryForm] = useState(EMPTY_ENTRY_FORM);
   const [accountForm, setAccountForm] = useState({
@@ -213,6 +274,7 @@ export default function AccountingPage() {
   const [commissions, setCommissions] = useState([]);
   const [commissionLoading, setCommissionLoading] = useState(false);
   const [commissionSaving, setCommissionSaving] = useState(false);
+  const [commissionSaveNotice, setCommissionSaveNotice] = useState(null);
   const [commissionActionId, setCommissionActionId] = useState(null);
   const [commissionForm, setCommissionForm] = useState(EMPTY_COMMISSION_FORM);
   const [settlementAccounts, setSettlementAccounts] = useState({});
@@ -228,6 +290,8 @@ export default function AccountingPage() {
   const [partyTypeFilter, setPartyTypeFilter] = useState('all');
   const [partyPage, setPartyPage] = useState(1);
   const [partySaving, setPartySaving] = useState(false);
+  const [partySaveNotice, setPartySaveNotice] = useState(null);
+  const [partnerSaveNotice, setPartnerSaveNotice] = useState(null);
   const [masterSaving, setMasterSaving] = useState(false);
   const [partyForm, setPartyForm] = useState({
     type: 'partner',
@@ -252,7 +316,10 @@ export default function AccountingPage() {
   const [recurringExpenses, setRecurringExpenses] = useState([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [recurringSaving, setRecurringSaving] = useState(false);
+  const [recurringSaveNotice, setRecurringSaveNotice] = useState(null);
   const [recurringGenerating, setRecurringGenerating] = useState(false);
+  const [recurringGenerateNotice, setRecurringGenerateNotice] = useState(null);
+  const [recurringPeriodCount, setRecurringPeriodCount] = useState('1');
   const [reportFromPeriod, setReportFromPeriod] = useState(getCurrentPeriod());
   const [reportToPeriod, setReportToPeriod] = useState(getCurrentPeriod());
   const [managementReport, setManagementReport] = useState(null);
@@ -543,6 +610,7 @@ export default function AccountingPage() {
 
   function handleEntryChange(event) {
     const { name, value } = event.target;
+    setEntrySaveNotice(null);
     setEntryForm((previous) => {
       const next = { ...previous, [name]: value };
       if (name === 'currency') {
@@ -582,8 +650,9 @@ export default function AccountingPage() {
       setError('Önce bir ortak cari kartı seçin.');
       return;
     }
-    if (!partnerMovementForm.amount || Number(partnerMovementForm.amount) <= 0) {
-      setError('Ortak hareket tutarı sıfırdan büyük olmalıdır.');
+    const partnerAmount = parseAccountingAmount(partnerMovementForm.amount);
+    if (!Number.isFinite(partnerAmount) || partnerAmount <= 0) {
+      setError('Ortak hareket tutarı sıfırdan büyük olmalıdır. Örn. 170000 veya 170.000 yazabilirsiniz.');
       return;
     }
     if (!partnerMovementForm.accountId) {
@@ -597,7 +666,7 @@ export default function AccountingPage() {
       await accountingApi.createEntry({
         type: movement.type,
         date: partnerMovementForm.date,
-        amount: Number(partnerMovementForm.amount),
+        amount: partnerAmount,
         currency: partnerMovementForm.currency,
         accountId: partnerMovementForm.accountId,
         category: movement.category,
@@ -605,6 +674,10 @@ export default function AccountingPage() {
         partyId: party.id,
         partyName: party.name,
         description: partnerMovementForm.description.trim() || movement.label,
+      });
+      setPartnerSaveNotice({
+        title: `${movement.label} kaydedildi`,
+        details: `${party.name} · ${formatAccountingMoney(partnerAmount, partnerMovementForm.currency)} · ${formatDate(partnerMovementForm.date)}`,
       });
       setPartnerMovementForm({
         partyId: '',
@@ -629,6 +702,12 @@ export default function AccountingPage() {
       setError('Cari kart adı boş bırakılamaz.');
       return;
     }
+    const openingBalance = partyForm.openingBalance ? parseAccountingAmount(partyForm.openingBalance) : 0;
+    if (!Number.isFinite(openingBalance) || openingBalance < 0) {
+      setError('Açılış bakiyesi geçerli bir tutar olmalıdır. Örn. 170000 veya 170.000 yazabilirsiniz.');
+      return;
+    }
+    setPartySaveNotice(null);
     setPartySaving(true);
     setError('');
     try {
@@ -638,7 +717,11 @@ export default function AccountingPage() {
         companyName: partyForm.companyName.trim() || undefined,
         phone: partyForm.phone.trim() || undefined,
         taxId: partyForm.taxId.trim() || undefined,
-        openingBalance: partyForm.openingBalance ? Number(partyForm.openingBalance) : 0,
+        openingBalance,
+      });
+      setPartySaveNotice({
+        title: 'Cari kart kaydedildi',
+        details: `${partyForm.name.trim()} · ${partyForm.currency}${openingBalance > 0 ? ` · Açılış: ${formatAccountingMoney(openingBalance, partyForm.currency)}` : ''}`,
       });
       setPartyForm({
         type: 'partner',
@@ -679,8 +762,9 @@ export default function AccountingPage() {
       setError('Tekrarlayan gider adı boş bırakılamaz.');
       return;
     }
-    if (!recurringForm.amount || Number(recurringForm.amount) <= 0) {
-      setError('Tekrarlayan gider tutarı sıfırdan büyük olmalıdır.');
+    const recurringAmount = parseAccountingAmount(recurringForm.amount);
+    if (!Number.isFinite(recurringAmount) || recurringAmount <= 0) {
+      setError('Tekrarlayan gider tutarı sıfırdan büyük olmalıdır. Örn. 170000 veya 170.000 yazabilirsiniz.');
       return;
     }
     if (!recurringForm.defaultAccountId) {
@@ -704,13 +788,17 @@ export default function AccountingPage() {
       await accountingApi.createRecurringExpense({
         title: recurringForm.title.trim(),
         category: selectedCategory,
-        amount: Number(recurringForm.amount),
+        amount: recurringAmount,
         currency: recurringForm.currency,
         dueDay: Number(recurringForm.dueDay),
         startPeriod: recurringForm.startPeriod,
         endPeriod: recurringForm.endPeriod || undefined,
         defaultAccountId: recurringForm.defaultAccountId,
         partyId: recurringForm.partyId || undefined,
+      });
+      setRecurringSaveNotice({
+        title: 'Tekrarlayan gider şablonu kaydedildi',
+        details: `${recurringForm.title.trim()} · ${formatAccountingMoney(recurringAmount, recurringForm.currency)} · ${periodLabel(recurringForm.startPeriod)} başlangıç`,
       });
       setRecurringForm({
         title: '',
@@ -733,13 +821,25 @@ export default function AccountingPage() {
   }
 
   async function handleGenerateRecurringExpenses() {
-    if (!window.confirm(`${periodLabel(period)} dönemi için ${currency} tekrarlayan giderleri oluşturulsun mu? Aynı gider ikinci kez oluşturulmaz.`)) return;
+    const periodCount = Math.max(1, Math.min(12, Number(recurringPeriodCount) || 1));
+    const lastPeriod = shiftPeriod(period, periodCount - 1);
+    const rangeLabel = periodCount === 1 ? periodLabel(period) : `${periodLabel(period)} – ${periodLabel(lastPeriod)}`;
+    if (!window.confirm(`${rangeLabel} için ${currency} tekrarlayan giderleri oluşturulsun mu? Aynı gider ikinci kez oluşturulmaz.`)) return;
     setRecurringGenerating(true);
+    setRecurringGenerateNotice(null);
     setError('');
     try {
-      const result = await accountingApi.generateRecurringExpenses({ period, currency });
+      const results = [];
+      for (let index = 0; index < periodCount; index += 1) {
+        results.push(await accountingApi.generateRecurringExpenses({ period: shiftPeriod(period, index), currency }));
+      }
+      const created = results.reduce((sum, result) => sum + Number(result.created || 0), 0);
+      const skipped = results.reduce((sum, result) => sum + Number(result.skipped || 0), 0);
+      setRecurringGenerateNotice({
+        title: 'Tekrarlayan giderler işlendi',
+        details: `${rangeLabel} · ${created} kayıt oluşturuldu · ${skipped} kayıt zaten vardı veya atlandı`,
+      });
       await Promise.all([loadRecurringExpenses(), loadData()]);
-      window.alert(`${result.created || 0} gider oluşturuldu, ${result.skipped || 0} kayıt atlandı.`);
     } catch (generateError) {
       setError(generateError.response?.data?.message || 'Tekrarlayan giderler oluşturulamadı.');
     } finally {
@@ -819,8 +919,9 @@ export default function AccountingPage() {
 
   async function handleCreateEntry(event) {
     event.preventDefault();
-    if (!entryForm.amount || Number(entryForm.amount) <= 0) {
-      setError('Tutar sıfırdan büyük olmalıdır.');
+    const entryAmount = parseAccountingAmount(entryForm.amount);
+    if (!Number.isFinite(entryAmount) || entryAmount <= 0) {
+      setError('Tutar sıfırdan büyük olmalıdır. Örn. 170000 veya 170.000 yazabilirsiniz.');
       return;
     }
     if (!entryForm.accountId) {
@@ -858,7 +959,7 @@ export default function AccountingPage() {
       const { customCategory: _customCategory, ...entryPayload } = entryForm;
       const normalizedPayload = {
         ...entryPayload,
-        amount: Number(entryForm.amount),
+        amount: entryAmount,
         category: entryForm.type === 'transfer' ? 'Hesaplar Arası Transfer' : selectedCategory,
         partyType: entryForm.type === 'transfer' ? undefined : selectedParty?.type,
         partyId: entryForm.type === 'transfer' ? undefined : selectedParty ? (selectedParty.linkedUserId || selectedParty.id) : undefined,
@@ -876,6 +977,12 @@ export default function AccountingPage() {
         await accountingApi.createEntry({ ...normalizedPayload, idempotencyKey });
       }
       entryIdempotencyKeyRef.current = null;
+      const savedEntryAccount = accounts.find((account) => account.id === entryForm.accountId);
+      const savedEntryCounterAccount = accounts.find((account) => account.id === entryForm.counterAccountId);
+      setEntrySaveNotice({
+        title: editingEntry ? 'Muhasebe hareketi düzeltildi' : 'Muhasebe hareketi kaydedildi',
+        details: `${entryTypeLabel(entryForm.type)} · ${formatAccountingMoney(entryAmount, entryForm.currency)} · ${savedEntryAccount?.name || 'Hesap'}${savedEntryCounterAccount ? ` → ${savedEntryCounterAccount.name}` : ''} · ${formatDate(entryForm.date)}`,
+      });
       setEditingEntry(null);
       setCorrectionReason('');
       setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
@@ -945,8 +1052,9 @@ export default function AccountingPage() {
 
   async function handleCreateCommission(event) {
     event.preventDefault();
-    if (!commissionForm.agentId || !commissionForm.grossAmount || Number(commissionForm.grossAmount) <= 0) {
-      setError('Danışman ve sıfırdan büyük brüt komisyon tutarı seçilmelidir.');
+    const grossAmount = parseAccountingAmount(commissionForm.grossAmount);
+    if (!commissionForm.agentId || !Number.isFinite(grossAmount) || grossAmount <= 0) {
+      setError('Danışman ve sıfırdan büyük brüt komisyon tutarı seçilmelidir. Örn. 170000 veya 170.000 yazabilirsiniz.');
       return;
     }
     setCommissionSaving(true);
@@ -959,9 +1067,14 @@ export default function AccountingPage() {
       await accountingApi.createCommission({
         ...commissionForm,
         idempotencyKey,
-        grossAmount: Number(commissionForm.grossAmount),
+        grossAmount,
         propertyTitle: commissionForm.propertyTitle.trim() || undefined,
         notes: commissionForm.notes.trim() || undefined,
+      });
+      const savedAgent = agents.find((agent) => agent.id === commissionForm.agentId);
+      setCommissionSaveNotice({
+        title: 'Komisyon kapaması kaydedildi',
+        details: `${savedAgent?.name || 'Danışman'} · ${formatAccountingMoney(grossAmount, commissionForm.currency)} · ${formatDate(commissionForm.date)}`,
       });
       setCommissionForm({ ...EMPTY_COMMISSION_FORM, date: new Date().toISOString().slice(0, 10), currency });
       commissionIdempotencyKeyRef.current = null;
@@ -1091,7 +1204,7 @@ export default function AccountingPage() {
     if (title === null) return;
     const amountText = window.prompt('Aylık tutar:', String(template.amount));
     if (amountText === null) return;
-    const amount = Number(amountText.replace(',', '.'));
+    const amount = parseAccountingAmount(amountText);
     if (!title.trim() || !Number.isFinite(amount) || amount <= 0) { setError('Gider adı ve tutarı geçerli olmalıdır.'); return; }
     setMasterSaving(true);
     setError('');
@@ -1127,6 +1240,12 @@ export default function AccountingPage() {
       setError('Hesap adı zorunludur.');
       return;
     }
+    const openingBalance = accountForm.openingBalance ? parseAccountingAmount(accountForm.openingBalance) : 0;
+    if (!Number.isFinite(openingBalance) || openingBalance < 0) {
+      setError('Açılış bakiyesi geçerli bir tutar olmalıdır. Örn. 170000 veya 170.000 yazabilirsiniz.');
+      return;
+    }
+    setAccountSaveNotice(null);
     setAccountSaving(true);
     setError('');
     try {
@@ -1135,7 +1254,11 @@ export default function AccountingPage() {
         name: accountForm.name.trim(),
         bankName: accountForm.bankName.trim() || undefined,
         iban: accountForm.iban.trim() || undefined,
-        openingBalance: accountForm.openingBalance ? Number(accountForm.openingBalance) : 0,
+        openingBalance,
+      });
+      setAccountSaveNotice({
+        title: 'Muhasebe hesabı kaydedildi',
+        details: `${accountForm.name.trim()} · ${accountForm.currency}${openingBalance > 0 ? ` · Açılış: ${formatAccountingMoney(openingBalance, accountForm.currency)}` : ''}`,
       });
       setAccountForm({ ...accountForm, name: '', bankName: '', iban: '', openingBalance: '' });
       setActiveTab('accounts');
@@ -1273,7 +1396,7 @@ export default function AccountingPage() {
                 <input type="date" name="date" value={entryForm.date} onChange={handleEntryChange} required />
               </FormField>
               <FormField label="Tutar">
-                <input type="number" name="amount" min="0.01" step="0.01" value={entryForm.amount} onChange={handleEntryChange} placeholder="0,00" required />
+                <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
               <FormField label="Para birimi">
                 <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
@@ -1335,6 +1458,7 @@ export default function AccountingPage() {
               </button>
               {editingEntry && <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>}
             </form>
+            <SavedRecordNotice notice={entrySaveNotice} />
             {currencyAccounts.length === 0 && (
               <p style={{ color: 'var(--danger)', fontSize: 13, margin: '12px 0 0' }}>
                 Bu para biriminde henüz hesap yok. Önce Hesaplar sekmesinden bir hesap oluşturun.
@@ -1442,12 +1566,13 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               <FormField label="Açılış bakiyesi">
-                <input type="number" min="0" step="0.01" value={accountForm.openingBalance} onChange={(event) => setAccountForm({ ...accountForm, openingBalance: event.target.value })} placeholder="0,00" />
+                <AmountInput id="accounting-account-opening-balance" value={accountForm.openingBalance} currency={accountForm.currency} onChange={(event) => setAccountForm({ ...accountForm, openingBalance: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" />
               </FormField>
               <button type="submit" className="btn btn-primary" disabled={accountSaving}>
                 {accountSaving ? 'Ekleniyor…' : '+ Hesap Ekle'}
               </button>
             </form>
+            <SavedRecordNotice notice={accountSaveNotice} />
           </div>
 
           <div className="folder-panel">
@@ -1527,7 +1652,8 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               <FormField label="Açılış bakiyesi" style={{ minWidth: 150 }}>
-                <input type="number" min="0" step="0.01" value={partyForm.openingBalance} onChange={(event) => setPartyForm({ ...partyForm, openingBalance: event.target.value })} placeholder="0" />
+                                  <AmountInput id="accounting-party-opening-balance" value={partyForm.openingBalance} currency={partyForm.currency} onChange={(event) => setPartyForm({ ...partyForm, openingBalance: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" />
+
               </FormField>
               <FormField label="Açılış yönü">
                 <select value={partyForm.openingBalanceDirection} onChange={(event) => setPartyForm({ ...partyForm, openingBalanceDirection: event.target.value })}>
@@ -1539,6 +1665,7 @@ export default function AccountingPage() {
                 {partySaving ? 'Kaydediliyor…' : 'Cari Kart Ekle'}
               </button>
             </form>
+            <SavedRecordNotice notice={partySaveNotice} />
           </div>
 
           <div className="folder-panel" style={{ display: partyStatement ? 'none' : undefined }}>
@@ -1725,7 +1852,7 @@ export default function AccountingPage() {
                 <input type="date" value={commissionForm.date} onChange={(event) => setCommissionForm({ ...commissionForm, date: event.target.value })} required />
               </FormField>
               <FormField label="Brüt komisyon" style={{ minWidth: 170 }}>
-                <input type="number" min="0.01" step="0.01" value={commissionForm.grossAmount} onChange={(event) => setCommissionForm({ ...commissionForm, grossAmount: event.target.value })} placeholder="Örn. 100" required />
+                <AmountInput id="accounting-commission-gross-amount" value={commissionForm.grossAmount} currency={commissionForm.currency} onChange={(event) => setCommissionForm({ ...commissionForm, grossAmount: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
               <FormField label="Para birimi">
                 <select value={commissionForm.currency} onChange={(event) => setCommissionForm({ ...commissionForm, currency: event.target.value })}>
@@ -1739,6 +1866,7 @@ export default function AccountingPage() {
                 {commissionSaving ? 'Kaydediliyor…' : 'Komisyonu Kaydet'}
               </button>
             </form>
+            <SavedRecordNotice notice={commissionSaveNotice} />
           </div>
 
           <div className="folder-panel">
@@ -1935,7 +2063,8 @@ export default function AccountingPage() {
                 Önce Cari Kartlar sekmesinden kart türü “Ortak” olan bir cari kart oluşturun.
               </div>
             ) : (
-              <form onSubmit={handleCreatePartnerMovement} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <>
+                <form onSubmit={handleCreatePartnerMovement} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <FormField label="Ortak" style={{ minWidth: 210 }}>
                   <select value={partnerMovementForm.partyId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, partyId: event.target.value })} required>
                     <option value="">Ortak seçin</option>
@@ -1951,7 +2080,7 @@ export default function AccountingPage() {
                   <input type="date" value={partnerMovementForm.date} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, date: event.target.value })} required />
                 </FormField>
                 <FormField label="Tutar" style={{ minWidth: 150 }}>
-                  <input type="number" min="0.01" step="0.01" value={partnerMovementForm.amount} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, amount: event.target.value })} placeholder="Örn. 10.000" required />
+                  <AmountInput id="accounting-partner-movement-amount" value={partnerMovementForm.amount} currency={partnerMovementForm.currency} onChange={(event) => { setPartnerSaveNotice(null); setPartnerMovementForm({ ...partnerMovementForm, amount: event.target.value }); }} placeholder="Örn. 170000 veya 170.000,00" required />
                 </FormField>
                 <FormField label="Para birimi">
                   <select value={partnerMovementForm.currency} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, currency: event.target.value, accountId: '' })}>
@@ -1971,6 +2100,8 @@ export default function AccountingPage() {
                   {partnerSaving ? 'Kaydediliyor…' : 'Ortak Hareketini Kaydet'}
                 </button>
               </form>
+                <SavedRecordNotice notice={partnerSaveNotice} />
+              </>
             )}
           </div>
 
@@ -2025,12 +2156,23 @@ export default function AccountingPage() {
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni tekrarlayan gider</h3>
                 <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
-                  Kira, elektrik, su, internet gibi düzenli giderleri şablon olarak tanımlayın. Gerçek gider seçilen dönemde bir kez oluşturulur.
+                  Kira, aidat, elektrik, su, internet gibi düzenli giderleri bir kez şablon olarak kaydedin. Üstten kaç ay seçerseniz seçtiğiniz dönemler için aynı tutarlarla otomatik oluşturulur; aynı kayıt ikinci kez oluşmaz.
                 </p>
               </div>
-              <button type="button" className="btn btn-secondary" onClick={handleGenerateRecurringExpenses} disabled={recurringGenerating}>
-                {recurringGenerating ? 'Oluşturuluyor…' : `${periodLabel(period)} giderlerini oluştur`}
-              </button>
+              <div className="accounting-recurring-actions">
+                <FormField label="Kaç ay oluşturulsun?" style={{ minWidth: 150 }}>
+                  <select value={recurringPeriodCount} onChange={(event) => setRecurringPeriodCount(event.target.value)} aria-label="Kaç ay oluşturulsun">
+                    <option value="1">1 ay</option>
+                    <option value="2">2 ay</option>
+                    <option value="3">3 ay</option>
+                    <option value="6">6 ay</option>
+                    <option value="12">12 ay</option>
+                  </select>
+                </FormField>
+                <button type="button" className="btn btn-secondary" onClick={handleGenerateRecurringExpenses} disabled={recurringGenerating}>
+                  {recurringGenerating ? 'Oluşturuluyor…' : recurringPeriodCount === '1' ? `${periodLabel(period)} giderini oluştur` : `${recurringPeriodCount} aylık giderleri oluştur`}
+                </button>
+              </div>
             </div>
             <form onSubmit={handleCreateRecurringExpense} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <FormField label="Gider adı" style={{ minWidth: 210 }}>
@@ -2048,7 +2190,7 @@ export default function AccountingPage() {
                 </FormField>
               )}
               <FormField label="Aylık tutar" style={{ minWidth: 140 }}>
-                <input type="number" min="0.01" step="0.01" value={recurringForm.amount} onChange={(event) => setRecurringForm({ ...recurringForm, amount: event.target.value })} placeholder="0,00" required />
+                <AmountInput id="accounting-recurring-amount" value={recurringForm.amount} currency={recurringForm.currency} onChange={(event) => { setRecurringSaveNotice(null); setRecurringForm({ ...recurringForm, amount: event.target.value }); }} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
               <FormField label="Para birimi">
                 <select value={recurringForm.currency} onChange={(event) => setRecurringForm({ ...recurringForm, currency: event.target.value, defaultAccountId: '', partyId: '' })}>
@@ -2083,6 +2225,8 @@ export default function AccountingPage() {
                 {recurringSaving ? 'Kaydediliyor…' : 'Şablonu Kaydet'}
               </button>
             </form>
+            <SavedRecordNotice notice={recurringSaveNotice} />
+            <SavedRecordNotice notice={recurringGenerateNotice} />
             {accounts.filter((account) => account.currency === recurringForm.currency && account.isActive !== false).length === 0 && (
               <p style={{ color: 'var(--danger)', fontSize: 13, margin: '12px 0 0' }}>Bu para biriminde hesap yok. Önce Hesaplar sekmesinden hesap oluşturun.</p>
             )}
