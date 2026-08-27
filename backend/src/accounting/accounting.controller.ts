@@ -14,6 +14,7 @@ import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { AccountingEntryType } from './accounting-entry.entity';
 import { AccountingService } from './accounting.service';
+import { AccountingMigrationService } from './accounting-migration.service';
 import { CreateAccountingAccountDto } from './dto/create-accounting-account.dto';
 import {
   CreateAccountingCommissionDto,
@@ -35,7 +36,15 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.BROKER)
 export class AccountingController {
-  constructor(private readonly accountingService: AccountingService) {}
+  constructor(
+    private readonly accountingService: AccountingService,
+    private readonly migrationService: AccountingMigrationService,
+  ) {}
+
+  @Get('migration/preview')
+  getMigrationPreview() {
+    return this.migrationService.preview();
+  }
 
   @Get('accounts')
   listAccounts() {
