@@ -6,10 +6,11 @@ import { BankAccountsService } from './bank-accounts.service';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { UserRole } from '../users/user.entity';
 
 @Controller('bank-accounts')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('broker')
+@Roles(UserRole.BROKER)
 export class BankAccountsController {
   constructor(private readonly bankAccountsService: BankAccountsService) {}
 

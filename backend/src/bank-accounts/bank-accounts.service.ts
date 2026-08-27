@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { BankAccount } from './bank-account.entity';
+import { BankAccount, AccountType } from './bank-account.entity';
 import { BankTransaction, BankTransactionType } from './bank-transaction.entity';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
@@ -16,12 +16,11 @@ export class BankAccountsService {
 
   async create(dto: CreateBankAccountDto): Promise<BankAccount> {
     const account = this.accountRepo.create({
-      bankName: dto.bankName,
+      bankName: dto.bankName || null,
       accountName: dto.accountName,
       iban: dto.iban || null,
       currency: dto.currency || 'TRY',
-      accountType: dto.accountType || 'bank',
-      initialBalance: dto.initialBalance || 0,
+      type: (dto.type || AccountType.BANK) as AccountType,
     });
     return this.accountRepo.save(account);
   }
@@ -36,7 +35,7 @@ export class BankAccountsService {
         const amt = Number(t.amount);
         return t.type === BankTransactionType.DEPOSIT ? sum + amt : sum - amt;
       }, 0);
-      const currentBalance = Number(acc.initialBalance || 0) + txSum;
+      const currentBalance = txSum;
       return { ...acc, currentBalance };
     });
   }
@@ -50,7 +49,7 @@ export class BankAccountsService {
       const amt = Number(t.amount);
       return t.type === BankTransactionType.DEPOSIT ? sum + amt : sum - amt;
     }, 0);
-    const currentBalance = Number(acc.initialBalance || 0) + txSum;
+    const currentBalance = txSum;
     return { ...acc, currentBalance };
   }
 
@@ -62,8 +61,8 @@ export class BankAccountsService {
     if (dto.accountName !== undefined) acc.accountName = dto.accountName;
     if (dto.iban !== undefined) acc.iban = dto.iban || null;
     if (dto.currency !== undefined) acc.currency = dto.currency;
-    if (dto.accountType !== undefined) acc.accountType = dto.accountType;
-    if (dto.initialBalance !== undefined) acc.initialBalance = dto.initialBalance;
+    if (dto.type !== undefined) acc.type = dto.type as AccountType;
+    if (dto.isActive !== undefined) acc.isActive = dto.isActive;
 
     return this.accountRepo.save(acc);
   }

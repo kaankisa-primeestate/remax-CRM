@@ -19,6 +19,7 @@ import RequestsPage from './pages/RequestsPage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
 import TransactionDetailPage from './pages/TransactionDetailPage.jsx';
 import FinancePage from './pages/FinancePage.jsx';
+import AccountingPage from './pages/AccountingPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
@@ -47,6 +48,7 @@ const BROKER_NAV = [
   { to: '/talepler', label: 'Sıcak Fırsatlar', icon: '🔥' },
   { to: '/islemler', label: 'İşlemler', icon: '🔄' },
   { to: '/finans', label: 'Finans', icon: '💵' },
+  { to: '/muhasebe', label: 'Muhasebe', icon: '📒' },
   { to: '/aidatlar', label: 'Danışman Aidatları', icon: '🧾' },
   { to: '/raporlar', label: 'Raporlar', icon: '📊' },
   { to: '/piyasa', label: 'Piyasa', icon: '💹' },
@@ -317,6 +319,14 @@ export default function App() {
               element={
                 <ProtectedRoute brokerOnly>
                   <FinancePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/muhasebe"
+              element={
+                <ProtectedRoute brokerOnly>
+                  <AccountingPage />
                 </ProtectedRoute>
               }
             />

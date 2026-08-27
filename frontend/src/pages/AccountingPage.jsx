@@ -1,0 +1,784 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ACCOUNTING_ACCOUNT_TYPES,
+  ACCOUNTING_CURRENCIES,
+  ACCOUNTING_ENTRY_TYPES,
+  accountingApi,
+  formatAccountingMoney,
+} from '../api/accounting';
+import { usersApi } from '../api/auth';
+
+const ACCOUNTING_TABS = [
+  { key: 'summary', label: 'Özet' },
+  { key: 'entries', label: 'Hareketler' },
+  { key: 'ledgers', label: 'Cari Kartlar' },
+  { key: 'commissions', label: 'Komisyonlar' },
+  { key: 'dues', label: 'Danışman Kiraları' },
+  { key: 'partners', label: 'Ortaklar' },
+  { key: 'accounts', label: 'Hesaplar' },
+  { key: 'recurring', label: 'Tekrarlayanlar' },
+  { key: 'reports', label: 'Raporlar' },
+];
+
+const MODULE_AREAS = [
+  {
+    title: 'Komisyon ve hakediş',
+    description: 'Kapama sırasında girilen brüt komisyonu, danışman kaydındaki oranla otomatik paylaştırır.',
+  },
+  {
+    title: 'Danışman kiraları',
+    description: 'Danışman kaydındaki tutar ve başlangıç ayından itibaren her dönemi tek kez oluşturur.',
+  },
+  {
+    title: 'Cari ve ortak hareketleri',
+    description: 'Danışman, ortak ve tedarikçi bakiyelerini para hesabı hareketlerinden ayrı izler.',
+  },
+  {
+    title: 'Banka, kasa ve kredi kartı',
+    description: 'TL, EUR ve USD hesaplarını birbirine karıştırmadan ayrı bakiyeler hâlinde gösterir.',
+  },
+];
+
+const EMPTY_COMMISSION_FORM = {
+  agentId: '',
+  transactionType: 'sale',
+  date: new Date().toISOString().slice(0, 10),
+  grossAmount: '',
+  currency: 'TRY',
+  propertyTitle: '',
+  notes: '',
+};
+
+const EMPTY_ENTRY_FORM = {
+  type: 'income',
+  date: new Date().toISOString().slice(0, 10),
+  amount: '',
+  currency: 'TRY',
+  accountId: '',
+  counterAccountId: '',
+  category: 'Genel',
+  partyName: '',
+  description: '',
+  referenceNo: '',
+};
+
+function getCurrentPeriod() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function periodLabel(period) {
+  if (!period) return '';
+  const [year, month] = period.split('-');
+  return new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(
+    new Date(Number(year), Number(month) - 1, 1),
+  );
+}
+
+function getPeriodBounds(period) {
+  if (!period) return {};
+  const [year, month] = period.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return {
+    from: `${period}-01`,
+    to: `${period}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
+function formatDate(date) {
+  if (!date) return '—';
+  return new Intl.DateTimeFormat('tr-TR').format(new Date(`${date}T00:00:00`));
+}
+
+function entryTypeLabel(type) {
+  return ACCOUNTING_ENTRY_TYPES.find((item) => item.value === type)?.label || type;
+}
+
+function EmptyTab({ title, description }) {
+  return (
+    <div className="folder-panel" style={{ padding: 28, textAlign: 'center' }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--ink-navy)', marginBottom: 8 }}>
+        {title}
+      </div>
+      <p style={{ color: 'var(--muted)', maxWidth: 560, margin: '0 auto', fontSize: 14 }}>
+        {description}
+      </p>
+      <div style={{ marginTop: 18, color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        Bu bölüm bir sonraki geliştirme adımında bağlanacak
+      </div>
+    </div>
+  );
+}
+
+function FormField({ label, children, style }) {
+  return (
+    <div className="form-field" style={{ margin: 0, minWidth: 150, ...style }}>
+      <label>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+export default function AccountingPage() {
+  const [activeTab, setActiveTab] = useState('summary');
+  const [period, setPeriod] = useState(getCurrentPeriod());
+  const [currency, setCurrency] = useState('TRY');
+  const [accounts, setAccounts] = useState([]);
+  const [entries, setEntries] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [entryForm, setEntryForm] = useState(EMPTY_ENTRY_FORM);
+  const [accountForm, setAccountForm] = useState({
+    type: 'bank',
+    name: '',
+    bankName: '',
+    iban: '',
+    currency: 'TRY',
+    openingBalance: '',
+  });
+  const [agents, setAgents] = useState([]);
+  const [commissions, setCommissions] = useState([]);
+  const [commissionLoading, setCommissionLoading] = useState(false);
+  const [commissionSaving, setCommissionSaving] = useState(false);
+  const [commissionActionId, setCommissionActionId] = useState(null);
+  const [commissionForm, setCommissionForm] = useState(EMPTY_COMMISSION_FORM);
+  const [settlementAccounts, setSettlementAccounts] = useState({});
+
+  const periodParams = useMemo(() => ({ ...getPeriodBounds(period), currency }), [period, currency]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [accountList, entryList, summaryData] = await Promise.all([
+        accountingApi.listAccounts(),
+        accountingApi.listEntries(periodParams),
+        accountingApi.getSummary(periodParams),
+      ]);
+      setAccounts(accountList || []);
+      setEntries(entryList || []);
+      setSummary(summaryData || null);
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Muhasebe verileri yüklenemedi. Backend bağlantısını kontrol edin.');
+    } finally {
+      setLoading(false);
+    }
+  }, [periodParams]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const loadCommissionData = useCallback(async () => {
+    setCommissionLoading(true);
+    try {
+      const [agentList, commissionList] = await Promise.all([
+        usersApi.listAgents(),
+        accountingApi.listCommissions(),
+      ]);
+      setAgents(agentList || []);
+      setCommissions(commissionList || []);
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Komisyon verileri yüklenemedi.');
+    } finally {
+      setCommissionLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCommissionData();
+  }, [loadCommissionData]);
+
+  const currencyAccounts = useMemo(
+    () => accounts.filter((account) => account.currency === entryForm.currency && account.isActive !== false),
+    [accounts, entryForm.currency],
+  );
+
+  function handleEntryChange(event) {
+    const { name, value } = event.target;
+    setEntryForm((previous) => {
+      const next = { ...previous, [name]: value };
+      if (name === 'currency') {
+        next.accountId = '';
+        next.counterAccountId = '';
+      }
+      if (name === 'type' && value === 'transfer') {
+        next.category = 'Hesaplar Arası Transfer';
+        next.partyName = '';
+      }
+      if (name === 'type' && value !== 'transfer' && previous.type === 'transfer') {
+        next.category = 'Genel';
+      }
+      return next;
+    });
+  }
+
+  async function handleCreateEntry(event) {
+    event.preventDefault();
+    if (!entryForm.amount || Number(entryForm.amount) <= 0) {
+      setError('Tutar sıfırdan büyük olmalıdır.');
+      return;
+    }
+    if (!entryForm.accountId) {
+      setError('Önce para hesabı seçmelisiniz.');
+      return;
+    }
+    if (entryForm.type === 'transfer' && !entryForm.counterAccountId) {
+      setError('Transfer için hedef hesap seçmelisiniz.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      await accountingApi.createEntry({
+        ...entryForm,
+        amount: Number(entryForm.amount),
+        category: entryForm.type === 'transfer' ? 'Hesaplar Arası Transfer' : entryForm.category,
+        partyName: entryForm.type === 'transfer' ? undefined : entryForm.partyName || undefined,
+        counterAccountId: entryForm.type === 'transfer' ? entryForm.counterAccountId : undefined,
+        referenceNo: entryForm.referenceNo || undefined,
+      });
+      setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
+      await loadData();
+      setActiveTab('entries');
+    } catch (saveError) {
+      setError(saveError.response?.data?.message || 'Muhasebe hareketi kaydedilemedi.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleCreateCommission(event) {
+    event.preventDefault();
+    if (!commissionForm.agentId || !commissionForm.grossAmount || Number(commissionForm.grossAmount) <= 0) {
+      setError('Danışman ve sıfırdan büyük brüt komisyon tutarı seçilmelidir.');
+      return;
+    }
+    setCommissionSaving(true);
+    setError('');
+    try {
+      await accountingApi.createCommission({
+        ...commissionForm,
+        grossAmount: Number(commissionForm.grossAmount),
+        propertyTitle: commissionForm.propertyTitle.trim() || undefined,
+        notes: commissionForm.notes.trim() || undefined,
+      });
+      setCommissionForm({ ...EMPTY_COMMISSION_FORM, date: new Date().toISOString().slice(0, 10), currency });
+      await loadCommissionData();
+    } catch (saveError) {
+      setError(saveError.response?.data?.message || 'Komisyon kaydı oluşturulamadı.');
+    } finally {
+      setCommissionSaving(false);
+    }
+  }
+
+  function getSettlementAccount(commissionId) {
+    return settlementAccounts[commissionId] || '';
+  }
+
+  function setSettlementAccount(commissionId, accountId) {
+    setSettlementAccounts((previous) => ({ ...previous, [commissionId]: accountId }));
+  }
+
+  async function handleCommissionAction(commission, action) {
+    const accountId = getSettlementAccount(commission.id);
+    if (!accountId) {
+      setError('Önce bu komisyon için bir banka, kasa veya kredi kartı hesabı seçin.');
+      return;
+    }
+    const actionLabel = action === 'collect' ? 'tahsilatı' : 'danışman ödemesini';
+    if (!window.confirm(`Bu komisyonun ${actionLabel} kaydedilsin mi?`)) return;
+
+    setCommissionActionId(commission.id);
+    setError('');
+    try {
+      const payload = {
+        accountId,
+        date: new Date().toISOString().slice(0, 10),
+      };
+      if (action === 'collect') {
+        await accountingApi.collectCommission(commission.id, payload);
+      } else {
+        await accountingApi.payCommission(commission.id, payload);
+      }
+      await Promise.all([loadCommissionData(), loadData()]);
+    } catch (actionError) {
+      setError(actionError.response?.data?.message || 'Komisyon işlemi kaydedilemedi.');
+    } finally {
+      setCommissionActionId(null);
+    }
+  }
+
+  async function handleCreateAccount(event) {
+    event.preventDefault();
+    if (!accountForm.name.trim()) {
+      setError('Hesap adı zorunludur.');
+      return;
+    }
+    setAccountSaving(true);
+    setError('');
+    try {
+      await accountingApi.createAccount({
+        ...accountForm,
+        name: accountForm.name.trim(),
+        bankName: accountForm.bankName.trim() || undefined,
+        iban: accountForm.iban.trim() || undefined,
+        openingBalance: accountForm.openingBalance ? Number(accountForm.openingBalance) : 0,
+      });
+      setAccountForm({ ...accountForm, name: '', bankName: '', iban: '', openingBalance: '' });
+      await loadData();
+      setActiveTab('accounts');
+    } catch (saveError) {
+      setError(saveError.response?.data?.message || 'Muhasebe hesabı oluşturulamadı.');
+    } finally {
+      setAccountSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div>
+          <h2 className="dossier__name" style={{ margin: 0 }}>Muhasebe</h2>
+          <p style={{ color: 'var(--muted)', margin: '6px 0 0', maxWidth: 720, fontSize: 14 }}>
+            Mevcut Finans bölümünden bağımsız, yönetimsel muhasebe ve cari takip alanı.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ color: 'var(--muted)', fontSize: 12 }} htmlFor="accounting-period">Dönem</label>
+          <input
+            id="accounting-period"
+            type="month"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value)}
+            style={{ minWidth: 150 }}
+          />
+          <label style={{ color: 'var(--muted)', fontSize: 12 }} htmlFor="accounting-currency">Para birimi</label>
+          <select id="accounting-currency" value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            {ACCOUNTING_CURRENCIES.map((item) => (
+              <option value={item.value} key={item.value}>{item.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="folder-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--brass)' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--ink-navy)', marginBottom: 5 }}>
+          Bağımsız çalışma alanı
+        </div>
+        <p style={{ color: 'var(--muted)', margin: 0, fontSize: 13 }}>
+          Bu modül mevcut Finans ekranını değiştirmez. Buradaki kayıtlar kendi muhasebe akışında tutulur; danışman komisyonu, aylık kira ve ortak hareketleri sonraki adımlarda kontrollü biçimde CRM verileriyle ilişkilendirilecektir.
+        </p>
+      </div>
+
+      {error && (
+        <div className="folder-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--danger)', color: 'var(--danger)' }}>
+          {error}
+        </div>
+      )}
+
+      <div className="folder-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
+        {ACCOUNTING_TABS.map((tab) => (
+          <button
+            type="button"
+            key={tab.key}
+            className={`folder-tab${activeTab === tab.key ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'summary' && (
+        <>
+          <div className="metric-grid">
+            <div className="metric-card">
+              <div className="metric-card__label">Dönem</div>
+              <div className="metric-card__value" style={{ fontSize: 20 }}>{periodLabel(period)}</div>
+              <div className="metric-card__delta is-muted">{currency} görünümü</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Toplam tahsilat</div>
+              <div className="metric-card__value">{loading ? '…' : formatAccountingMoney(summary?.totalIncome, currency)}</div>
+              <div className="metric-card__delta is-muted">Gelir / tahsilat hareketleri</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Toplam gider</div>
+              <div className="metric-card__value">{loading ? '…' : formatAccountingMoney(summary?.totalExpense, currency)}</div>
+              <div className="metric-card__delta is-muted">Gider / ödeme hareketleri</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Net operasyon sonucu</div>
+              <div className="metric-card__value" style={{ color: Number(summary?.netOperatingResult || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {loading ? '…' : formatAccountingMoney(summary?.netOperatingResult, currency)}
+              </div>
+              <div className="metric-card__delta is-muted">{summary?.entryCount || 0} hareket</div>
+            </div>
+          </div>
+
+          <div className="folder-panel" style={{ marginTop: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Hızlı başlangıç</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                  Önce bir banka, kasa veya kredi kartı hesabı oluşturun; ardından Hareketler sekmesinden kayıt ekleyin.
+                </p>
+              </div>
+              <button type="button" className="btn btn-primary" onClick={() => setActiveTab('entries')}>+ Hareket Ekle</button>
+            </div>
+            <div className="panel-grid-2">
+              {MODULE_AREAS.map((area) => (
+                <div key={area.title} style={{ border: '1px solid var(--paper-line)', borderRadius: 6, padding: 15, background: 'var(--paper-raised)' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--ink-navy)', marginBottom: 5 }}>{area.title}</div>
+                  <div style={{ color: 'var(--muted)', fontSize: 13 }}>{area.description}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'entries' && (
+        <>
+          <div className="folder-panel" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni muhasebe hareketi</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                  Gelir/tahsilat, gider/ödeme veya aynı para birimindeki iki hesap arasında transfer kaydedin.
+                </p>
+              </div>
+              <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>İlk sürüm</span>
+            </div>
+            <form onSubmit={handleCreateEntry} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <FormField label="Hareket türü">
+                <select name="type" value={entryForm.type} onChange={handleEntryChange}>
+                  {ACCOUNTING_ENTRY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Tarih">
+                <input type="date" name="date" value={entryForm.date} onChange={handleEntryChange} required />
+              </FormField>
+              <FormField label="Tutar">
+                <input type="number" name="amount" min="0.01" step="0.01" value={entryForm.amount} onChange={handleEntryChange} placeholder="0,00" required />
+              </FormField>
+              <FormField label="Para birimi">
+                <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
+                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'} style={{ minWidth: 210 }}>
+                <select name="accountId" value={entryForm.accountId} onChange={handleEntryChange} required>
+                  <option value="">Hesap seçin</option>
+                  {currencyAccounts.map((account) => (
+                    <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>
+                  ))}
+                </select>
+              </FormField>
+              {entryForm.type === 'transfer' && (
+                <FormField label="Hedef hesap" style={{ minWidth: 210 }}>
+                  <select name="counterAccountId" value={entryForm.counterAccountId} onChange={handleEntryChange} required>
+                    <option value="">Hesap seçin</option>
+                    {currencyAccounts.filter((account) => account.id !== entryForm.accountId).map((account) => (
+                      <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>
+                    ))}
+                  </select>
+                </FormField>
+              )}
+              {entryForm.type !== 'transfer' && (
+                <FormField label="Kategori">
+                  <input name="category" value={entryForm.category} onChange={handleEntryChange} placeholder="Komisyon, market, elektrik…" required />
+                </FormField>
+              )}
+              {entryForm.type !== 'transfer' && (
+                <FormField label="Cari / muhatap">
+                  <input name="partyName" value={entryForm.partyName} onChange={handleEntryChange} placeholder="Opsiyonel" />
+                </FormField>
+              )}
+              <FormField label="Açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+                <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
+              </FormField>
+              <button type="submit" className="btn btn-primary" disabled={saving || currencyAccounts.length === 0}>
+                {saving ? 'Kaydediliyor…' : 'Hareketi Kaydet'}
+              </button>
+            </form>
+            {currencyAccounts.length === 0 && (
+              <p style={{ color: 'var(--danger)', fontSize: 13, margin: '12px 0 0' }}>
+                Bu para biriminde henüz hesap yok. Önce Hesaplar sekmesinden bir hesap oluşturun.
+              </p>
+            )}
+          </div>
+
+          <div className="folder-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Hareket listesi</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>{periodLabel(period)} · {currency}</p>
+              </div>
+              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{entries.length} kayıt</span>
+            </div>
+            {loading ? (
+              <div className="empty-state">Yükleniyor…</div>
+            ) : entries.length === 0 ? (
+              <div className="empty-state">Bu dönem ve para biriminde henüz hareket yok.</div>
+            ) : (
+              <div className="table-scroll">
+                <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '7px 8px' }}>Tarih</th>
+                      <th style={{ padding: '7px 8px' }}>Tür</th>
+                      <th style={{ padding: '7px 8px' }}>Kategori</th>
+                      <th style={{ padding: '7px 8px' }}>Hesap</th>
+                      <th style={{ padding: '7px 8px' }}>Cari / açıklama</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Tutar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((entry) => (
+                      <tr key={entry.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                        <td style={{ padding: '9px 8px' }}>{formatDate(entry.date)}</td>
+                        <td style={{ padding: '9px 8px' }}>{entryTypeLabel(entry.type)}</td>
+                        <td style={{ padding: '9px 8px' }}>{entry.category}</td>
+                        <td style={{ padding: '9px 8px' }}>
+                          {entry.type === 'transfer' ? `${entry.accountName || '—'} → ${entry.counterAccountName || '—'}` : entry.accountName || '—'}
+                        </td>
+                        <td style={{ padding: '9px 8px' }}>{entry.partyName || entry.description || '—'}</td>
+                        <td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: entry.type === 'expense' ? 'var(--danger)' : 'var(--success)' }}>
+                          {formatAccountingMoney(entry.amount, entry.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'accounts' && (
+        <>
+          <div className="folder-panel" style={{ marginBottom: 20 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 14px', fontSize: 18 }}>Yeni muhasebe hesabı</h3>
+            <form onSubmit={handleCreateAccount} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <FormField label="Hesap türü">
+                <select name="type" value={accountForm.type} onChange={(event) => setAccountForm({ ...accountForm, type: event.target.value })}>
+                  {ACCOUNTING_ACCOUNT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Hesap adı" style={{ minWidth: 190 }}>
+                <input value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} placeholder="Örn. Ana Banka Hesabı" required />
+              </FormField>
+              {accountForm.type !== 'cash' && (
+                <FormField label="Banka adı">
+                  <input value={accountForm.bankName} onChange={(event) => setAccountForm({ ...accountForm, bankName: event.target.value })} placeholder="Örn. İş Bankası" />
+                </FormField>
+              )}
+              {accountForm.type !== 'cash' && (
+                <FormField label="IBAN / kart bilgisi">
+                  <input value={accountForm.iban} onChange={(event) => setAccountForm({ ...accountForm, iban: event.target.value })} placeholder="Opsiyonel" />
+                </FormField>
+              )}
+              <FormField label="Para birimi">
+                <select value={accountForm.currency} onChange={(event) => setAccountForm({ ...accountForm, currency: event.target.value })}>
+                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Açılış bakiyesi">
+                <input type="number" min="0" step="0.01" value={accountForm.openingBalance} onChange={(event) => setAccountForm({ ...accountForm, openingBalance: event.target.value })} placeholder="0,00" />
+              </FormField>
+              <button type="submit" className="btn btn-primary" disabled={accountSaving}>
+                {accountSaving ? 'Ekleniyor…' : '+ Hesap Ekle'}
+              </button>
+            </form>
+          </div>
+
+          <div className="folder-panel">
+            <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 14px', fontSize: 18 }}>Hesaplar ve bakiyeler</h3>
+            {loading ? (
+              <div className="empty-state">Yükleniyor…</div>
+            ) : accounts.length === 0 ? (
+              <div className="empty-state">Henüz muhasebe hesabı eklenmemiş.</div>
+            ) : (
+              <div className="table-scroll">
+                <table style={{ width: '100%', minWidth: 620, borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '7px 8px' }}>Hesap</th>
+                      <th style={{ padding: '7px 8px' }}>Tür</th>
+                      <th style={{ padding: '7px 8px' }}>Para birimi</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Güncel bakiye</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {accounts.map((account) => (
+                      <tr key={account.id} style={{ borderTop: '1px solid var(--paper-line)', opacity: account.isActive === false ? 0.55 : 1 }}>
+                        <td style={{ padding: '9px 8px' }}>
+                          <strong>{account.name}</strong>
+                          {account.bankName && <div style={{ color: 'var(--muted)', fontSize: 12 }}>{account.bankName}</div>}
+                        </td>
+                        <td style={{ padding: '9px 8px' }}>{ACCOUNTING_ACCOUNT_TYPES.find((item) => item.value === account.type)?.label || account.type}</td>
+                        <td style={{ padding: '9px 8px' }}>{account.currency}</td>
+                        <td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: Number(account.currentBalance || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                          {formatAccountingMoney(account.currentBalance, account.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'ledgers' && (
+        <EmptyTab title="Cari kartlar" description="Danışman, ortak, tedarikçi ve diğer tarafların hareketleri ile dönem bakiyeleri burada izlenecek." />
+      )}
+      {activeTab === 'commissions' && (
+        <>
+          <div className="folder-panel" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni komisyon kapaması</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                  Brüt komisyonu kapama sırasında elle girin. Danışman payı, danışman kayıt ekranındaki güncel orandan alınır.
+                </p>
+              </div>
+              <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Oran otomatik alınır</span>
+            </div>
+            <form onSubmit={handleCreateCommission} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <FormField label="Danışman" style={{ minWidth: 210 }}>
+                <select value={commissionForm.agentId} onChange={(event) => setCommissionForm({ ...commissionForm, agentId: event.target.value })} required>
+                  <option value="">Danışman seçin</option>
+                  {agents.map((agent) => (
+                    <option value={agent.id} key={agent.id}>{agent.name} · %{agent.commissionSharePercentage ?? 'tanımsız'}</option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="İşlem tipi">
+                <select value={commissionForm.transactionType} onChange={(event) => setCommissionForm({ ...commissionForm, transactionType: event.target.value })}>
+                  <option value="sale">Satış</option>
+                  <option value="rent">Kiralama</option>
+                </select>
+              </FormField>
+              <FormField label="Kapama tarihi">
+                <input type="date" value={commissionForm.date} onChange={(event) => setCommissionForm({ ...commissionForm, date: event.target.value })} required />
+              </FormField>
+              <FormField label="Brüt komisyon" style={{ minWidth: 170 }}>
+                <input type="number" min="0.01" step="0.01" value={commissionForm.grossAmount} onChange={(event) => setCommissionForm({ ...commissionForm, grossAmount: event.target.value })} placeholder="Örn. 100" required />
+              </FormField>
+              <FormField label="Para birimi">
+                <select value={commissionForm.currency} onChange={(event) => setCommissionForm({ ...commissionForm, currency: event.target.value })}>
+                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Portföy / açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+                <input value={commissionForm.propertyTitle} onChange={(event) => setCommissionForm({ ...commissionForm, propertyTitle: event.target.value })} placeholder="Opsiyonel" />
+              </FormField>
+              <button type="submit" className="btn btn-primary" disabled={commissionSaving || commissionLoading}>
+                {commissionSaving ? 'Kaydediliyor…' : 'Komisyonu Kaydet'}
+              </button>
+            </form>
+          </div>
+
+          <div className="folder-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Komisyon ve hakediş listesi</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                  Önce şirkete tahsilat, ardından danışmana hakediş ödemesi kaydedilir.
+                </p>
+              </div>
+              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{commissions.length} kayıt</span>
+            </div>
+            {commissionLoading ? (
+              <div className="empty-state">Komisyonlar yükleniyor…</div>
+            ) : commissions.length === 0 ? (
+              <div className="empty-state">Henüz Muhasebe komisyonu oluşturulmamış.</div>
+            ) : (
+              <div className="table-scroll">
+                <table style={{ width: '100%', minWidth: 1060, borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '7px 8px' }}>Tarih</th>
+                      <th style={{ padding: '7px 8px' }}>Danışman</th>
+                      <th style={{ padding: '7px 8px' }}>Brüt komisyon</th>
+                      <th style={{ padding: '7px 8px' }}>Oran</th>
+                      <th style={{ padding: '7px 8px' }}>Danışman payı</th>
+                      <th style={{ padding: '7px 8px' }}>Ofis payı</th>
+                      <th style={{ padding: '7px 8px' }}>Durum / işlem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {commissions.map((commission) => {
+                      const matchingAccounts = accounts.filter((account) => account.currency === commission.currency && account.isActive !== false);
+                      const isBusy = commissionActionId === commission.id;
+                      const statusLabel = commission.status === 'pending_collection'
+                        ? 'Tahsilat bekliyor'
+                        : commission.status === 'collected'
+                          ? 'Tahsil edildi · ödeme bekliyor'
+                          : 'Danışmana ödendi';
+                      return (
+                        <tr key={commission.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                          <td style={{ padding: '10px 8px' }}>{formatDate(commission.date)}</td>
+                          <td style={{ padding: '10px 8px' }}>
+                            <strong>{commission.agentNameSnapshot}</strong>
+                            <div style={{ color: 'var(--muted)', fontSize: 12 }}>{commission.propertyTitle || commission.transactionType}</div>
+                          </td>
+                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(commission.grossAmount, commission.currency)}</td>
+                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)' }}>%{Number(commission.agentSharePercent).toLocaleString('tr-TR')}</td>
+                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(commission.agentGrossShare, commission.currency)}</td>
+                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(commission.officeShare, commission.currency)}</td>
+                          <td style={{ padding: '10px 8px', minWidth: 250 }}>
+                            <div style={{ fontSize: 12, color: commission.status === 'agent_paid' ? 'var(--success)' : 'var(--muted)', marginBottom: 6 }}>{statusLabel}</div>
+                            {commission.status !== 'agent_paid' && (
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <select value={getSettlementAccount(commission.id)} onChange={(event) => setSettlementAccount(commission.id, event.target.value)} disabled={isBusy}>
+                                  <option value="">Hesap seçin</option>
+                                  {matchingAccounts.map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
+                                </select>
+                                {commission.status === 'pending_collection' && (
+                                  <button type="button" className="btn btn-primary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleCommissionAction(commission, 'collect')}>
+                                    {isBusy ? '…' : 'Tahsil Et'}
+                                  </button>
+                                )}
+                                {commission.status === 'collected' && (
+                                  <button type="button" className="btn btn-primary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleCommissionAction(commission, 'pay')}>
+                                    {isBusy ? '…' : 'Danışmana Öde'}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                            {matchingAccounts.length === 0 && commission.status !== 'paid' && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      {activeTab === 'dues' && (
+        <EmptyTab title="Danışman kiraları" description="Danışman kaydındaki kira tutarı ve başlangıç tarihinden üretilen aylık tahakkuklar burada yönetilecek." />
+      )}
+      {activeTab === 'partners' && (
+        <EmptyTab title="Ortaklar" description="Sermaye katkısı, ortağa borç, ortak çekişi ve kâr dağıtımı hareketleri ortak cari hesabında tutulacak." />
+      )}
+      {activeTab === 'recurring' && (
+        <EmptyTab title="Tekrarlayan kayıtlar" description="Danışman kiraları ve ileride eklenecek düzenli giderler, başlangıç ve bitiş dönemleriyle idempotent şekilde üretilecek." />
+      )}
+      {activeTab === 'reports' && (
+        <EmptyTab title="Muhasebe raporları" description="Cari ekstre, gelir-gider, nakit akış, danışman hakediş ve ortak hareket raporları burada hazırlanacak." />
+      )}
+    </div>
+  );
+}
