@@ -71,6 +71,7 @@ const INCOME_CATEGORIES = [
 ];
 
 const NEW_CATEGORY_VALUE = '__new_category__';
+const PARTY_PAGE_SIZE = 20;
 
 function categoryNames(defaults, savedCategories) {
   const savedNames = (savedCategories || []).map((category) => category.name).filter(Boolean);
@@ -213,6 +214,9 @@ export default function AccountingPage() {
   const [partyLoading, setPartyLoading] = useState(false);
   const [partyStatement, setPartyStatement] = useState(null);
   const [partyStatementLoading, setPartyStatementLoading] = useState(false);
+  const [partySearch, setPartySearch] = useState('');
+  const [partyTypeFilter, setPartyTypeFilter] = useState('all');
+  const [partyPage, setPartyPage] = useState(1);
   const [partySaving, setPartySaving] = useState(false);
   const [partyForm, setPartyForm] = useState({
     type: 'partner',
@@ -406,6 +410,30 @@ export default function AccountingPage() {
   const statementReceivable = statementLastRow?.runningReceivable || 0;
   const statementPayable = statementLastRow?.runningPayable || 0;
   const statementBalance = statementLastRow?.runningBalance || 0;
+  const filteredParties = useMemo(() => {
+    const query = partySearch.trim().toLocaleLowerCase('tr-TR');
+    return parties.filter((party) => {
+      const matchesType = partyTypeFilter === 'all' || party.type === partyTypeFilter;
+      const searchableText = [party.name, party.companyName, party.phone, party.taxId]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('tr-TR');
+      return matchesType && (!query || searchableText.includes(query));
+    });
+  }, [parties, partySearch, partyTypeFilter]);
+  const partyPageCount = Math.max(1, Math.ceil(filteredParties.length / PARTY_PAGE_SIZE));
+  const visibleParties = useMemo(
+    () => filteredParties.slice((partyPage - 1) * PARTY_PAGE_SIZE, partyPage * PARTY_PAGE_SIZE),
+    [filteredParties, partyPage],
+  );
+
+  useEffect(() => {
+    setPartyPage(1);
+  }, [partySearch, partyTypeFilter, currency]);
+
+  useEffect(() => {
+    if (partyPage > partyPageCount) setPartyPage(partyPageCount);
+  }, [partyPage, partyPageCount]);
 
   function handleEntryChange(event) {
     const { name, value } = event.target;
@@ -1132,7 +1160,7 @@ export default function AccountingPage() {
 
       {activeTab === 'ledgers' && (
         <>
-          <div className="folder-panel" style={{ marginBottom: 20 }}>
+          <div className="folder-panel" style={{ marginBottom: 20, display: partyStatement ? 'none' : undefined }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni cari kart</h3>
@@ -1177,18 +1205,30 @@ export default function AccountingPage() {
             </form>
           </div>
 
-          <div className="folder-panel">
+          <div className="folder-panel" style={{ display: partyStatement ? 'none' : undefined }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Cari kartlar ve bakiyeler</h3>
                 <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>{currency} görünümü · Kira alacağı ve ödenecek danışman hakedişi dahil</p>
               </div>
-              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{parties.length} kart</span>
+              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{filteredParties.length} / {parties.length} kart · Sayfa {partyPage} / {partyPageCount}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
+              <FormField label="Cari ara" style={{ minWidth: 250, flex: '1 1 250px' }}>
+                <input value={partySearch} onChange={(event) => setPartySearch(event.target.value)} placeholder="Ad, şirket, telefon veya vergi no" />
+              </FormField>
+              <FormField label="Kart türü" style={{ minWidth: 170 }}>
+                <select value={partyTypeFilter} onChange={(event) => setPartyTypeFilter(event.target.value)}>
+                  <option value="all">Tüm kartlar</option>
+                  {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              {(partySearch || partyTypeFilter !== 'all') && <button type="button" className="btn btn-secondary" onClick={() => { setPartySearch(''); setPartyTypeFilter('all'); }}>Filtreleri temizle</button>}
             </div>
             {partyLoading ? (
               <div className="empty-state">Cari kartlar yükleniyor…</div>
-            ) : parties.length === 0 ? (
-              <div className="empty-state">Henüz cari kart bulunmuyor.</div>
+            ) : filteredParties.length === 0 ? (
+              <div className="empty-state">{parties.length === 0 ? 'Henüz cari kart bulunmuyor.' : 'Arama veya filtreye uyan cari kart bulunamadı.'}</div>
             ) : (
               <div className="table-scroll">
                 <table style={{ width: '100%', minWidth: 1050, borderCollapse: 'collapse', fontSize: 13 }}>
@@ -1206,7 +1246,7 @@ export default function AccountingPage() {
                     </thead>
 
                   <tbody>
-                    {parties.map((party) => {
+                    {visibleParties.map((party) => {
                       const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
                       const netBalance = Number(party.balance || 0);
                       return (
@@ -1227,6 +1267,15 @@ export default function AccountingPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {!partyLoading && filteredParties.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--paper-line)' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>{(partyPage - 1) * PARTY_PAGE_SIZE + 1}–{Math.min(partyPage * PARTY_PAGE_SIZE, filteredParties.length)} / {filteredParties.length} gösteriliyor</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" className="btn btn-secondary" disabled={partyPage <= 1} onClick={() => setPartyPage((page) => Math.max(1, page - 1))}>Önceki</button>
+                  <button type="button" className="btn btn-secondary" disabled={partyPage >= partyPageCount} onClick={() => setPartyPage((page) => Math.min(partyPageCount, page + 1))}>Sonraki</button>
+                </div>
               </div>
             )}
           </div>
