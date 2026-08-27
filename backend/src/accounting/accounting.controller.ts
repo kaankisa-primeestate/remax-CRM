@@ -24,6 +24,7 @@ import {
   SettleAccountingRentDto,
 } from './dto/accounting-rent.dto';
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
+import { CreateAccountingPartyDto } from './dto/create-accounting-party.dto';
 
 @Controller('accounting')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -90,6 +91,21 @@ export class AccountingController {
   @Post('rents/:id/void')
   voidRent(@Param('id') id: string, @Req() req: any) {
     return this.accountingService.voidRent(id, req.user.userId);
+  }
+
+  @Get('parties')
+  listParties(@Query('currency') currency?: string) {
+    return this.accountingService.listParties({ currency });
+  }
+
+  @Post('parties')
+  createParty(@Body() dto: CreateAccountingPartyDto) {
+    return this.accountingService.createParty(dto);
+  }
+
+  @Get('parties/:id/entries')
+  listPartyEntries(@Param('id') id: string) {
+    return this.accountingService.listPartyEntries(id);
   }
 
   @Get('commissions')

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import {
   AccountingAccount,
   AccountingAccountType,
@@ -18,6 +18,10 @@ import {
   AccountingRent,
   AccountingRentStatus,
 } from './accounting-rent.entity';
+import {
+  AccountingParty,
+  AccountingPartyBalanceDirection,
+} from './accounting-party.entity';
 import {
   AccountingEntry,
   AccountingEntryType,
@@ -33,6 +37,7 @@ import {
   GenerateAccountingRentsDto,
   SettleAccountingRentDto,
 } from './dto/accounting-rent.dto';
+import { CreateAccountingPartyDto } from './dto/create-accounting-party.dto';
 import { User, UserRole } from '../users/user.entity';
 
 const SUPPORTED_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
@@ -48,6 +53,8 @@ export class AccountingService {
     private readonly commissionRepo: Repository<AccountingCommission>,
     @InjectRepository(AccountingRent)
     private readonly rentRepo: Repository<AccountingRent>,
+    @InjectRepository(AccountingParty)
+    private readonly partyRepo: Repository<AccountingParty>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
@@ -189,6 +196,122 @@ export class AccountingService {
     });
 
     return this.entryRepo.save(entry);
+  }
+
+  async listParties(filters: { currency?: string }) {
+    const [parties, agents, entryRows, commissionRows, rentRows] = await Promise.all([
+      this.partyRepo.find({ where: { isActive: true }, order: { name: 'ASC' } }),
+      this.userRepo.find({ where: { role: UserRole.AGENT }, order: { name: 'ASC' } }),
+      this.entryRepo
+        .createQueryBuilder('entry')
+        .select('entry.partyId', 'partyId')
+        .addSelect('entry.partyType', 'partyType')
+        .addSelect('entry.currency', 'currency')
+        .addSelect('SUM(CASE WHEN entry.type = :income THEN entry.amount ELSE 0 END)', 'income')
+        .addSelect('SUM(CASE WHEN entry.type = :expense THEN entry.amount ELSE 0 END)', 'expense')
+        .addSelect('COUNT(entry.id)', 'movementCount')
+        .where('entry.voidedAt IS NULL')
+        .andWhere('entry.partyId IS NOT NULL')
+        .setParameter('income', AccountingEntryType.INCOME)
+        .groupBy('entry.partyId')
+        .addGroupBy('entry.partyType')
+        .addGroupBy('entry.currency')
+        .getRawMany(),
+      this.commissionRepo
+        .createQueryBuilder('commission')
+        .select('commission.agentId', 'agentId')
+        .addSelect('commission.currency', 'currency')
+        .addSelect('SUM(commission.agentGrossShare)', 'payable')
+        .where('commission.status = :collected', { collected: AccountingCommissionStatus.COLLECTED })
+        .groupBy('commission.agentId')
+        .addGroupBy('commission.currency')
+        .getRawMany(),
+      this.rentRepo
+        .createQueryBuilder('rent')
+        .select('rent.agentId', 'agentId')
+        .addSelect('rent.currency', 'currency')
+        .addSelect('SUM(rent.amount)', 'receivable')
+        .where('rent.status = :pending', { pending: AccountingRentStatus.PENDING })
+        .groupBy('rent.agentId')
+        .addGroupBy('rent.currency')
+        .getRawMany(),
+    ]);
+
+    const existingByUserId = new Map(parties.filter((party) => party.linkedUserId).map((party) => [party.linkedUserId, party]));
+    const missingAgents = agents
+      .filter((agent) => !existingByUserId.has(agent.id))
+      .map((agent) => this.partyRepo.create({
+        type: AccountingPartyType.AGENT,
+        name: agent.name,
+        linkedUserId: agent.id,
+        companyName: agent.companyName || null,
+        phone: agent.phone || null,
+        taxId: agent.taxId || null,
+        currency: 'TRY',
+        openingBalance: 0,
+        openingBalanceDirection: AccountingPartyBalanceDirection.RECEIVABLE,
+        isActive: true,
+      }));
+    if (missingAgents.length > 0) await this.partyRepo.save(missingAgents, { chunk: 100 });
+    const allParties = [...parties, ...missingAgents];
+    const entryMap = new Map(entryRows.map((row) => [`${row.partyType}:${row.partyId}:${row.currency}`, row]));
+    const commissionMap = new Map(commissionRows.map((row) => [`${row.agentId}:${row.currency}`, Number(row.payable || 0)]));
+    const rentMap = new Map(rentRows.map((row) => [`${row.agentId}:${row.currency}`, Number(row.receivable || 0)]));
+
+    return allParties
+      .filter((party) => !filters.currency || party.currency === filters.currency || party.type === AccountingPartyType.AGENT)
+      .map((party) => {
+        const currency = party.type === AccountingPartyType.AGENT ? 'TRY' : party.currency;
+        const entry = entryMap.get(`${party.type}:${party.linkedUserId || party.id}:${currency}`) || {};
+        const opening = Number(party.openingBalance || 0);
+        const openingReceivable = party.openingBalanceDirection === AccountingPartyBalanceDirection.RECEIVABLE ? opening : 0;
+        const openingPayable = party.openingBalanceDirection === AccountingPartyBalanceDirection.PAYABLE ? opening : 0;
+        const rentReceivable = party.linkedUserId ? (rentMap.get(`${party.linkedUserId}:${currency}`) || 0) : 0;
+        const commissionPayable = party.linkedUserId ? (commissionMap.get(`${party.linkedUserId}:${currency}`) || 0) : 0;
+        const receivable = this.money(openingReceivable + rentReceivable);
+        const payable = this.money(openingPayable + commissionPayable);
+        return {
+          ...party,
+          currency,
+          receivable,
+          payable,
+          balance: this.money(receivable - payable),
+          incomeMovement: Number(entry.income || 0),
+          expenseMovement: Number(entry.expense || 0),
+          movementCount: Number(entry.movementCount || 0),
+          pendingRentCount: party.linkedUserId ? rentRows.filter((row) => row.agentId === party.linkedUserId && row.currency === currency).length : 0,
+          pendingCommissionAmount: commissionPayable,
+        };
+      });
+  }
+
+  async createParty(dto: CreateAccountingPartyDto) {
+    this.assertCurrency(dto.currency);
+    if (dto.type === AccountingPartyType.AGENT) {
+      throw new BadRequestException('Danışman cari kartları Danışman kayıtlarından otomatik oluşturulur');
+    }
+    const party = this.partyRepo.create({
+      type: dto.type as AccountingPartyType,
+      name: dto.name.trim(),
+      linkedUserId: null,
+      companyName: dto.companyName?.trim() || null,
+      phone: dto.phone?.trim() || null,
+      taxId: dto.taxId?.trim() || null,
+      currency: dto.currency,
+      openingBalance: this.money(dto.openingBalance || 0),
+      openingBalanceDirection: dto.openingBalanceDirection || AccountingPartyBalanceDirection.RECEIVABLE,
+      isActive: true,
+    });
+    return this.partyRepo.save(party);
+  }
+
+  async listPartyEntries(partyId: string) {
+    const party = await this.partyRepo.findOne({ where: { id: partyId } });
+    const entryPartyId = party?.linkedUserId || partyId;
+    return this.entryRepo.find({
+      where: { partyId: entryPartyId, voidedAt: IsNull() },
+      order: { date: 'DESC', createdAt: 'DESC' },
+    });
   }
 
   async listCommissions() {

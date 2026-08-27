@@ -3,6 +3,7 @@ import {
   ACCOUNTING_ACCOUNT_TYPES,
   ACCOUNTING_CURRENCIES,
   ACCOUNTING_ENTRY_TYPES,
+  ACCOUNTING_PARTY_TYPES,
   accountingApi,
   formatAccountingMoney,
 } from '../api/accounting';
@@ -149,6 +150,19 @@ export default function AccountingPage() {
   const [rentLoading, setRentLoading] = useState(false);
   const [rentGenerating, setRentGenerating] = useState(false);
   const [rentActionId, setRentActionId] = useState(null);
+  const [parties, setParties] = useState([]);
+  const [partyLoading, setPartyLoading] = useState(false);
+  const [partySaving, setPartySaving] = useState(false);
+  const [partyForm, setPartyForm] = useState({
+    type: 'partner',
+    name: '',
+    companyName: '',
+    phone: '',
+    taxId: '',
+    currency: 'TRY',
+    openingBalance: '',
+    openingBalanceDirection: 'receivable',
+  });
   const commissionIdempotencyKeyRef = useRef(null);
 
   const periodParams = useMemo(() => ({ ...getPeriodBounds(period), currency }), [period, currency]);
@@ -216,6 +230,18 @@ export default function AccountingPage() {
     }
   }, [period, currency]);
 
+  const loadParties = useCallback(async () => {
+    setPartyLoading(true);
+    try {
+      const partyList = await accountingApi.listParties({ currency });
+      setParties(partyList || []);
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Cari kartlar yüklenemedi.');
+    } finally {
+      setPartyLoading(false);
+    }
+  }, [currency]);
+
   useEffect(() => {
     if (activeTab !== 'commissions') return undefined;
     loadCommissionData();
@@ -227,6 +253,12 @@ export default function AccountingPage() {
     loadRents();
     return undefined;
   }, [activeTab, loadRents]);
+
+  useEffect(() => {
+    if (activeTab !== 'ledgers') return undefined;
+    loadParties();
+    return undefined;
+  }, [activeTab, loadParties]);
 
   const currencyAccounts = useMemo(
     () => accounts.filter((account) => account.currency === entryForm.currency && account.isActive !== false),
@@ -250,6 +282,41 @@ export default function AccountingPage() {
       }
       return next;
     });
+  }
+
+  async function handleCreateParty(event) {
+    event.preventDefault();
+    if (!partyForm.name.trim()) {
+      setError('Cari kart adı boş bırakılamaz.');
+      return;
+    }
+    setPartySaving(true);
+    setError('');
+    try {
+      await accountingApi.createParty({
+        ...partyForm,
+        name: partyForm.name.trim(),
+        companyName: partyForm.companyName.trim() || undefined,
+        phone: partyForm.phone.trim() || undefined,
+        taxId: partyForm.taxId.trim() || undefined,
+        openingBalance: partyForm.openingBalance ? Number(partyForm.openingBalance) : 0,
+      });
+      setPartyForm({
+        type: 'partner',
+        name: '',
+        companyName: '',
+        phone: '',
+        taxId: '',
+        currency,
+        openingBalance: '',
+        openingBalanceDirection: 'receivable',
+      });
+      await loadParties();
+    } catch (saveError) {
+      setError(saveError.response?.data?.message || 'Cari kart oluşturulamadı.');
+    } finally {
+      setPartySaving(false);
+    }
   }
 
   async function handleCreateEntry(event) {
@@ -736,7 +803,103 @@ export default function AccountingPage() {
       )}
 
       {activeTab === 'ledgers' && (
-        <EmptyTab title="Cari kartlar" description="Danışman, ortak, tedarikçi ve diğer tarafların hareketleri ile dönem bakiyeleri burada izlenecek." />
+        <>
+          <div className="folder-panel" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni cari kart</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                  Ortak, müşteri, tedarikçi ve diğer muhatapları burada tanımlayın. Danışman kartları Danışman Yönetimi’nden otomatik gelir.
+                </p>
+              </div>
+              <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Danışmanlar otomatik</span>
+            </div>
+            <form onSubmit={handleCreateParty} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <FormField label="Kart türü">
+                <select value={partyForm.type} onChange={(event) => setPartyForm({ ...partyForm, type: event.target.value })}>
+                  {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Ad / unvan" style={{ minWidth: 210 }}>
+                <input value={partyForm.name} onChange={(event) => setPartyForm({ ...partyForm, name: event.target.value })} placeholder="Örn. ABC Elektrik" required />
+              </FormField>
+              <FormField label="Şirket adı" style={{ minWidth: 190 }}>
+                <input value={partyForm.companyName} onChange={(event) => setPartyForm({ ...partyForm, companyName: event.target.value })} placeholder="Opsiyonel" />
+              </FormField>
+              <FormField label="Telefon">
+                <input value={partyForm.phone} onChange={(event) => setPartyForm({ ...partyForm, phone: event.target.value })} placeholder="Opsiyonel" />
+              </FormField>
+              <FormField label="Para birimi">
+                <select value={partyForm.currency} onChange={(event) => setPartyForm({ ...partyForm, currency: event.target.value })}>
+                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Açılış bakiyesi" style={{ minWidth: 150 }}>
+                <input type="number" min="0" step="0.01" value={partyForm.openingBalance} onChange={(event) => setPartyForm({ ...partyForm, openingBalance: event.target.value })} placeholder="0" />
+              </FormField>
+              <FormField label="Açılış yönü">
+                <select value={partyForm.openingBalanceDirection} onChange={(event) => setPartyForm({ ...partyForm, openingBalanceDirection: event.target.value })}>
+                  <option value="receivable">Şirketten alacak</option>
+                  <option value="payable">Şirkete borç</option>
+                </select>
+              </FormField>
+              <button type="submit" className="btn btn-primary" disabled={partySaving || partyLoading}>
+                {partySaving ? 'Kaydediliyor…' : 'Cari Kart Ekle'}
+              </button>
+            </form>
+          </div>
+
+          <div className="folder-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Cari kartlar ve bakiyeler</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>{currency} görünümü · Kira alacağı ve ödenecek danışman hakedişi dahil</p>
+              </div>
+              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{parties.length} kart</span>
+            </div>
+            {partyLoading ? (
+              <div className="empty-state">Cari kartlar yükleniyor…</div>
+            ) : parties.length === 0 ? (
+              <div className="empty-state">Henüz cari kart bulunmuyor.</div>
+            ) : (
+              <div className="table-scroll">
+                <table style={{ width: '100%', minWidth: 1050, borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '7px 8px' }}>Cari kart</th>
+                      <th style={{ padding: '7px 8px' }}>Tür</th>
+                      <th style={{ padding: '7px 8px' }}>Para birimi</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirketten alacak</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirkete borç</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net bakiye</th>
+                      <th style={{ padding: '7px 8px' }}>Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parties.map((party) => {
+                      const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
+                      const netBalance = Number(party.balance || 0);
+                      return (
+                        <tr key={party.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                          <td style={{ padding: '10px 8px' }}>
+                            <strong>{party.name}</strong>
+                            {party.companyName && <div style={{ color: 'var(--muted)', fontSize: 12 }}>{party.companyName}</div>}
+                          </td>
+                          <td style={{ padding: '10px 8px' }}>{typeLabel}</td>
+                          <td style={{ padding: '10px 8px' }}>{party.currency}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(party.receivable, party.currency)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: netBalance >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
+                          <td style={{ padding: '10px 8px', color: 'var(--muted)' }}>{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
       )}
       {activeTab === 'commissions' && (
         <>

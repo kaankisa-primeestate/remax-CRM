@@ -6,6 +6,13 @@ export const ACCOUNTING_CURRENCIES = [
   { value: 'USD', label: 'USD', symbol: '$' },
 ];
 
+export const ACCOUNTING_PARTY_TYPES = [
+  { value: 'partner', label: 'Ortak' },
+  { value: 'customer', label: 'Müşteri' },
+  { value: 'vendor', label: 'Tedarikçi' },
+  { value: 'other', label: 'Diğer' },
+];
+
 export const ACCOUNTING_ACCOUNT_TYPES = [
   { value: 'bank', label: 'Banka' },
   { value: 'cash', label: 'Kasa' },
@@ -33,6 +40,9 @@ export const accountingApi = {
   generateRents: (payload) => apiClient.post('/accounting/rents/generate', payload).then((response) => response.data),
   collectRent: (id, payload) => apiClient.post(`/accounting/rents/${id}/collect`, payload).then((response) => response.data),
   voidRent: (id) => apiClient.post(`/accounting/rents/${id}/void`).then((response) => response.data),
+  listParties: (params = {}) => apiClient.get('/accounting/parties', { params }).then((response) => response.data),
+  createParty: (payload) => apiClient.post('/accounting/parties', payload).then((response) => response.data),
+  listPartyEntries: (id) => apiClient.get(`/accounting/parties/${id}/entries`).then((response) => response.data),
 };
 
 export function formatAccountingMoney(amount, currency = 'TRY') {
