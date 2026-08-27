@@ -15,6 +15,10 @@ import {
   AccountingCommissionStatus,
 } from './accounting-commission.entity';
 import {
+  AccountingRent,
+  AccountingRentStatus,
+} from './accounting-rent.entity';
+import {
   AccountingEntry,
   AccountingEntryType,
   AccountingPartyType,
@@ -25,6 +29,10 @@ import {
   SettleAccountingCommissionDto,
 } from './dto/create-accounting-commission.dto';
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
+import {
+  GenerateAccountingRentsDto,
+  SettleAccountingRentDto,
+} from './dto/accounting-rent.dto';
 import { User, UserRole } from '../users/user.entity';
 
 const SUPPORTED_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
@@ -38,6 +46,8 @@ export class AccountingService {
     private readonly entryRepo: Repository<AccountingEntry>,
     @InjectRepository(AccountingCommission)
     private readonly commissionRepo: Repository<AccountingCommission>,
+    @InjectRepository(AccountingRent)
+    private readonly rentRepo: Repository<AccountingRent>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
@@ -197,6 +207,125 @@ export class AccountingService {
         ? accountMap.get(commission.paymentAccountId)?.name || null
         : null,
     }));
+  }
+
+  async listRents(filters: { period?: string; currency?: string }) {
+    const query = this.rentRepo
+      .createQueryBuilder('rent')
+      .where('1 = 1')
+      .orderBy('rent.period', 'DESC')
+      .addOrderBy('rent.agentNameSnapshot', 'ASC');
+    if (filters.period) query.andWhere('rent.period = :period', { period: filters.period });
+    if (filters.currency) query.andWhere('rent.currency = :currency', { currency: filters.currency });
+
+    const [rents, accounts] = await Promise.all([
+      query.getMany(),
+      this.accountRepo.find(),
+    ]);
+    const accountMap = new Map(accounts.map((account) => [account.id, account]));
+    return rents.map((rent) => ({
+      ...rent,
+      collectionAccountName: rent.collectionAccountId
+        ? accountMap.get(rent.collectionAccountId)?.name || null
+        : null,
+    }));
+  }
+
+  async generateRents(dto: GenerateAccountingRentsDto, createdBy: string) {
+    this.assertCurrency(dto.currency);
+    if (dto.currency !== 'TRY') {
+      throw new BadRequestException('Danışman kira tutarı ilk sürümde yalnızca TL olarak tanımlıdır');
+    }
+
+    const [agents, existingRents] = await Promise.all([
+      this.userRepo.find({ where: { role: UserRole.AGENT, isActive: true } }),
+      this.rentRepo.find({ where: { period: dto.period } }),
+    ]);
+    const existingAgentIds = new Set(existingRents.map((rent) => rent.agentId));
+    const newRents: AccountingRent[] = [];
+    let skipped = 0;
+
+    for (const agent of agents) {
+      const amount = Number(agent.monthlyDuesAmount);
+      const startPeriod = agent.duesStartDate?.slice(0, 7);
+      if (!Number.isFinite(amount) || amount <= 0 || (startPeriod && dto.period < startPeriod) || existingAgentIds.has(agent.id)) {
+        skipped++;
+        continue;
+      }
+
+      newRents.push(this.rentRepo.create({
+        agentId: agent.id,
+        agentNameSnapshot: agent.name,
+        period: dto.period,
+        dueDate: `${dto.period}-01`,
+        amount: this.money(amount),
+        currency: 'TRY',
+        status: AccountingRentStatus.PENDING,
+        collectionAccountId: null,
+        collectionEntryId: null,
+        collectedAt: null,
+        notes: null,
+        voidedAt: null,
+        createdBy,
+      }));
+    }
+
+    if (newRents.length > 0) {
+      await this.rentRepo.save(newRents, { chunk: 100 });
+    }
+    return { period: dto.period, currency: 'TRY', created: newRents.length, skipped };
+  }
+
+  async collectRent(id: string, dto: SettleAccountingRentDto, createdBy: string) {
+    const rent = await this.getRent(id);
+    if (rent.status !== AccountingRentStatus.PENDING) {
+      throw new BadRequestException('Bu kira tahakkuku zaten tahsil edilmiş veya kapatılmış');
+    }
+
+    const account = await this.getActiveAccount(dto.accountId);
+    if (account.currency !== rent.currency) {
+      throw new BadRequestException('Tahsilat hesabının para birimi kira kaydıyla aynı olmalıdır');
+    }
+
+    const entry = this.entryRepo.create({
+      type: AccountingEntryType.INCOME,
+      date: dto.date,
+      amount: rent.amount,
+      currency: rent.currency,
+      accountId: account.id,
+      counterAccountId: null,
+      category: 'Danışman Kirası Tahsilatı',
+      partyType: AccountingPartyType.AGENT,
+      partyId: rent.agentId,
+      partyName: rent.agentNameSnapshot,
+      description: `Danışman kirası: ${rent.period}`,
+      referenceNo: null,
+      sourceKey: `rent:${rent.id}:collection`,
+      sourceType: 'accounting_rent_collection',
+      sourceId: rent.id,
+      createdBy,
+      voidedAt: null,
+    });
+    const savedEntry = await this.entryRepo.save(entry);
+
+    rent.status = AccountingRentStatus.COLLECTED;
+    rent.collectionAccountId = account.id;
+    rent.collectionEntryId = savedEntry.id;
+    rent.collectedAt = dto.date;
+    rent.notes = dto.notes?.trim() || rent.notes;
+    return this.rentRepo.save(rent);
+  }
+
+  async voidRent(id: string, createdBy: string) {
+    const rent = await this.getRent(id);
+    if (rent.status !== AccountingRentStatus.PENDING) {
+      throw new ConflictException('Yalnızca tahsil edilmemiş kira tahakkukları iptal edilebilir');
+    }
+    rent.status = AccountingRentStatus.VOIDED;
+    rent.voidedAt = new Date();
+    rent.updatedAt = new Date();
+    rent.notes = [rent.notes, `İptal edildi (${createdBy})`].filter(Boolean).join(' · ');
+    return this.rentRepo.save(rent);
   }
 
   async createCommission(dto: CreateAccountingCommissionDto, createdBy: string) {
@@ -393,6 +522,14 @@ export class AccountingService {
       netOperatingResult: income - expense,
       entryCount: Number(row?.entryCount || 0),
     };
+  }
+
+  private async getRent(id: string) {
+    const rent = await this.rentRepo.findOne({ where: { id } });
+    if (!rent) {
+      throw new NotFoundException('Danışman kira tahakkuku bulunamadı');
+    }
+    return rent;
   }
 
   private async getCommission(id: string) {

@@ -19,6 +19,10 @@ import {
   CreateAccountingCommissionDto,
   SettleAccountingCommissionDto,
 } from './dto/create-accounting-commission.dto';
+import {
+  GenerateAccountingRentsDto,
+  SettleAccountingRentDto,
+} from './dto/accounting-rent.dto';
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
 
 @Controller('accounting')
@@ -59,6 +63,33 @@ export class AccountingController {
     @Query('currency') currency?: string,
   ) {
     return this.accountingService.getSummary({ from, to, currency });
+  }
+
+  @Get('rents')
+  listRents(
+    @Query('period') period?: string,
+    @Query('currency') currency?: string,
+  ) {
+    return this.accountingService.listRents({ period, currency });
+  }
+
+  @Post('rents/generate')
+  generateRents(@Body() dto: GenerateAccountingRentsDto, @Req() req: any) {
+    return this.accountingService.generateRents(dto, req.user.userId);
+  }
+
+  @Post('rents/:id/collect')
+  collectRent(
+    @Param('id') id: string,
+    @Body() dto: SettleAccountingRentDto,
+    @Req() req: any,
+  ) {
+    return this.accountingService.collectRent(id, dto, req.user.userId);
+  }
+
+  @Post('rents/:id/void')
+  voidRent(@Param('id') id: string, @Req() req: any) {
+    return this.accountingService.voidRent(id, req.user.userId);
   }
 
   @Get('commissions')

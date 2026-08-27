@@ -145,6 +145,10 @@ export default function AccountingPage() {
   const [commissionActionId, setCommissionActionId] = useState(null);
   const [commissionForm, setCommissionForm] = useState(EMPTY_COMMISSION_FORM);
   const [settlementAccounts, setSettlementAccounts] = useState({});
+  const [rents, setRents] = useState([]);
+  const [rentLoading, setRentLoading] = useState(false);
+  const [rentGenerating, setRentGenerating] = useState(false);
+  const [rentActionId, setRentActionId] = useState(null);
   const commissionIdempotencyKeyRef = useRef(null);
 
   const periodParams = useMemo(() => ({ ...getPeriodBounds(period), currency }), [period, currency]);
@@ -200,11 +204,29 @@ export default function AccountingPage() {
     setCommissionLoading(false);
   }, [loadAgents, loadCommissions]);
 
+  const loadRents = useCallback(async () => {
+    setRentLoading(true);
+    try {
+      const rentList = await accountingApi.listRents({ period, currency });
+      setRents(rentList || []);
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Danışman kira kayıtları yüklenemedi.');
+    } finally {
+      setRentLoading(false);
+    }
+  }, [period, currency]);
+
   useEffect(() => {
     if (activeTab !== 'commissions') return undefined;
     loadCommissionData();
     return undefined;
   }, [activeTab, loadCommissionData]);
+
+  useEffect(() => {
+    if (activeTab !== 'dues') return undefined;
+    loadRents();
+    return undefined;
+  }, [activeTab, loadRents]);
 
   const currencyAccounts = useMemo(
     () => accounts.filter((account) => account.currency === entryForm.currency && account.isActive !== false),
@@ -265,6 +287,53 @@ export default function AccountingPage() {
       setError(saveError.response?.data?.message || 'Muhasebe hareketi kaydedilemedi.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleGenerateRents() {
+    if (currency !== 'TRY') {
+      setError('Danışman kira tutarı ilk sürümde yalnızca TL olarak işlenir.');
+      return;
+    }
+    if (!window.confirm(`${periodLabel(period)} dönemi için danışman kira tahakkukları oluşturulsun mu?`)) return;
+
+    setRentGenerating(true);
+    setError('');
+    try {
+      await accountingApi.generateRents({ period, currency: 'TRY' });
+      await loadRents();
+    } catch (generateError) {
+      setError(generateError.response?.data?.message || 'Danışman kira tahakkukları oluşturulamadı.');
+    } finally {
+      setRentGenerating(false);
+    }
+  }
+
+  async function handleRentAction(rent, action) {
+    const accountId = getSettlementAccount(rent.id);
+    if (action !== 'void' && !accountId) {
+      setError('Önce bu kira için bir banka, kasa veya kredi kartı hesabı seçin.');
+      return;
+    }
+    const actionLabel = action === 'collect' ? 'tahsilatı' : 'iptali';
+    if (!window.confirm(`Bu kira tahakkukunun ${actionLabel} kaydedilsin mi?`)) return;
+
+    setRentActionId(rent.id);
+    setError('');
+    try {
+      if (action === 'collect') {
+        await accountingApi.collectRent(rent.id, {
+          accountId,
+          date: new Date().toISOString().slice(0, 10),
+        });
+      } else {
+        await accountingApi.voidRent(rent.id);
+      }
+      await Promise.all([loadRents(), loadData()]);
+    } catch (actionError) {
+      setError(actionError.response?.data?.message || 'Danışman kira işlemi kaydedilemedi.');
+    } finally {
+      setRentActionId(null);
     }
   }
 
@@ -804,7 +873,97 @@ export default function AccountingPage() {
         </>
       )}
       {activeTab === 'dues' && (
-        <EmptyTab title="Danışman kiraları" description="Danışman kaydındaki kira tutarı ve başlangıç tarihinden üretilen aylık tahakkuklar burada yönetilecek." />
+        <>
+          <div className="folder-panel" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Danışman kira tahakkukları</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                  Danışman kayıt ekranındaki aylık kira ve başlangıç tarihine göre bu dönemin tahakkuklarını oluşturun. Aynı dönem ikinci kez oluşturulmaz.
+                </p>
+              </div>
+              <button type="button" className="btn btn-primary" onClick={handleGenerateRents} disabled={rentGenerating || rentLoading || currency !== 'TRY'}>
+                {rentGenerating ? 'Oluşturuluyor…' : `${periodLabel(period)} kiralarını oluştur`}
+              </button>
+            </div>
+            {currency !== 'TRY' && (
+              <div style={{ color: 'var(--muted)', background: 'var(--paper-raised)', border: '1px solid var(--paper-line)', borderRadius: 5, padding: '9px 11px', fontSize: 13 }}>
+                Danışman kayıtlarındaki kira tutarı ilk sürümde TL olarak tutulur. Kira tahakkuklarını görmek için üstteki para birimi seçimini TL yapın.
+              </div>
+            )}
+            {currency === 'TRY' && (
+              <div style={{ color: 'var(--muted)', fontSize: 12 }}>
+                Başlangıç tarihi boş olan istisnai kayıtlar bu aydan itibaren başlar; başlangıç tarihi bulunan danışmanlar için önceki dönemler atlanır.
+              </div>
+            )}
+          </div>
+
+          <div className="folder-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Kira listesi</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>{periodLabel(period)} · {currency}</p>
+              </div>
+              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{rents.length} kayıt</span>
+            </div>
+            {rentLoading ? (
+              <div className="empty-state">Kira kayıtları yükleniyor…</div>
+            ) : rents.length === 0 ? (
+              <div className="empty-state">Bu dönem için henüz kira tahakkuku yok. Üstteki düğmeyle oluşturabilirsiniz.</div>
+            ) : (
+              <div className="table-scroll">
+                <table style={{ width: '100%', minWidth: 880, borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '7px 8px' }}>Dönem</th>
+                      <th style={{ padding: '7px 8px' }}>Danışman</th>
+                      <th style={{ padding: '7px 8px' }}>Vade</th>
+                      <th style={{ padding: '7px 8px' }}>Tutar</th>
+                      <th style={{ padding: '7px 8px' }}>Durum / işlem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rents.map((rent) => {
+                      const matchingAccounts = accounts.filter((account) => account.currency === rent.currency && account.isActive !== false);
+                      const isBusy = rentActionId === rent.id;
+                      const statusLabel = rent.status === 'pending_collection'
+                        ? 'Tahsilat bekliyor'
+                        : rent.status === 'collected'
+                          ? 'Tahsil edildi'
+                          : 'İptal edildi';
+                      return (
+                        <tr key={rent.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                          <td style={{ padding: '10px 8px' }}>{periodLabel(rent.period)}</td>
+                          <td style={{ padding: '10px 8px' }}><strong>{rent.agentNameSnapshot}</strong></td>
+                          <td style={{ padding: '10px 8px' }}>{formatDate(rent.dueDate)}</td>
+                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(rent.amount, rent.currency)}</td>
+                          <td style={{ padding: '10px 8px', minWidth: 330 }}>
+                            <div style={{ fontSize: 12, color: rent.status === 'collected' ? 'var(--success)' : rent.status === 'voided' ? 'var(--muted)' : 'var(--danger)', marginBottom: 6 }}>{statusLabel}</div>
+                            {rent.status === 'pending_collection' && (
+                              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <select value={getSettlementAccount(rent.id)} onChange={(event) => setSettlementAccount(rent.id, event.target.value)} disabled={isBusy}>
+                                  <option value="">Hesap seçin</option>
+                                  {matchingAccounts.map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
+                                </select>
+                                <button type="button" className="btn btn-primary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleRentAction(rent, 'collect')}>
+                                  {isBusy ? '…' : 'Tahsil Et'}
+                                </button>
+                                <button type="button" className="btn btn-secondary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy} onClick={() => handleRentAction(rent, 'void')}>
+                                  {isBusy ? '…' : 'İptal Et'}
+                                </button>
+                              </div>
+                            )}
+                            {rent.status === 'pending_collection' && matchingAccounts.length === 0 && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
       )}
       {activeTab === 'partners' && (
         <EmptyTab title="Ortaklar" description="Sermaye katkısı, ortağa borç, ortak çekişi ve kâr dağıtımı hareketleri ortak cari hesabında tutulacak." />

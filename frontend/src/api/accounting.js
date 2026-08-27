@@ -29,6 +29,10 @@ export const accountingApi = {
   collectCommission: (id, payload) => apiClient.post(`/accounting/commissions/${id}/collect`, payload).then((response) => response.data),
   payCommission: (id, payload) => apiClient.post(`/accounting/commissions/${id}/pay`, payload).then((response) => response.data),
   voidCommission: (id) => apiClient.post(`/accounting/commissions/${id}/void`).then((response) => response.data),
+  listRents: (params = {}) => apiClient.get('/accounting/rents', { params }).then((response) => response.data),
+  generateRents: (payload) => apiClient.post('/accounting/rents/generate', payload).then((response) => response.data),
+  collectRent: (id, payload) => apiClient.post(`/accounting/rents/${id}/collect`, payload).then((response) => response.data),
+  voidRent: (id) => apiClient.post(`/accounting/rents/${id}/void`).then((response) => response.data),
 };
 
 export function formatAccountingMoney(amount, currency = 'TRY') {
