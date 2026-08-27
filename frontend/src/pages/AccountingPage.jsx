@@ -219,6 +219,7 @@ export default function AccountingPage() {
   const [partyTypeFilter, setPartyTypeFilter] = useState('all');
   const [partyPage, setPartyPage] = useState(1);
   const [partySaving, setPartySaving] = useState(false);
+  const [masterSaving, setMasterSaving] = useState(false);
   const [partyForm, setPartyForm] = useState({
     type: 'partner',
     name: '',
@@ -249,6 +250,11 @@ export default function AccountingPage() {
   const [managementReportLoading, setManagementReportLoading] = useState(false);
   const [migrationPreview, setMigrationPreview] = useState(null);
   const [migrationLoading, setMigrationLoading] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditTarget, setAuditTarget] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [correctionReason, setCorrectionReason] = useState('');
   const [customCategories, setCustomCategories] = useState({ income: [], expense: [] });
   const [recurringForm, setRecurringForm] = useState({
     title: '',
@@ -694,16 +700,68 @@ export default function AccountingPage() {
     }
   }
 
+  async function handleViewAudit(target) {
+    setAuditTarget(target);
+    setAuditLoading(true);
+    setError('');
+    try {
+      const logs = await accountingApi.listAuditLogs({ entityType: 'accounting_entry', entityId: target.id });
+      setAuditLogs(logs || []);
+    } catch (auditError) {
+      setAuditLogs([]);
+      setError(auditError.response?.data?.message || 'Denetim geçmişi yüklenemedi.');
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
+  function handleStartCorrectEntry(entry) {
+    if (entry.sourceType !== 'manual') {
+      setError('Komisyon, kira ve tekrarlayan gider hareketleri kendi işlem ekranlarından yönetilmelidir.');
+      return;
+    }
+    setEditingEntry(entry);
+    setCorrectionReason('');
+    setEntryForm({
+      ...EMPTY_ENTRY_FORM,
+      type: entry.type,
+      date: entry.date,
+      amount: String(entry.amount),
+      currency: entry.currency,
+      accountId: entry.accountId || '',
+      counterAccountId: entry.counterAccountId || '',
+      category: entry.category || (entry.type === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]),
+      partyId: parties.find((party) => party.id === entry.partyId || party.linkedUserId === entry.partyId)?.id || entry.partyId || '',
+      partyName: entry.partyName || '',
+      description: entry.description || '',
+      referenceNo: entry.referenceNo || '',
+    });
+    setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelCorrection() {
+    setEditingEntry(null);
+    setCorrectionReason('');
+    setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
+  }
+
   async function handleVoidEntry(entry) {
-    if (!['manual', 'accounting_recurring_expense'].includes(entry.sourceType)) {
+    if (!['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType)) {
       setError('Komisyon ve kira hareketleri kendi ekranından iptal edilmelidir.');
       return;
     }
-    if (!window.confirm('Bu manuel hareket iptal edilsin mi? Kayıt silinmeyecek; bakiyelerden çıkarılıp geçmişte korunacak.')) return;
+    const reason = window.prompt('İptal nedeni nedir? Bu neden denetim geçmişine kaydedilecektir.');
+    if (reason === null) return;
+    if (reason.trim().length < 3) {
+      setError('İptal nedeni en az 3 karakter olmalıdır.');
+      return;
+    }
+    if (!window.confirm('Bu hareket iptal edilsin mi? Kayıt silinmeyecek; bakiyelerden çıkarılıp geçmişte korunacak.')) return;
     setSaving(true);
     setError('');
     try {
-      await accountingApi.voidEntry(entry.id);
+      await accountingApi.voidEntry(entry.id, { reason: reason.trim() });
       await loadData();
     } catch (voidError) {
       setError(voidError.response?.data?.message || 'Muhasebe hareketi iptal edilemedi.');
@@ -743,16 +801,15 @@ export default function AccountingPage() {
     setSaving(true);
     setError('');
     try {
-      const idempotencyKey = entryIdempotencyKeyRef.current
-        || window.crypto?.randomUUID?.()
-        || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      entryIdempotencyKeyRef.current = idempotencyKey;
+      if (editingEntry && correctionReason.trim().length < 3) {
+        throw new Error('Düzeltme nedeni en az 3 karakter olmalıdır.');
+      }
       if (entryForm.type !== 'transfer' && ![...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].includes(selectedCategory)) {
         await accountingApi.createCategory({ type: entryForm.type, name: selectedCategory });
         await loadCategories();
       }
       const { customCategory: _customCategory, ...entryPayload } = entryForm;
-      await accountingApi.createEntry({
+      const normalizedPayload = {
         ...entryPayload,
         amount: Number(entryForm.amount),
         category: entryForm.type === 'transfer' ? 'Hesaplar Arası Transfer' : selectedCategory,
@@ -761,9 +818,19 @@ export default function AccountingPage() {
         partyName: entryForm.type === 'transfer' ? undefined : selectedParty?.name || entryForm.partyName || undefined,
         counterAccountId: entryForm.type === 'transfer' ? entryForm.counterAccountId : undefined,
         referenceNo: entryForm.referenceNo || undefined,
-        idempotencyKey,
-      });
+      };
+      if (editingEntry) {
+        await accountingApi.correctEntry(editingEntry.id, { ...normalizedPayload, reason: correctionReason.trim() });
+      } else {
+        const idempotencyKey = entryIdempotencyKeyRef.current
+          || window.crypto?.randomUUID?.()
+          || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        entryIdempotencyKeyRef.current = idempotencyKey;
+        await accountingApi.createEntry({ ...normalizedPayload, idempotencyKey });
+      }
       entryIdempotencyKeyRef.current = null;
+      setEditingEntry(null);
+      setCorrectionReason('');
       setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
       setActiveTab('entries');
       // Kayıt POST isteği başarılı olduktan sonra ekran yenilemesini
@@ -802,6 +869,12 @@ export default function AccountingPage() {
       return;
     }
     const actionLabel = action === 'collect' ? 'tahsilatı' : 'iptali';
+    const reason = action === 'void' ? window.prompt('İptal nedeni nedir? Bu neden denetim geçmişine kaydedilecektir.') : null;
+    if (action === 'void' && reason === null) return;
+    if (action === 'void' && reason.trim().length < 3) {
+      setError('İptal nedeni en az 3 karakter olmalıdır.');
+      return;
+    }
     if (!window.confirm(`Bu kira tahakkukunun ${actionLabel} kaydedilsin mi?`)) return;
 
     setRentActionId(rent.id);
@@ -813,7 +886,7 @@ export default function AccountingPage() {
           date: new Date().toISOString().slice(0, 10),
         });
       } else {
-        await accountingApi.voidRent(rent.id);
+        await accountingApi.voidRent(rent.id, { reason: reason.trim() });
       }
       await Promise.all([loadRents(), loadData()]);
     } catch (actionError) {
@@ -872,6 +945,12 @@ export default function AccountingPage() {
       : action === 'pay'
         ? 'danışman ödemesi'
         : 'iptali';
+    const reason = action === 'void' ? window.prompt('İptal nedeni nedir? Bu neden denetim geçmişine kaydedilecektir.') : null;
+    if (action === 'void' && reason === null) return;
+    if (action === 'void' && reason.trim().length < 3) {
+      setError('İptal nedeni en az 3 karakter olmalıdır.');
+      return;
+    }
     if (!window.confirm(`Bu komisyonun ${actionLabel} kaydedilsin mi?`)) return;
 
     setCommissionActionId(commission.id);
@@ -886,13 +965,112 @@ export default function AccountingPage() {
       } else if (action === 'pay') {
         await accountingApi.payCommission(commission.id, payload);
       } else {
-        await accountingApi.voidCommission(commission.id);
+        await accountingApi.voidCommission(commission.id, { reason: reason.trim() });
       }
       Promise.all([loadCommissionData(), loadData()]).catch(() => undefined);
     } catch (actionError) {
       setError(actionError.response?.data?.message || 'Komisyon işlemi kaydedilemedi.');
     } finally {
       setCommissionActionId(null);
+    }
+  }
+
+  async function handleEditAccount(account) {
+    const name = window.prompt('Hesap adı:', account.name);
+    if (name === null) return;
+    if (!name.trim()) { setError('Hesap adı boş bırakılamaz.'); return; }
+    setMasterSaving(true);
+    setError('');
+    try {
+      await accountingApi.updateAccount(account.id, { name: name.trim(), bankName: account.bankName || '', iban: account.iban || '' });
+      await loadData();
+    } catch (editError) {
+      setError(editError.response?.data?.message || 'Hesap güncellenemedi.');
+    } finally {
+      setMasterSaving(false);
+    }
+  }
+
+  async function handleArchiveAccount(account) {
+    const reason = window.prompt('Hesabı neden pasifleştiriyorsunuz? Bu neden audit geçmişine kaydedilecektir.');
+    if (reason === null || reason.trim().length < 3) { if (reason !== null) setError('Pasifleştirme nedeni en az 3 karakter olmalıdır.'); return; }
+    if (!window.confirm(`${account.name} pasifleştirilsin mi? Geçmiş hareketler korunacak; yeni işlemlerde seçilemeyecek.`)) return;
+    setMasterSaving(true);
+    setError('');
+    try {
+      await accountingApi.archiveAccount(account.id, { reason: reason.trim() });
+      await loadData();
+    } catch (archiveError) {
+      setError(archiveError.response?.data?.message || 'Hesap pasifleştirilemedi.');
+    } finally {
+      setMasterSaving(false);
+    }
+  }
+
+  async function handleEditParty(party) {
+    const name = window.prompt('Cari kart adı / unvanı:', party.name);
+    if (name === null) return;
+    if (!name.trim()) { setError('Cari kart adı boş bırakılamaz.'); return; }
+    setMasterSaving(true);
+    setError('');
+    try {
+      await accountingApi.updateParty(party.id, { name: name.trim(), companyName: party.companyName || '', phone: party.phone || '', taxId: party.taxId || '' });
+      await loadParties();
+    } catch (editError) {
+      setError(editError.response?.data?.message || 'Cari kart güncellenemedi.');
+    } finally {
+      setMasterSaving(false);
+    }
+  }
+
+  async function handleArchiveParty(party) {
+    const reason = window.prompt('Cari kartı neden pasifleştiriyorsunuz?');
+    if (reason === null || reason.trim().length < 3) { if (reason !== null) setError('Pasifleştirme nedeni en az 3 karakter olmalıdır.'); return; }
+    if (!window.confirm(`${party.name} pasifleştirilsin mi? Geçmiş hareketler korunacak.`)) return;
+    setMasterSaving(true);
+    setError('');
+    try {
+      await accountingApi.archiveParty(party.id, { reason: reason.trim() });
+      await loadParties();
+    } catch (archiveError) {
+      setError(archiveError.response?.data?.message || 'Cari kart pasifleştirilemedi.');
+    } finally {
+      setMasterSaving(false);
+    }
+  }
+
+  async function handleEditRecurringExpense(template) {
+    const title = window.prompt('Tekrarlayan gider adı:', template.title);
+    if (title === null) return;
+    const amountText = window.prompt('Aylık tutar:', String(template.amount));
+    if (amountText === null) return;
+    const amount = Number(amountText.replace(',', '.'));
+    if (!title.trim() || !Number.isFinite(amount) || amount <= 0) { setError('Gider adı ve tutarı geçerli olmalıdır.'); return; }
+    setMasterSaving(true);
+    setError('');
+    try {
+      await accountingApi.updateRecurringExpense(template.id, { title: title.trim(), category: template.category, amount, currency: template.currency, dueDay: template.dueDay, startPeriod: template.startPeriod, endPeriod: template.endPeriod || undefined, defaultAccountId: template.defaultAccountId, partyId: template.partyId || undefined });
+      await loadRecurringExpenses();
+    } catch (editError) {
+      setError(editError.response?.data?.message || 'Tekrarlayan gider şablonu güncellenemedi.');
+    } finally {
+      setMasterSaving(false);
+    }
+  }
+
+  async function handleArchiveRecurringExpense(template) {
+    const reason = window.prompt('Tekrarlayan gider şablonunu neden pasifleştiriyorsunuz?');
+    if (reason === null || reason.trim().length < 3) { if (reason !== null) setError('Pasifleştirme nedeni en az 3 karakter olmalıdır.'); return; }
+    if (!window.confirm(`${template.title} pasifleştirilsin mi? Önceden oluşturulan giderler korunacak; yeni dönemlerde otomatik oluşturulmayacak.`)) return;
+    setMasterSaving(true);
+    setError('');
+    try {
+      await accountingApi.archiveRecurringExpense(template.id, { reason: reason.trim() });
+      await loadRecurringExpenses();
+    } catch (archiveError) {
+      setError(archiveError.response?.data?.message || 'Tekrarlayan gider şablonu pasifleştirilemedi.');
+    } finally {
+      setMasterSaving(false);
     }
   }
 
@@ -1031,9 +1209,9 @@ export default function AccountingPage() {
           <div className="folder-panel" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni muhasebe hareketi</h3>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
                 <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
-                  Gelir/tahsilat, gider/ödeme veya aynı para birimindeki iki hesap arasında transfer kaydedin.
+                  {editingEntry ? 'Eski kayıt silinmez ve geçmişte korunur. Yeni değerler ayrı bir düzeltme kaydı olarak oluşturulur.' : 'Gelir/tahsilat, gider/ödeme veya aynı para birimindeki iki hesap arasında transfer kaydedin.'}
                 </p>
               </div>
               <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>İlk sürüm</span>
@@ -1100,9 +1278,15 @@ export default function AccountingPage() {
               <FormField label="Açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
                 <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
               </FormField>
+              {editingEntry && (
+                <FormField label="Düzeltme nedeni" style={{ minWidth: 260, flex: '1 1 260px' }}>
+                  <input value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Örn. Tutar yanlış girildi" required />
+                </FormField>
+              )}
               <button type="submit" className="btn btn-primary" disabled={saving || currencyAccounts.length === 0}>
-                {saving ? 'Kaydediliyor…' : 'Hareketi Kaydet'}
+                {saving ? 'Kaydediliyor…' : editingEntry ? 'Düzeltmeyi Kaydet' : 'Hareketi Kaydet'}
               </button>
+              {editingEntry && <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>}
             </form>
             {currencyAccounts.length === 0 && (
               <p style={{ color: 'var(--danger)', fontSize: 13, margin: '12px 0 0' }}>
@@ -1151,8 +1335,10 @@ export default function AccountingPage() {
                           {formatAccountingMoney(entry.amount, entry.currency)}
                         </td>
                         <td style={{ padding: '9px 8px' }}>
-                          {['manual', 'accounting_recurring_expense'].includes(entry.sourceType) && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleVoidEntry(entry)}>İptal Et</button>}
-                          {!['manual', 'accounting_recurring_expense'].includes(entry.sourceType) && <span style={{ color: 'var(--muted)', fontSize: 11 }}>Komisyon/kira kaynağı</span>}
+                          {entry.sourceType === 'manual' && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleStartCorrectEntry(entry)}>Düzelt</button>}
+                          {['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleVoidEntry(entry)}>İptal Et</button>}
+                          {!['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <span style={{ color: 'var(--muted)', fontSize: 11 }}>Komisyon/kira kaynağı</span>}
+                          <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11, marginTop: 4 }} onClick={() => handleViewAudit(entry)}>Geçmiş</button>
                         </td>
                       </tr>
                     ))}
@@ -1161,6 +1347,22 @@ export default function AccountingPage() {
               </div>
             )}
           </div>
+          {auditTarget && (
+            <div className="folder-panel" style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div>
+                  <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Kayıt geçmişi</h3>
+                  <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>{auditTarget.category} · {formatAccountingMoney(auditTarget.amount, auditTarget.currency)} · Değişiklikler silinmeden saklanır.</p>
+                </div>
+                <button type="button" className="btn btn-secondary" onClick={() => { setAuditTarget(null); setAuditLogs([]); }}>Geçmişi Kapat</button>
+              </div>
+              {auditLoading ? <div className="empty-state">Kayıt geçmişi yükleniyor…</div> : auditLogs.length === 0 ? <div className="empty-state">Bu kayıt için henüz denetim geçmişi bulunmuyor.</div> : (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {auditLogs.map((log) => <div key={log.id} style={{ borderTop: '1px solid var(--paper-line)', padding: '9px 0', fontSize: 13 }}><strong>{log.action === 'create' ? 'Oluşturuldu' : log.action === 'void' ? 'İptal edildi' : log.action === 'correct' ? 'Düzeltildi' : log.action}</strong><span style={{ color: 'var(--muted)' }}> · {log.createdAt ? new Date(log.createdAt).toLocaleString('tr-TR') : '—'}{log.reason ? ` · ${log.reason}` : ''}</span></div>)}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -1216,6 +1418,7 @@ export default function AccountingPage() {
                       <th style={{ padding: '7px 8px' }}>Tür</th>
                       <th style={{ padding: '7px 8px' }}>Para birimi</th>
                       <th style={{ padding: '7px 8px', textAlign: 'right' }}>Güncel bakiye</th>
+                      <th style={{ padding: '7px 8px' }}>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1229,6 +1432,10 @@ export default function AccountingPage() {
                         <td style={{ padding: '9px 8px' }}>{account.currency}</td>
                         <td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: Number(account.currentBalance || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                           {formatAccountingMoney(account.currentBalance, account.currency)}
+                        </td>
+                        <td style={{ padding: '9px 8px' }}>
+                          {account.isActive !== false && <><button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleEditAccount(account)}>Düzenle</button> <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleArchiveAccount(account)}>Pasifleştir</button></>}
+                          {account.isActive === false && <span style={{ color: 'var(--muted)', fontSize: 11 }}>Pasif</span>}
                         </td>
                       </tr>
                     ))}
@@ -1324,6 +1531,7 @@ export default function AccountingPage() {
                         <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net bakiye</th>
                         <th style={{ padding: '7px 8px' }}>Durum</th>
                         <th style={{ padding: '7px 8px' }}>Ekstre</th>
+                        <th style={{ padding: '7px 8px' }}>İşlem</th>
                       </tr>
                     </thead>
 
@@ -1344,6 +1552,9 @@ export default function AccountingPage() {
                           <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: netBalance >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
                           <td style={{ padding: '10px 8px', color: 'var(--muted)' }}>{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
                           <td style={{ padding: '10px 8px' }}><button type="button" className="btn btn-secondary" onClick={() => handleViewPartyStatement(party)}>Ekstreyi Aç</button></td>
+                          <td style={{ padding: '10px 8px' }}>
+                            {party.linkedUserId ? <span style={{ color: 'var(--muted)', fontSize: 11 }}>Danışman kaydından yönetilir</span> : <><button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleEditParty(party)}>Düzenle</button> <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleArchiveParty(party)}>Pasifleştir</button></>}
+                          </td>
                         </tr>
                       );
                     })}
@@ -1854,6 +2065,7 @@ export default function AccountingPage() {
                       <th style={{ padding: '7px 8px' }}>Dönem</th>
                       <th style={{ padding: '7px 8px' }}>Ödeme hesabı</th>
                       <th style={{ padding: '7px 8px' }}>Durum</th>
+                      <th style={{ padding: '7px 8px' }}>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1866,6 +2078,10 @@ export default function AccountingPage() {
                         <td style={{ padding: '10px 8px' }}>{periodLabel(template.startPeriod)}{template.endPeriod ? ` – ${periodLabel(template.endPeriod)}` : ' sonrası'}</td>
                         <td style={{ padding: '10px 8px' }}>{template.accountName || '—'}</td>
                         <td style={{ padding: '10px 8px', color: 'var(--success)' }}>Aktif</td>
+                        <td style={{ padding: '10px 8px' }}>
+                          <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleEditRecurringExpense(template)}>Düzenle</button>
+                          <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11, marginLeft: 4 }} disabled={masterSaving} onClick={() => handleArchiveRecurringExpense(template)}>Pasifleştir</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -24,6 +24,7 @@ import {
 } from './accounting-party.entity';
 import { AccountingRecurringExpense } from './accounting-recurring-expense.entity';
 import { AccountingCategory } from './accounting-category.entity';
+import { AccountingAuditAction, AccountingAuditLog } from './accounting-audit-log.entity';
 import {
   AccountingEntry,
   AccountingEntryType,
@@ -35,6 +36,12 @@ import {
   SettleAccountingCommissionDto,
 } from './dto/create-accounting-commission.dto';
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
+import { CorrectAccountingEntryDto } from './dto/correct-accounting-entry.dto';
+import {
+  UpdateAccountingAccountDto,
+  UpdateAccountingPartyDto,
+  UpdateAccountingRecurringExpenseDto,
+} from './dto/update-accounting-records.dto';
 import {
   GenerateAccountingRentsDto,
   SettleAccountingRentDto,
@@ -68,6 +75,8 @@ export class AccountingService {
     private readonly categoryRepo: Repository<AccountingCategory>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(AccountingAuditLog)
+    private readonly auditRepo: Repository<AccountingAuditLog>,
   ) {}
 
   async listAccounts() {
@@ -116,7 +125,7 @@ export class AccountingService {
     }));
   }
 
-  async createAccount(dto: CreateAccountingAccountDto) {
+  async createAccount(dto: CreateAccountingAccountDto, createdBy?: string) {
     this.assertCurrency(dto.currency);
     const name = dto.name.trim();
     if (!name) throw new BadRequestException('Hesap adı boş bırakılamaz');
@@ -129,7 +138,33 @@ export class AccountingService {
       openingBalance: dto.openingBalance || 0,
       isActive: true,
     });
-    return this.accountRepo.save(account);
+    const saved = await this.accountRepo.save(account);
+    await this.recordAudit('accounting_account', saved.id, AccountingAuditAction.CREATE, createdBy || null, null, null, saved);
+    return saved;
+  }
+
+  async updateAccount(id: string, dto: UpdateAccountingAccountDto, createdBy: string) {
+    const account = await this.accountRepo.findOne({ where: { id } });
+    if (!account) throw new NotFoundException('Muhasebe hesabı bulunamadı');
+    const name = dto.name.trim();
+    if (!name) throw new BadRequestException('Hesap adı boş bırakılamaz');
+    const beforeData = this.auditSnapshot(account);
+    account.name = name;
+    account.bankName = dto.bankName?.trim() || null;
+    account.iban = dto.iban?.trim() || null;
+    const saved = await this.accountRepo.save(account);
+    await this.recordAudit('accounting_account', saved.id, AccountingAuditAction.CORRECT, createdBy, null, beforeData, saved, 'Hesap tanımı güncellendi');
+    return saved;
+  }
+
+  async archiveAccount(id: string, reason: string, createdBy: string) {
+    const account = await this.accountRepo.findOne({ where: { id, isActive: true } });
+    if (!account) throw new NotFoundException('Aktif muhasebe hesabı bulunamadı');
+    const beforeData = this.auditSnapshot(account);
+    account.isActive = false;
+    const saved = await this.accountRepo.save(account);
+    await this.recordAudit('accounting_account', saved.id, AccountingAuditAction.VOID, createdBy, null, beforeData, saved, reason);
+    return saved;
   }
 
   async listEntries(filters: {
@@ -237,7 +272,9 @@ export class AccountingService {
     });
 
     try {
-      return await this.entryRepo.save(entry);
+      const saved = await this.entryRepo.save(entry);
+      await this.recordAudit('accounting_entry', saved.id, AccountingAuditAction.CREATE, createdBy, null, null, saved);
+      return saved;
     } catch (error: any) {
       if (sourceKey && error?.code === '23505') {
         const existing = await this.entryRepo.findOne({ where: { sourceKey } });
@@ -247,15 +284,112 @@ export class AccountingService {
     }
   }
 
-  async voidEntry(id: string, createdBy: string) {
+  async voidEntry(id: string, createdBy: string, reason?: string) {
     const entry = await this.entryRepo.findOne({ where: { id, voidedAt: IsNull() } });
     if (!entry) throw new NotFoundException('Aktif muhasebe hareketi bulunamadı');
-    if (!['manual', 'accounting_recurring_expense'].includes(entry.sourceType || '')) {
+    if (!['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType || '')) {
       throw new ConflictException('Komisyon ve kira hareketleri kendi ekranından iptal edilmelidir');
     }
+    const beforeData = this.auditSnapshot(entry);
     entry.voidedAt = new Date();
     entry.description = [entry.description, `İptal edildi (${createdBy})`].filter(Boolean).join(' · ');
-    return this.entryRepo.save(entry);
+    const saved = await this.entryRepo.save(entry);
+    await this.recordAudit('accounting_entry', saved.id, AccountingAuditAction.VOID, createdBy, null, beforeData, saved, reason);
+    return saved;
+  }
+
+  async correctEntry(id: string, dto: CorrectAccountingEntryDto, createdBy: string) {
+    const original = await this.entryRepo.findOne({ where: { id, voidedAt: IsNull() } });
+    if (!original) throw new NotFoundException('Düzeltilecek aktif muhasebe hareketi bulunamadı');
+    if (!['manual', 'manual_correction'].includes(original.sourceType || '')) {
+      throw new ConflictException('Komisyon, kira ve tekrarlayan gider hareketleri kendi işlem ekranlarından yönetilmelidir');
+    }
+    if (dto.reason.trim().length < 3) {
+      throw new BadRequestException('Düzeltme nedeni en az 3 karakter olmalıdır');
+    }
+
+    const category = dto.category.trim();
+    if (dto.type !== AccountingEntryType.TRANSFER && !category) {
+      throw new BadRequestException('Gelir veya gider kategorisi boş bırakılamaz');
+    }
+    this.assertCurrency(dto.currency);
+    const account = dto.accountId ? await this.getActiveAccount(dto.accountId) : null;
+    const counterAccount = dto.counterAccountId ? await this.getActiveAccount(dto.counterAccountId) : null;
+    if (dto.type === AccountingEntryType.TRANSFER) {
+      if (!account || !counterAccount) throw new BadRequestException('Transfer için kaynak ve hedef hesap seçilmelidir');
+      if (account.id === counterAccount.id) throw new BadRequestException('Kaynak ve hedef hesap aynı olamaz');
+      if (account.currency !== dto.currency || counterAccount.currency !== dto.currency) throw new BadRequestException('Transferde hesapların para birimleri aynı olmalıdır');
+      if (dto.partyType || dto.partyId || dto.partyName) throw new BadRequestException('Transfer hareketi cari kart bilgisi içeremez');
+    } else {
+      if (!account) throw new BadRequestException('Gelir veya gider için bir para hesabı seçilmelidir');
+      if (account.currency !== dto.currency) throw new BadRequestException('Hareketin para birimi hesap para birimiyle aynı olmalıdır');
+    }
+
+    if (dto.partyId) {
+      if (!dto.partyType) throw new BadRequestException('Cari hareket için cari kart türü de belirtilmelidir');
+      if (dto.partyType === AccountingPartyType.AGENT) {
+        const agent = await this.userRepo.findOne({ where: { id: dto.partyId, role: UserRole.AGENT } });
+        if (!agent) throw new BadRequestException('Seçilen danışman cari kartı bulunamadı');
+        if (dto.currency !== 'TRY') throw new BadRequestException('Danışman cari hareketleri ilk sürümde yalnızca TL olabilir');
+      } else {
+        const party = await this.partyRepo.findOne({ where: { id: dto.partyId, type: dto.partyType, isActive: true } });
+        if (!party) throw new BadRequestException('Seçilen cari kart bulunamadı veya türü eşleşmiyor');
+        if (party.currency !== dto.currency) throw new BadRequestException('Cari kart ve hareket para birimi aynı olmalıdır');
+      }
+    }
+
+    return this.entryRepo.manager.transaction(async (manager) => {
+      const entryRepo = manager.getRepository(AccountingEntry);
+      const auditRepo = manager.getRepository(AccountingAuditLog);
+      const transactionalOriginal = await entryRepo.findOne({ where: { id, voidedAt: IsNull() } });
+      if (!transactionalOriginal) throw new NotFoundException('Düzeltilecek aktif muhasebe hareketi bulunamadı');
+      const beforeData = this.auditSnapshot(transactionalOriginal);
+      const corrected = entryRepo.create({
+        type: dto.type,
+        date: dto.date,
+        amount: dto.amount,
+        currency: dto.currency,
+        accountId: account?.id || null,
+        counterAccountId: counterAccount?.id || null,
+        category: dto.type === AccountingEntryType.TRANSFER ? 'Hesaplar Arası Transfer' : category,
+        partyType: dto.partyType || null,
+        partyId: dto.partyId || null,
+        partyName: dto.partyName?.trim() || null,
+        description: dto.description?.trim() || null,
+        referenceNo: dto.referenceNo?.trim() || null,
+        sourceKey: `correction:${transactionalOriginal.id}`,
+        sourceType: 'manual_correction',
+        sourceId: transactionalOriginal.id,
+        createdBy,
+        voidedAt: null,
+      });
+
+      transactionalOriginal.voidedAt = new Date();
+      transactionalOriginal.description = [transactionalOriginal.description, `Düzeltildi: ${dto.reason.trim()}`].filter(Boolean).join(' · ');
+      const savedOriginal = await entryRepo.save(transactionalOriginal);
+      const savedCorrected = await entryRepo.save(corrected);
+      await auditRepo.save(auditRepo.create({
+        entityType: 'accounting_entry',
+        entityId: savedOriginal.id,
+        action: AccountingAuditAction.CORRECT,
+        createdBy,
+        relatedEntityId: savedCorrected.id,
+        reason: dto.reason.trim(),
+        beforeData,
+        afterData: this.auditSnapshot(savedCorrected),
+      }));
+      await auditRepo.save(auditRepo.create({
+        entityType: 'accounting_entry',
+        entityId: savedCorrected.id,
+        action: AccountingAuditAction.CREATE,
+        createdBy,
+        relatedEntityId: savedOriginal.id,
+        reason: `Önceki kayıt: ${savedOriginal.id}`,
+        beforeData: null,
+        afterData: this.auditSnapshot(savedCorrected),
+      }));
+      return savedCorrected;
+    });
   }
 
   async listParties(filters: { currency?: string }) {
@@ -386,7 +520,7 @@ export class AccountingService {
       });
   }
 
-  async createParty(dto: CreateAccountingPartyDto) {
+  async createParty(dto: CreateAccountingPartyDto, createdBy?: string) {
     this.assertCurrency(dto.currency);
     if (dto.type === AccountingPartyType.AGENT) {
       throw new BadRequestException('Danışman cari kartları Danışman kayıtlarından otomatik oluşturulur');
@@ -405,7 +539,36 @@ export class AccountingService {
       openingBalanceDirection: dto.openingBalanceDirection || AccountingPartyBalanceDirection.RECEIVABLE,
       isActive: true,
     });
-    return this.partyRepo.save(party);
+    const saved = await this.partyRepo.save(party);
+    await this.recordAudit('accounting_party', saved.id, AccountingAuditAction.CREATE, createdBy || null, null, null, saved);
+    return saved;
+  }
+
+  async updateParty(id: string, dto: UpdateAccountingPartyDto, createdBy: string) {
+    const party = await this.partyRepo.findOne({ where: { id, isActive: true } });
+    if (!party) throw new NotFoundException('Aktif cari kart bulunamadı');
+    if (party.linkedUserId) throw new ConflictException('Danışman cari kartları danışman kaydından güncellenir');
+    const name = dto.name.trim();
+    if (!name) throw new BadRequestException('Cari kart adı boş bırakılamaz');
+    const beforeData = this.auditSnapshot(party);
+    party.name = name;
+    party.companyName = dto.companyName?.trim() || null;
+    party.phone = dto.phone?.trim() || null;
+    party.taxId = dto.taxId?.trim() || null;
+    const saved = await this.partyRepo.save(party);
+    await this.recordAudit('accounting_party', saved.id, AccountingAuditAction.CORRECT, createdBy, null, beforeData, saved, 'Cari kart tanımı güncellendi');
+    return saved;
+  }
+
+  async archiveParty(id: string, reason: string, createdBy: string) {
+    const party = await this.partyRepo.findOne({ where: { id, isActive: true } });
+    if (!party) throw new NotFoundException('Aktif cari kart bulunamadı');
+    if (party.linkedUserId) throw new ConflictException('Danışman cari kartları danışman kaydından pasifleştirilemez');
+    const beforeData = this.auditSnapshot(party);
+    party.isActive = false;
+    const saved = await this.partyRepo.save(party);
+    await this.recordAudit('accounting_party', saved.id, AccountingAuditAction.VOID, createdBy, null, beforeData, saved, reason);
+    return saved;
   }
 
   async listPartyEntries(partyId: string) {
@@ -547,7 +710,7 @@ export class AccountingService {
     });
   }
 
-  async createCategory(dto: CreateAccountingCategoryDto) {
+  async createCategory(dto: CreateAccountingCategoryDto, createdBy?: string) {
     if (dto.type === AccountingEntryType.TRANSFER) {
       throw new BadRequestException('Hesaplar arası transfer için kategori oluşturulamaz');
     }
@@ -555,11 +718,23 @@ export class AccountingService {
     if (!name) throw new BadRequestException('Kategori adı boş bırakılamaz');
     const existing = await this.categoryRepo.findOne({ where: { type: dto.type, name } });
     if (existing) return existing;
-    return this.categoryRepo.save(this.categoryRepo.create({
+    const saved = await this.categoryRepo.save(this.categoryRepo.create({
       type: dto.type,
       name,
       isActive: true,
     }));
+    await this.recordAudit('accounting_category', saved.id, AccountingAuditAction.CREATE, createdBy || null, null, null, saved);
+    return saved;
+  }
+
+  async archiveCategory(id: string, reason: string, createdBy: string) {
+    const category = await this.categoryRepo.findOne({ where: { id, isActive: true } });
+    if (!category) throw new NotFoundException('Aktif kategori bulunamadı');
+    const beforeData = this.auditSnapshot(category);
+    category.isActive = false;
+    const saved = await this.categoryRepo.save(category);
+    await this.recordAudit('accounting_category', saved.id, AccountingAuditAction.VOID, createdBy, null, beforeData, saved, reason);
+    return saved;
   }
 
   async listRecurringExpenses(filters: { currency?: string }) {
@@ -612,7 +787,52 @@ export class AccountingService {
       partyName,
       isActive: true,
     });
-    return this.recurringExpenseRepo.save(template);
+    const saved = await this.recurringExpenseRepo.save(template);
+    await this.recordAudit('accounting_recurring_expense', saved.id, AccountingAuditAction.CREATE, createdBy, null, null, saved);
+    return saved;
+  }
+
+  async updateRecurringExpense(id: string, dto: UpdateAccountingRecurringExpenseDto, createdBy: string) {
+    const template = await this.recurringExpenseRepo.findOne({ where: { id, isActive: true } });
+    if (!template) throw new NotFoundException('Aktif tekrarlayan gider şablonu bulunamadı');
+    this.assertCurrency(dto.currency);
+    if (dto.endPeriod && dto.endPeriod < dto.startPeriod) throw new BadRequestException('Bitiş dönemi başlangıç döneminden önce olamaz');
+    const account = await this.getActiveAccount(dto.defaultAccountId);
+    if (account.currency !== dto.currency) throw new BadRequestException('Gider şablonu ve ödeme hesabının para birimi aynı olmalıdır');
+    let partyName: string | null = null;
+    if (dto.partyId) {
+      const party = await this.partyRepo.findOne({ where: { id: dto.partyId, isActive: true } });
+      if (!party) throw new NotFoundException('Giderin cari kartı bulunamadı');
+      if (party.currency !== dto.currency) throw new BadRequestException('Gider şablonu ve cari kartın para birimi aynı olmalıdır');
+      partyName = party.name;
+    }
+    const title = dto.title.trim();
+    const category = dto.category.trim();
+    if (!title || !category) throw new BadRequestException('Gider adı ve kategorisi boş bırakılamaz');
+    const beforeData = this.auditSnapshot(template);
+    template.title = title;
+    template.category = category;
+    template.amount = this.money(dto.amount);
+    template.currency = dto.currency;
+    template.dueDay = dto.dueDay;
+    template.startPeriod = dto.startPeriod;
+    template.endPeriod = dto.endPeriod || null;
+    template.defaultAccountId = account.id;
+    template.partyId = dto.partyId || null;
+    template.partyName = partyName;
+    const saved = await this.recurringExpenseRepo.save(template);
+    await this.recordAudit('accounting_recurring_expense', saved.id, AccountingAuditAction.CORRECT, createdBy, null, beforeData, saved, 'Tekrarlayan gider şablonu güncellendi');
+    return saved;
+  }
+
+  async archiveRecurringExpense(id: string, reason: string, createdBy: string) {
+    const template = await this.recurringExpenseRepo.findOne({ where: { id, isActive: true } });
+    if (!template) throw new NotFoundException('Aktif tekrarlayan gider şablonu bulunamadı');
+    const beforeData = this.auditSnapshot(template);
+    template.isActive = false;
+    const saved = await this.recurringExpenseRepo.save(template);
+    await this.recordAudit('accounting_recurring_expense', saved.id, AccountingAuditAction.VOID, createdBy, null, beforeData, saved, reason);
+    return saved;
   }
 
   async generateRecurringExpenses(dto: GenerateAccountingRecurringExpenseDto, createdBy: string) {
@@ -668,7 +888,10 @@ export class AccountingService {
         voidedAt: null,
       }));
     }
-    if (entries.length > 0) await this.entryRepo.save(entries, { chunk: 100 });
+    if (entries.length > 0) {
+      const savedEntries = await this.entryRepo.save(entries, { chunk: 100 });
+      await Promise.all(savedEntries.map((entry) => this.recordAudit('accounting_entry', entry.id, AccountingAuditAction.CREATE, createdBy, entry.sourceId || null, null, entry)));
+    }
     return { period: dto.period, currency: dto.currency, created: entries.length, skipped };
   }
 
@@ -752,7 +975,8 @@ export class AccountingService {
     }
 
     if (newRents.length > 0) {
-      await this.rentRepo.save(newRents, { chunk: 100 });
+      const savedRents = await this.rentRepo.save(newRents, { chunk: 100 });
+      await Promise.all(savedRents.map((rent) => this.recordAudit('accounting_rent', rent.id, AccountingAuditAction.CREATE, createdBy, null, null, rent)));
     }
     return { period: dto.period, currency: 'TRY', created: newRents.length, skipped };
   }
@@ -788,25 +1012,32 @@ export class AccountingService {
       voidedAt: null,
     });
     const savedEntry = await this.entryRepo.save(entry);
+    await this.recordAudit('accounting_entry', savedEntry.id, AccountingAuditAction.CREATE, createdBy, rent.id, null, savedEntry);
+    const beforeData = this.auditSnapshot(rent);
 
     rent.status = AccountingRentStatus.COLLECTED;
     rent.collectionAccountId = account.id;
     rent.collectionEntryId = savedEntry.id;
     rent.collectedAt = dto.date;
     rent.notes = dto.notes?.trim() || rent.notes;
-    return this.rentRepo.save(rent);
+    const savedRent = await this.rentRepo.save(rent);
+    await this.recordAudit('accounting_rent', savedRent.id, AccountingAuditAction.COLLECT, createdBy, savedEntry.id, beforeData, savedRent);
+    return savedRent;
   }
 
-  async voidRent(id: string, createdBy: string) {
+  async voidRent(id: string, createdBy: string, reason: string) {
     const rent = await this.getRent(id);
     if (rent.status !== AccountingRentStatus.PENDING) {
       throw new ConflictException('Yalnızca tahsil edilmemiş kira tahakkukları iptal edilebilir');
     }
+    const beforeData = this.auditSnapshot(rent);
     rent.status = AccountingRentStatus.VOIDED;
     rent.voidedAt = new Date();
     rent.updatedAt = new Date();
-    rent.notes = [rent.notes, `İptal edildi (${createdBy})`].filter(Boolean).join(' · ');
-    return this.rentRepo.save(rent);
+    rent.notes = [rent.notes, `İptal edildi: ${reason.trim()}`].filter(Boolean).join(' · ');
+    const saved = await this.rentRepo.save(rent);
+    await this.recordAudit('accounting_rent', saved.id, AccountingAuditAction.VOID, createdBy, null, beforeData, saved, reason);
+    return saved;
   }
 
   async createCommission(dto: CreateAccountingCommissionDto, createdBy: string) {
@@ -859,7 +1090,9 @@ export class AccountingService {
     });
 
     try {
-      return await this.commissionRepo.save(commission);
+      const saved = await this.commissionRepo.save(commission);
+      await this.recordAudit('accounting_commission', saved.id, AccountingAuditAction.CREATE, createdBy, null, null, saved);
+      return saved;
     } catch (error: any) {
       // Aynı form gönderimi iki istek olarak aynı anda geldiyse, unique
       // idempotency anahtarı nedeniyle ikinci isteği mevcut kayda bağla.
@@ -871,16 +1104,19 @@ export class AccountingService {
     }
   }
 
-  async voidCommission(id: string, createdBy: string) {
+  async voidCommission(id: string, createdBy: string, reason: string) {
     const commission = await this.getCommission(id);
     if (commission.status !== AccountingCommissionStatus.PENDING) {
       throw new ConflictException('Yalnızca henüz tahsil edilmemiş komisyonlar iptal edilebilir');
     }
+    const beforeData = this.auditSnapshot(commission);
     commission.status = AccountingCommissionStatus.VOIDED;
     commission.voidedAt = new Date();
     commission.updatedAt = new Date();
-    commission.notes = [commission.notes, `İptal edildi (${createdBy})`].filter(Boolean).join(' · ');
-    return this.commissionRepo.save(commission);
+    commission.notes = [commission.notes, `İptal edildi: ${reason.trim()}`].filter(Boolean).join(' · ');
+    const saved = await this.commissionRepo.save(commission);
+    await this.recordAudit('accounting_commission', saved.id, AccountingAuditAction.VOID, createdBy, null, beforeData, saved, reason);
+    return saved;
   }
 
   async collectCommission(
@@ -920,12 +1156,16 @@ export class AccountingService {
       voidedAt: null,
     });
     const savedEntry = await this.entryRepo.save(entry);
+    await this.recordAudit('accounting_entry', savedEntry.id, AccountingAuditAction.CREATE, createdBy, commission.id, null, savedEntry);
+    const beforeData = this.auditSnapshot(commission);
 
     commission.status = AccountingCommissionStatus.COLLECTED;
     commission.collectionAccountId = account.id;
     commission.collectionEntryId = savedEntry.id;
     commission.collectedAt = dto.date;
-    return this.commissionRepo.save(commission);
+    const savedCommission = await this.commissionRepo.save(commission);
+    await this.recordAudit('accounting_commission', savedCommission.id, AccountingAuditAction.COLLECT, createdBy, savedEntry.id, beforeData, savedCommission);
+    return savedCommission;
   }
 
   async payCommission(
@@ -965,12 +1205,16 @@ export class AccountingService {
       voidedAt: null,
     });
     const savedEntry = await this.entryRepo.save(entry);
+    await this.recordAudit('accounting_entry', savedEntry.id, AccountingAuditAction.CREATE, createdBy, commission.id, null, savedEntry);
+    const beforeData = this.auditSnapshot(commission);
 
     commission.status = AccountingCommissionStatus.PAID;
     commission.paymentAccountId = account.id;
     commission.paymentEntryId = savedEntry.id;
     commission.paidAt = dto.date;
-    return this.commissionRepo.save(commission);
+    const savedCommission = await this.commissionRepo.save(commission);
+    await this.recordAudit('accounting_commission', savedCommission.id, AccountingAuditAction.PAY, createdBy, savedEntry.id, beforeData, savedCommission);
+    return savedCommission;
   }
 
   async getManagementReport(filters: { from?: string; to?: string; currency?: string }) {
@@ -1205,6 +1449,39 @@ export class AccountingService {
     if (filters.to) query.andWhere('entry.date <= :to', { to: filters.to });
     if (filters.currency) query.andWhere('entry.currency = :currency', { currency: filters.currency });
     if (filters.type) query.andWhere('entry.type = :entryType', { entryType: filters.type });
+  }
+
+  async listAuditLogs(filters: { entityType?: string; entityId?: string }) {
+    const query = this.auditRepo.createQueryBuilder('audit').orderBy('audit.createdAt', 'DESC');
+    if (filters.entityType) query.andWhere('audit.entityType = :entityType', { entityType: filters.entityType });
+    if (filters.entityId) query.andWhere('audit.entityId = :entityId', { entityId: filters.entityId });
+    return query.getMany();
+  }
+
+  private auditSnapshot(value: Record<string, any>) {
+    return JSON.parse(JSON.stringify(value, (_key, item) => item instanceof Date ? item.toISOString() : item));
+  }
+
+  private async recordAudit(
+    entityType: string,
+    entityId: string,
+    action: AccountingAuditAction,
+    createdBy: string | null,
+    relatedEntityId: string | null,
+    beforeData: Record<string, any> | null,
+    afterData: Record<string, any> | null,
+    reason: string | null = null,
+  ) {
+    return this.auditRepo.save(this.auditRepo.create({
+      entityType,
+      entityId,
+      action,
+      relatedEntityId,
+      createdBy,
+      reason: reason?.trim() || null,
+      beforeData: beforeData ? this.auditSnapshot(beforeData) : null,
+      afterData: afterData ? this.auditSnapshot(afterData) : null,
+    }));
   }
 
   private money(value: number) {

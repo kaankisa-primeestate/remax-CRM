@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -25,6 +26,13 @@ import {
   SettleAccountingRentDto,
 } from './dto/accounting-rent.dto';
 import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
+import { CorrectAccountingEntryDto } from './dto/correct-accounting-entry.dto';
+import { VoidAccountingRecordDto } from './dto/void-accounting-record.dto';
+import {
+  UpdateAccountingAccountDto,
+  UpdateAccountingPartyDto,
+  UpdateAccountingRecurringExpenseDto,
+} from './dto/update-accounting-records.dto';
 import { CreateAccountingPartyDto } from './dto/create-accounting-party.dto';
 import { CreateAccountingCategoryDto } from './dto/create-accounting-category.dto';
 import {
@@ -46,14 +54,32 @@ export class AccountingController {
     return this.migrationService.preview();
   }
 
+  @Get('audit-logs')
+  listAuditLogs(
+    @Query('entityType') entityType?: string,
+    @Query('entityId') entityId?: string,
+  ) {
+    return this.accountingService.listAuditLogs({ entityType, entityId });
+  }
+
   @Get('accounts')
   listAccounts() {
     return this.accountingService.listAccounts();
   }
 
   @Post('accounts')
-  createAccount(@Body() dto: CreateAccountingAccountDto) {
-    return this.accountingService.createAccount(dto);
+  createAccount(@Body() dto: CreateAccountingAccountDto, @Req() req: any) {
+    return this.accountingService.createAccount(dto, req.user.userId);
+  }
+
+  @Patch('accounts/:id')
+  updateAccount(@Param('id') id: string, @Body() dto: UpdateAccountingAccountDto, @Req() req: any) {
+    return this.accountingService.updateAccount(id, dto, req.user.userId);
+  }
+
+  @Post('accounts/:id/archive')
+  archiveAccount(@Param('id') id: string, @Body() dto: VoidAccountingRecordDto, @Req() req: any) {
+    return this.accountingService.archiveAccount(id, dto.reason, req.user.userId);
   }
 
   @Get('entries')
@@ -72,8 +98,17 @@ export class AccountingController {
   }
 
   @Post('entries/:id/void')
-  voidEntry(@Param('id') id: string, @Req() req: any) {
-    return this.accountingService.voidEntry(id, req.user.userId);
+  voidEntry(@Param('id') id: string, @Body() dto: VoidAccountingRecordDto, @Req() req: any) {
+    return this.accountingService.voidEntry(id, req.user.userId, dto.reason);
+  }
+
+  @Post('entries/:id/correct')
+  correctEntry(
+    @Param('id') id: string,
+    @Body() dto: CorrectAccountingEntryDto,
+    @Req() req: any,
+  ) {
+    return this.accountingService.correctEntry(id, dto, req.user.userId);
   }
 
   @Get('reports/management')
@@ -117,8 +152,8 @@ export class AccountingController {
   }
 
   @Post('rents/:id/void')
-  voidRent(@Param('id') id: string, @Req() req: any) {
-    return this.accountingService.voidRent(id, req.user.userId);
+  voidRent(@Param('id') id: string, @Body() dto: VoidAccountingRecordDto, @Req() req: any) {
+    return this.accountingService.voidRent(id, req.user.userId, dto.reason);
   }
 
   @Get('parties')
@@ -127,8 +162,18 @@ export class AccountingController {
   }
 
   @Post('parties')
-  createParty(@Body() dto: CreateAccountingPartyDto) {
-    return this.accountingService.createParty(dto);
+  createParty(@Body() dto: CreateAccountingPartyDto, @Req() req: any) {
+    return this.accountingService.createParty(dto, req.user.userId);
+  }
+
+  @Patch('parties/:id')
+  updateParty(@Param('id') id: string, @Body() dto: UpdateAccountingPartyDto, @Req() req: any) {
+    return this.accountingService.updateParty(id, dto, req.user.userId);
+  }
+
+  @Post('parties/:id/archive')
+  archiveParty(@Param('id') id: string, @Body() dto: VoidAccountingRecordDto, @Req() req: any) {
+    return this.accountingService.archiveParty(id, dto.reason, req.user.userId);
   }
 
   @Get('parties/:id/entries')
@@ -142,8 +187,13 @@ export class AccountingController {
   }
 
   @Post('categories')
-  createCategory(@Body() dto: CreateAccountingCategoryDto) {
-    return this.accountingService.createCategory(dto);
+  createCategory(@Body() dto: CreateAccountingCategoryDto, @Req() req: any) {
+    return this.accountingService.createCategory(dto, req.user.userId);
+  }
+
+  @Post('categories/:id/archive')
+  archiveCategory(@Param('id') id: string, @Body() dto: VoidAccountingRecordDto, @Req() req: any) {
+    return this.accountingService.archiveCategory(id, dto.reason, req.user.userId);
   }
 
   @Get('recurring-expenses')
@@ -154,6 +204,16 @@ export class AccountingController {
   @Post('recurring-expenses')
   createRecurringExpense(@Body() dto: CreateAccountingRecurringExpenseDto, @Req() req: any) {
     return this.accountingService.createRecurringExpense(dto, req.user.userId);
+  }
+
+  @Patch('recurring-expenses/:id')
+  updateRecurringExpense(@Param('id') id: string, @Body() dto: UpdateAccountingRecurringExpenseDto, @Req() req: any) {
+    return this.accountingService.updateRecurringExpense(id, dto, req.user.userId);
+  }
+
+  @Post('recurring-expenses/:id/archive')
+  archiveRecurringExpense(@Param('id') id: string, @Body() dto: VoidAccountingRecordDto, @Req() req: any) {
+    return this.accountingService.archiveRecurringExpense(id, dto.reason, req.user.userId);
   }
 
   @Post('recurring-expenses/generate')
@@ -181,8 +241,8 @@ export class AccountingController {
   }
 
   @Post('commissions/:id/void')
-  voidCommission(@Param('id') id: string, @Req() req: any) {
-    return this.accountingService.voidCommission(id, req.user.userId);
+  voidCommission(@Param('id') id: string, @Body() dto: VoidAccountingRecordDto, @Req() req: any) {
+    return this.accountingService.voidCommission(id, req.user.userId, dto.reason);
   }
 
   @Post('commissions/:id/pay')
