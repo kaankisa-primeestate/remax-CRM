@@ -31,6 +31,7 @@ export const accountingApi = {
   listEntries: (params = {}) => apiClient.get('/accounting/entries', { params }).then((response) => response.data),
   createEntry: (payload) => apiClient.post('/accounting/entries', payload).then((response) => response.data),
   getSummary: (params = {}) => apiClient.get('/accounting/summary', { params }).then((response) => response.data),
+  getManagementReport: (params = {}) => apiClient.get('/accounting/reports/management', { params }).then((response) => response.data),
   listCommissions: () => apiClient.get('/accounting/commissions').then((response) => response.data),
   createCommission: (payload) => apiClient.post('/accounting/commissions', payload).then((response) => response.data),
   collectCommission: (id, payload) => apiClient.post(`/accounting/commissions/${id}/collect`, payload).then((response) => response.data),

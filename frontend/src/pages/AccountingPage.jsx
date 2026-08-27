@@ -242,6 +242,10 @@ export default function AccountingPage() {
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [recurringSaving, setRecurringSaving] = useState(false);
   const [recurringGenerating, setRecurringGenerating] = useState(false);
+  const [reportFromPeriod, setReportFromPeriod] = useState(getCurrentPeriod());
+  const [reportToPeriod, setReportToPeriod] = useState(getCurrentPeriod());
+  const [managementReport, setManagementReport] = useState(null);
+  const [managementReportLoading, setManagementReportLoading] = useState(false);
   const [customCategories, setCustomCategories] = useState({ income: [], expense: [] });
   const [recurringForm, setRecurringForm] = useState({
     title: '',
@@ -361,6 +365,26 @@ export default function AccountingPage() {
     }
   }, [currency]);
 
+  const loadManagementReport = useCallback(async () => {
+    if (!reportFromPeriod || !reportToPeriod) return;
+    const from = getPeriodBounds(reportFromPeriod).from;
+    const to = getPeriodBounds(reportToPeriod).to;
+    if (from > to) {
+      setError('Rapor başlangıç dönemi bitiş döneminden sonra olamaz.');
+      return;
+    }
+    setManagementReportLoading(true);
+    setError('');
+    try {
+      const report = await accountingApi.getManagementReport({ from, to, currency });
+      setManagementReport(report || null);
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Yönetimsel rapor yüklenemedi.');
+    } finally {
+      setManagementReportLoading(false);
+    }
+  }, [reportFromPeriod, reportToPeriod, currency]);
+
   useEffect(() => {
     if (activeTab !== 'commissions') return undefined;
     loadCommissionData();
@@ -384,6 +408,12 @@ export default function AccountingPage() {
     loadRecurringExpenses();
     return undefined;
   }, [activeTab, loadRecurringExpenses]);
+
+  useEffect(() => {
+    if (activeTab !== 'reports') return undefined;
+    loadManagementReport();
+    return undefined;
+  }, [activeTab, loadManagementReport]);
 
   useEffect(() => {
     if (activeTab !== 'entries' && activeTab !== 'recurring') return undefined;
@@ -1794,7 +1824,189 @@ export default function AccountingPage() {
         </>
       )}
       {activeTab === 'reports' && (
-        <EmptyTab title="Muhasebe raporları" description="Cari ekstre, gelir-gider, nakit akış, danışman hakediş ve ortak hareket raporları burada hazırlanacak." />
+        <>
+          <div className="folder-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--brass)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 19 }}>Yönetimsel Raporlar ve Nakit Akışı</h3>
+                <p style={{ color: 'var(--muted)', margin: '5px 0 0', fontSize: 13 }}>
+                  Para birimlerini birbirine çevirmeden seçilen dönem içindeki kasa, banka, kredi kartı, gelir ve gider hareketlerini özetler.
+                </p>
+              </div>
+              <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Yönetimsel takip</span>
+            </div>
+            <form onSubmit={(event) => { event.preventDefault(); loadManagementReport(); }} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <FormField label="Başlangıç ayı">
+                <input type="month" value={reportFromPeriod} onChange={(event) => setReportFromPeriod(event.target.value)} required />
+              </FormField>
+              <FormField label="Bitiş ayı">
+                <input type="month" value={reportToPeriod} onChange={(event) => setReportToPeriod(event.target.value)} required />
+              </FormField>
+              <FormField label="Para birimi">
+                <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <button type="submit" className="btn btn-primary" disabled={managementReportLoading}>
+                {managementReportLoading ? 'Rapor hazırlanıyor…' : 'Raporu Yenile'}
+              </button>
+            </form>
+            <p style={{ color: 'var(--muted)', fontSize: 12, margin: '12px 0 0' }}>
+              Not: Hesaplar arası transferler gelir veya gider sayılmaz; hesap bakiyesinde ayrıca gösterilir. Rapor tutarları seçilen para biriminde ayrı tutulur, kur çevirisi yapılmaz.
+            </p>
+          </div>
+
+          {managementReportLoading ? (
+            <div className="folder-panel"><div className="empty-state">Yönetimsel rapor hazırlanıyor…</div></div>
+          ) : !managementReport ? (
+            <div className="folder-panel"><div className="empty-state">Rapor verisi bulunamadı.</div></div>
+          ) : (
+            <>
+              <div className="metric-grid">
+                <div className="metric-card">
+                  <div className="metric-card__label">Dönem başı bakiye</div>
+                  <div className="metric-card__value">{formatAccountingMoney((managementReport.accountBalances || []).reduce((sum, account) => sum + Number(account.openingBalance || 0), 0), currency)}</div>
+                  <div className="metric-card__delta is-muted">Seçilen para birimindeki hesaplar</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-card__label">Toplam giriş</div>
+                  <div className="metric-card__value" style={{ color: 'var(--success)' }}>{formatAccountingMoney(managementReport.summary?.totalIncome, currency)}</div>
+                  <div className="metric-card__delta is-muted">{managementReport.summary?.entryCount || 0} hareket içinde</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-card__label">Toplam çıkış</div>
+                  <div className="metric-card__value" style={{ color: 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.totalExpense, currency)}</div>
+                  <div className="metric-card__delta is-muted">Gider / ödeme hareketleri</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-card__label">Net operasyon sonucu</div>
+                  <div className="metric-card__value" style={{ color: Number(managementReport.summary?.netOperatingResult || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.netOperatingResult, currency)}</div>
+                  <div className="metric-card__delta is-muted">Giriş eksi çıkış · transfer hariç</div>
+                </div>
+              </div>
+
+              <div className="folder-panel" style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Hesap bazında dönem özeti</h3>
+                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Dönem başı, giriş-çıkış ve dönem sonu bakiyesini hesap bazında gösterir.</p>
+                  </div>
+                  <span style={{ color: 'var(--muted)', fontSize: 12 }}>{managementReport.accountBalances?.length || 0} hesap</span>
+                </div>
+                {managementReport.accountBalances?.length === 0 ? (
+                  <div className="empty-state">Bu para biriminde aktif hesap bulunmuyor.</div>
+                ) : (
+                  <div className="table-scroll">
+                    <table style={{ width: '100%', minWidth: 850, borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                          <th style={{ padding: '7px 8px' }}>Hesap</th>
+                          <th style={{ padding: '7px 8px' }}>Tür</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Dönem başı</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Giriş</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Çıkış</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Transfer neti</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Dönem sonu</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {managementReport.accountBalances.map((account) => (
+                          <tr key={account.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                            <td style={{ padding: '10px 8px' }}><strong>{account.name}</strong><div style={{ color: 'var(--muted)', fontSize: 12 }}>{account.currency}</div></td>
+                            <td style={{ padding: '10px 8px' }}>{ACCOUNTING_ACCOUNT_TYPES.find((item) => item.value === account.type)?.label || account.type}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(account.openingBalance, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(account.income, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(account.expense, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(Number(account.transferIn || 0) - Number(account.transferOut || 0), currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: Number(account.closingBalance || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(account.closingBalance, currency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="folder-panel" style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Günlük nakit akışı</h3>
+                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Yalnız hareket olan günler gösterilir; transferler ayrıca ayrıştırılır.</p>
+                  </div>
+                  <span style={{ color: 'var(--muted)', fontSize: 12 }}>{managementReport.dailyCashFlow?.length || 0} gün</span>
+                </div>
+                {managementReport.dailyCashFlow?.length === 0 ? (
+                  <div className="empty-state">Seçilen dönemde hareket bulunmuyor.</div>
+                ) : (
+                  <div className="table-scroll">
+                    <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                          <th style={{ padding: '7px 8px' }}>Tarih</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Giriş</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Çıkış</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net operasyon</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Transfer girişi</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Transfer çıkışı</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {managementReport.dailyCashFlow.map((day) => (
+                          <tr key={day.date} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                            <td style={{ padding: '10px 8px' }}>{formatDate(day.date)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(day.income, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(day.expense, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: Number(day.netOperating || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(day.netOperating, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(day.transferIn, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(day.transferOut, currency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="panel-grid-2" style={{ marginTop: 20 }}>
+                <div className="folder-panel">
+                  <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 12px', fontSize: 18 }}>Gelir kategorileri</h3>
+                  {managementReport.incomeByCategory?.length === 0 ? <div className="empty-state">Gelir hareketi yok.</div> : (
+                    <div className="table-scroll">
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <tbody>{managementReport.incomeByCategory.map((row) => <tr key={row.category} style={{ borderTop: '1px solid var(--paper-line)' }}><td style={{ padding: '9px 8px' }}>{row.category}</td><td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(row.amount, currency)}</td></tr>)}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+                <div className="folder-panel">
+                  <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 12px', fontSize: 18 }}>Gider kategorileri</h3>
+                  {managementReport.expenseByCategory?.length === 0 ? <div className="empty-state">Gider hareketi yok.</div> : (
+                    <div className="table-scroll">
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <tbody>{managementReport.expenseByCategory.map((row) => <tr key={row.category} style={{ borderTop: '1px solid var(--paper-line)' }}><td style={{ padding: '9px 8px' }}>{row.category}</td><td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(row.amount, currency)}</td></tr>)}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="folder-panel" style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Bekleyen cari yükümlülükler</h3>
+                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Henüz gerçekleşmiş para hareketi olmayan, takipteki kira ve danışman hakedişleri.</p>
+                  </div>
+                  <span style={{ color: 'var(--muted)', fontSize: 12 }}>{managementReport.pending?.commissionCount || 0} komisyon takibi</span>
+                </div>
+                <div className="metric-grid">
+                  <div className="metric-card"><div className="metric-card__label">Bekleyen kira alacağı</div><div className="metric-card__value" style={{ color: 'var(--success)' }}>{formatAccountingMoney(managementReport.pending?.rentReceivable, currency)}</div><div className="metric-card__delta is-muted">{managementReport.pending?.rentCount || 0} kira tahakkuku</div></div>
+                  <div className="metric-card"><div className="metric-card__label">Komisyon tahsilatı bekleyen</div><div className="metric-card__value" style={{ color: 'var(--success)' }}>{formatAccountingMoney(managementReport.pending?.commissionCollection, currency)}</div><div className="metric-card__delta is-muted">{managementReport.pending?.commissionCollectionCount || 0} komisyon · brüt tutar</div></div>
+                  <div className="metric-card"><div className="metric-card__label">Danışman hakedişi bekleyen</div><div className="metric-card__value" style={{ color: 'var(--danger)' }}>{formatAccountingMoney(managementReport.pending?.commissionPayable, currency)}</div><div className="metric-card__delta is-muted">{managementReport.pending?.commissionPayableCount || 0} hakediş · ödeme bekliyor</div></div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );

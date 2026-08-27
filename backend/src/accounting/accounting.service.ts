@@ -888,6 +888,174 @@ export class AccountingService {
     return this.commissionRepo.save(commission);
   }
 
+  async getManagementReport(filters: { from?: string; to?: string; currency?: string }) {
+    const entryQuery = this.entryRepo
+      .createQueryBuilder('entry')
+      .where('entry.voidedAt IS NULL');
+    this.applyEntryFilters(entryQuery, filters);
+
+    const [entries, accounts, priorEntries, pendingRents, pendingCommissions] = await Promise.all([
+      entryQuery.orderBy('entry.date', 'ASC').addOrderBy('entry.createdAt', 'ASC').getMany(),
+      this.accountRepo.find({ order: { name: 'ASC' } }),
+      filters.from
+        ? this.entryRepo
+          .createQueryBuilder('entry')
+          .where('entry.voidedAt IS NULL')
+          .andWhere('entry.date < :from', { from: filters.from })
+          .andWhere(filters.currency ? 'entry.currency = :currency' : '1 = 1', filters.currency ? { currency: filters.currency } : {})
+          .getMany()
+        : Promise.resolve([]),
+      this.rentRepo.find({ where: { status: AccountingRentStatus.PENDING } }),
+      this.commissionRepo.find({
+        where: [
+          { status: AccountingCommissionStatus.PENDING },
+          { status: AccountingCommissionStatus.COLLECTED },
+        ],
+      }),
+    ]);
+
+    const getAccountDelta = (entry: AccountingEntry, accountId: string) => {
+      let delta = 0;
+      if (entry.accountId === accountId) {
+        delta += entry.type === AccountingEntryType.INCOME
+          ? Number(entry.amount)
+          : entry.type === AccountingEntryType.EXPENSE || entry.type === AccountingEntryType.TRANSFER
+            ? -Number(entry.amount)
+            : 0;
+      }
+      if (entry.type === AccountingEntryType.TRANSFER && entry.counterAccountId === accountId) {
+        delta += Number(entry.amount);
+      }
+      return delta;
+    };
+
+    const accountStats = new Map<string, {
+      income: number;
+      expense: number;
+      transferIn: number;
+      transferOut: number;
+      openingBalance: number;
+    }>();
+    for (const account of accounts) {
+      const openingDelta = priorEntries.reduce((sum, entry) => sum + getAccountDelta(entry, account.id), 0);
+      accountStats.set(account.id, {
+        income: 0,
+        expense: 0,
+        transferIn: 0,
+        transferOut: 0,
+        openingBalance: Number(account.openingBalance || 0) + openingDelta,
+      });
+    }
+
+    const dailyMap = new Map<string, {
+      income: number;
+      expense: number;
+      transferIn: number;
+      transferOut: number;
+    }>();
+    const incomeCategoryMap = new Map<string, number>();
+    const expenseCategoryMap = new Map<string, number>();
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let totalTransfer = 0;
+
+    for (const entry of entries) {
+      const amount = Number(entry.amount || 0);
+      if (entry.type === AccountingEntryType.INCOME) totalIncome += amount;
+      if (entry.type === AccountingEntryType.EXPENSE) totalExpense += amount;
+      if (entry.type === AccountingEntryType.TRANSFER) totalTransfer += amount;
+
+      const day = dailyMap.get(entry.date) || { income: 0, expense: 0, transferIn: 0, transferOut: 0 };
+      if (entry.type === AccountingEntryType.INCOME) {
+        day.income += amount;
+        incomeCategoryMap.set(entry.category || 'Kategorisiz', (incomeCategoryMap.get(entry.category || 'Kategorisiz') || 0) + amount);
+      } else if (entry.type === AccountingEntryType.EXPENSE) {
+        day.expense += amount;
+        expenseCategoryMap.set(entry.category || 'Kategorisiz', (expenseCategoryMap.get(entry.category || 'Kategorisiz') || 0) + amount);
+      } else if (entry.type === AccountingEntryType.TRANSFER) {
+        day.transferOut += amount;
+        totalTransfer += 0;
+      }
+      dailyMap.set(entry.date, day);
+
+      if (entry.accountId) {
+        const stat = accountStats.get(entry.accountId);
+        if (stat) {
+          if (entry.type === AccountingEntryType.INCOME) stat.income += amount;
+          if (entry.type === AccountingEntryType.EXPENSE) stat.expense += amount;
+          if (entry.type === AccountingEntryType.TRANSFER) stat.transferOut += amount;
+        }
+      }
+      if (entry.type === AccountingEntryType.TRANSFER && entry.counterAccountId) {
+        const counterStat = accountStats.get(entry.counterAccountId);
+        if (counterStat) counterStat.transferIn += amount;
+      }
+    }
+
+    for (const entry of entries.filter((item) => item.type === AccountingEntryType.TRANSFER && item.counterAccountId)) {
+      const day = dailyMap.get(entry.date);
+      if (day) day.transferIn += Number(entry.amount || 0);
+    }
+
+    const currency = filters.currency || 'TRY';
+    const accountBalances = accounts
+      .filter((account) => !filters.currency || account.currency === filters.currency)
+      .map((account) => {
+        const stat = accountStats.get(account.id) || { income: 0, expense: 0, transferIn: 0, transferOut: 0, openingBalance: Number(account.openingBalance || 0) };
+        return {
+          id: account.id,
+          name: account.name,
+          type: account.type,
+          currency: account.currency,
+          openingBalance: this.money(stat.openingBalance),
+          income: this.money(stat.income),
+          expense: this.money(stat.expense),
+          transferIn: this.money(stat.transferIn),
+          transferOut: this.money(stat.transferOut),
+          closingBalance: this.money(stat.openingBalance + stat.income - stat.expense + stat.transferIn - stat.transferOut),
+        };
+      });
+
+    const toCategoryRows = (categoryMap: Map<string, number>) => [...categoryMap.entries()]
+      .map(([category, amount]) => ({ category, amount: this.money(amount) }))
+      .sort((left, right) => right.amount - left.amount);
+
+    const filteredRents = pendingRents.filter((rent) => (!filters.currency || rent.currency === filters.currency) && (!filters.to || rent.dueDate <= filters.to));
+    const filteredCommissions = pendingCommissions.filter((commission) => (!filters.currency || commission.currency === filters.currency) && (!filters.to || commission.date <= filters.to));
+    const uncollectedCommissions = filteredCommissions.filter((commission) => commission.status === AccountingCommissionStatus.PENDING);
+    const collectedUnpaidCommissions = filteredCommissions.filter((commission) => commission.status === AccountingCommissionStatus.COLLECTED);
+    return {
+      period: { from: filters.from || null, to: filters.to || null, currency },
+      summary: {
+        totalIncome: this.money(totalIncome),
+        totalExpense: this.money(totalExpense),
+        netOperatingResult: this.money(totalIncome - totalExpense),
+        totalInternalTransfer: this.money(totalTransfer),
+        entryCount: entries.length,
+      },
+      accountBalances,
+      dailyCashFlow: [...dailyMap.entries()].map(([date, day]) => ({
+        date,
+        income: this.money(day.income),
+        expense: this.money(day.expense),
+        transferIn: this.money(day.transferIn),
+        transferOut: this.money(day.transferOut),
+        netOperating: this.money(day.income - day.expense),
+      })),
+      incomeByCategory: toCategoryRows(incomeCategoryMap),
+      expenseByCategory: toCategoryRows(expenseCategoryMap),
+      pending: {
+        rentReceivable: this.money(filteredRents.reduce((sum, rent) => sum + Number(rent.amount || 0), 0)),
+        rentCount: filteredRents.length,
+        commissionCollection: this.money(uncollectedCommissions.reduce((sum, commission) => sum + Number(commission.grossAmount || 0), 0)),
+        commissionCollectionCount: uncollectedCommissions.length,
+        commissionPayable: this.money(collectedUnpaidCommissions.reduce((sum, commission) => sum + Number(commission.agentGrossShare || 0), 0)),
+        commissionPayableCount: collectedUnpaidCommissions.length,
+        commissionCount: filteredCommissions.length,
+      },
+    };
+  }
+
   async getSummary(filters: { from?: string; to?: string; currency?: string }) {
     const query = this.entryRepo
       .createQueryBuilder('entry')

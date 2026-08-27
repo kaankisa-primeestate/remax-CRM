@@ -62,6 +62,15 @@ export class AccountingController {
     return this.accountingService.createEntry(dto, req.user.userId);
   }
 
+  @Get('reports/management')
+  getManagementReport(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('currency') currency?: string,
+  ) {
+    return this.accountingService.getManagementReport({ from, to, currency });
+  }
+
   @Get('summary')
   getSummary(
     @Query('from') from?: string,
