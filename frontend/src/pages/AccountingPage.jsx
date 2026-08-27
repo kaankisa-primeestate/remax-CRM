@@ -19,7 +19,6 @@ const ACCOUNTING_TABS = [
   { key: 'accounts', label: 'Hesaplar' },
   { key: 'recurring', label: 'Tekrarlayanlar' },
   { key: 'reports', label: 'Raporlar' },
-  { key: 'migration', label: 'Finans Aktarımı' },
 ];
 
 const MODULE_AREAS = [
