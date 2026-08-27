@@ -142,6 +142,10 @@ function entryTypeLabel(type) {
   return ACCOUNTING_ENTRY_TYPES.find((item) => item.value === type)?.label || type;
 }
 
+function quickExpenseLabel(entry) {
+  return entry?.description?.trim() || entry?.category?.trim() || 'Gider';
+}
+
 function statementTypeLabel(type) {
   if (type === 'opening_balance') return 'Açılış';
   if (type === 'rent_accrual') return 'Kira tahakkuku';
@@ -262,7 +266,9 @@ export default function AccountingPage() {
   const [accountSaveNotice, setAccountSaveNotice] = useState(null);
   const [error, setError] = useState('');
   const [entryForm, setEntryForm] = useState(EMPTY_ENTRY_FORM);
-  const [selectedEntryTemplateId, setSelectedEntryTemplateId] = useState('');
+  const [selectedQuickExpenseId, setSelectedQuickExpenseId] = useState('');
+  const [recentExpenseEntries, setRecentExpenseEntries] = useState([]);
+  const [recentExpenseLoading, setRecentExpenseLoading] = useState(false);
   const [accountForm, setAccountForm] = useState({
     type: 'bank',
     name: '',
@@ -378,6 +384,18 @@ export default function AccountingPage() {
     loadData();
   }, [loadData]);
 
+  const loadRecentExpenseEntries = useCallback(async () => {
+    setRecentExpenseLoading(true);
+    try {
+      const expenseList = await accountingApi.listEntries({ type: 'expense' });
+      setRecentExpenseEntries(expenseList || []);
+    } catch (loadError) {
+      setError(loadError.response?.data?.message || 'Önceki gider kayıtları yüklenemedi.');
+    } finally {
+      setRecentExpenseLoading(false);
+    }
+  }, []);
+
   const loadAgents = useCallback(async () => {
     try {
       const agentList = await usersApi.listAgents();
@@ -478,6 +496,12 @@ export default function AccountingPage() {
   }, [reportFromPeriod, reportToPeriod, currency]);
 
   useEffect(() => {
+    if (activeTab !== 'entries') return undefined;
+    loadRecentExpenseEntries();
+    return undefined;
+  }, [activeTab, loadRecentExpenseEntries]);
+
+  useEffect(() => {
     if (activeTab !== 'commissions') return undefined;
     loadCommissionData();
     return undefined;
@@ -562,14 +586,22 @@ export default function AccountingPage() {
   useEffect(() => {
     if (activeTab !== 'entries' && activeTab !== 'recurring') return undefined;
     loadCategories();
-    if (activeTab === 'entries') loadRecurringExpenses();
     return undefined;
-  }, [activeTab, loadCategories, loadRecurringExpenses]);
+  }, [activeTab, loadCategories]);
 
   const currencyAccounts = useMemo(
     () => accounts.filter((account) => account.currency === entryForm.currency && account.isActive !== false),
     [accounts, entryForm.currency],
   );
+  const quickExpenseOptions = useMemo(() => {
+    const latestByLabel = new Map();
+    recentExpenseEntries.forEach((entry) => {
+      const label = quickExpenseLabel(entry);
+      const key = label.toLocaleLowerCase('tr-TR');
+      if (!latestByLabel.has(key)) latestByLabel.set(key, entry);
+    });
+    return Array.from(latestByLabel.values());
+  }, [recentExpenseEntries]);
   const entryCategoryOptions = useMemo(
     () => entryForm.type === 'expense'
       ? categoryNames(EXPENSE_CATEGORIES, customCategories.expense)
@@ -579,12 +611,6 @@ export default function AccountingPage() {
   const recurringCategoryOptions = useMemo(
     () => categoryNames(EXPENSE_CATEGORIES, customCategories.expense),
     [customCategories],
-  );
-  const entryTemplateOptions = useMemo(
-    () => recurringExpenses
-      .filter((template) => template.isActive !== false)
-      .sort((left, right) => left.title.localeCompare(right.title, 'tr')),
-    [recurringExpenses],
   );
   const statementRows = useMemo(() => buildStatementRows(partyStatement?.entries), [partyStatement]);
   const statementLastRow = statementRows[statementRows.length - 1];
@@ -616,32 +642,32 @@ export default function AccountingPage() {
     if (partyPage > partyPageCount) setPartyPage(partyPageCount);
   }, [partyPage, partyPageCount]);
 
-  function handleEntryTemplateChange(event) {
-    const templateId = event.target.value;
-    setSelectedEntryTemplateId(templateId);
+  function handleRecentExpenseChange(event) {
+    const expenseId = event.target.value;
+    setSelectedQuickExpenseId(expenseId);
     setEntrySaveNotice(null);
-    if (!templateId) return;
-    const template = recurringExpenses.find((item) => item.id === templateId);
-    if (!template) return;
+    if (!expenseId) return;
+    const previousExpense = recentExpenseEntries.find((entry) => entry.id === expenseId);
+    if (!previousExpense) return;
     setEntryForm((previous) => ({
       ...previous,
       type: 'expense',
-      amount: String(template.amount ?? ''),
-      currency: template.currency || previous.currency,
-      accountId: accounts.find((account) => account.id === template.defaultAccountId && account.isActive !== false)?.id || '',
+      amount: String(previousExpense.amount ?? ''),
+      currency: previousExpense.currency || previous.currency,
+      accountId: accounts.find((account) => account.id === previousExpense.accountId && account.isActive !== false)?.id || '',
       counterAccountId: '',
-      category: template.category || EXPENSE_CATEGORIES[0],
+      category: previousExpense.category || EXPENSE_CATEGORIES[0],
       customCategory: '',
-      partyId: template.partyId || '',
-      partyName: template.partyName || '',
-      description: template.title || '',
+      partyId: previousExpense.partyId || '',
+      partyName: previousExpense.partyName || '',
+      description: previousExpense.description || '',
       referenceNo: '',
     }));
   }
 
   function handleEntryChange(event) {
     const { name, value } = event.target;
-    if (name === 'type') setSelectedEntryTemplateId('');
+    if (name === 'type') setSelectedQuickExpenseId('');
     setEntrySaveNotice(null);
     setEntryForm((previous) => {
       const next = { ...previous, [name]: value };
@@ -900,7 +926,7 @@ export default function AccountingPage() {
       return;
     }
     setEditingEntry(entry);
-    setSelectedEntryTemplateId('');
+    setSelectedQuickExpenseId('');
     setCorrectionReason('');
     setEntryForm({
       ...EMPTY_ENTRY_FORM,
@@ -922,7 +948,7 @@ export default function AccountingPage() {
 
   function cancelCorrection() {
     setEditingEntry(null);
-    setSelectedEntryTemplateId('');
+    setSelectedQuickExpenseId('');
     setCorrectionReason('');
     setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
   }
@@ -1018,13 +1044,14 @@ export default function AccountingPage() {
         details: `${entryTypeLabel(entryForm.type)} · ${formatAccountingMoney(entryAmount, entryForm.currency)} · ${savedEntryAccount?.name || 'Hesap'}${savedEntryCounterAccount ? ` → ${savedEntryCounterAccount.name}` : ''} · ${formatDate(entryForm.date)}`,
       });
       setEditingEntry(null);
-      setSelectedEntryTemplateId('');
+      setSelectedQuickExpenseId('');
       setCorrectionReason('');
       setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency });
       setActiveTab('entries');
       // Kayıt POST isteği başarılı olduktan sonra ekran yenilemesini
       // kullanıcıyı bekletmeden arka planda yap.
       loadData().catch(() => undefined);
+      loadRecentExpenseEntries().catch(() => undefined);
     } catch (saveError) {
       setError(saveError.response?.data?.message || 'Muhasebe hareketi kaydedilemedi.');
     } finally {
@@ -1428,19 +1455,17 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               {!editingEntry && entryForm.type === 'expense' && (
-                <FormField label="Hızlı işlem şablonu" style={{ minWidth: 250 }}>
-                  <select value={selectedEntryTemplateId} onChange={handleEntryTemplateChange} aria-label="Hızlı işlem şablonu">
-                    <option value="">Şablon seçmeden devam et</option>
-                    {entryTemplateOptions.map((template) => (
-                      <option value={template.id} key={template.id}>
-                        {template.title} · {template.currency} · {formatAccountingMoney(template.amount, template.currency)}
+                <FormField label="Önceki gideri kullan" style={{ minWidth: 280 }}>
+                  <select value={selectedQuickExpenseId} onChange={handleRecentExpenseChange} aria-label="Önceki gideri kullan" disabled={recentExpenseLoading}>
+                    <option value="">{recentExpenseLoading ? 'Önceki giderler yükleniyor…' : 'Önceki kayıt seçmeden devam et'}</option>
+                    {quickExpenseOptions.map((expense) => (
+                      <option value={expense.id} key={expense.id}>
+                        {quickExpenseLabel(expense)} · {expense.currency} · {formatAccountingMoney(expense.amount, expense.currency)}
                       </option>
                     ))}
                   </select>
                   <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>
-                    {entryTemplateOptions.length > 0
-                      ? 'Kira, market ve benzeri kayıtlar için hazır alanları getirir.'
-                      : 'Henüz şablon yok. Tekrarlayanlar sekmesinden bir gider şablonu kaydedebilirsiniz.'}
+                    Önceki kaydın alanlarını getirir; bu seçim yeni kayıt oluşturmaz.
                   </span>
                 </FormField>
               )}
