@@ -268,16 +268,28 @@ export class AccountingService {
         const openingPayable = party.openingBalanceDirection === AccountingPartyBalanceDirection.PAYABLE ? opening : 0;
         const rentReceivable = party.linkedUserId ? (rentMap.get(`${party.linkedUserId}:${currency}`) || 0) : 0;
         const commissionPayable = party.linkedUserId ? (commissionMap.get(`${party.linkedUserId}:${currency}`) || 0) : 0;
-        const receivable = this.money(openingReceivable + rentReceivable);
-        const payable = this.money(openingPayable + commissionPayable);
+        const entryIncome = Number(entry.income || 0);
+        const entryExpense = Number(entry.expense || 0);
+        let receivable = openingReceivable + rentReceivable;
+        let payable = openingPayable + commissionPayable;
+        if (party.type === AccountingPartyType.PARTNER) {
+          // Şirkete giren ortak parası, ortaklar cari hesabında şirketin borcudur;
+          // ortağa yapılan çekiş/geri ödeme bu borcu azaltır.
+          payable += entryIncome - entryExpense;
+        } else if (party.type === AccountingPartyType.CUSTOMER) {
+          // Müşteriden gelen tahsilat, müşteriden olan alacağı azaltır.
+          receivable -= entryIncome;
+        }
+        receivable = this.money(Math.max(0, receivable));
+        payable = this.money(Math.max(0, payable));
         return {
           ...party,
           currency,
           receivable,
           payable,
           balance: this.money(receivable - payable),
-          incomeMovement: Number(entry.income || 0),
-          expenseMovement: Number(entry.expense || 0),
+          incomeMovement: entryIncome,
+          expenseMovement: entryExpense,
           movementCount: Number(entry.movementCount || 0),
           pendingRentCount: party.linkedUserId ? rentRows.filter((row) => row.agentId === party.linkedUserId && row.currency === currency).length : 0,
           pendingCommissionAmount: commissionPayable,

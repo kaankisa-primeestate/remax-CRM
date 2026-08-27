@@ -50,6 +50,14 @@ const EMPTY_COMMISSION_FORM = {
   notes: '',
 };
 
+const PARTNER_MOVEMENT_TYPES = [
+  { value: 'capital_in', label: 'Ortak sermaye katkısı', type: 'income', category: 'Ortak Sermaye Katkısı' },
+  { value: 'loan_in', label: 'Ortaklardan şirkete borç girişi', type: 'income', category: 'Ortak Borç Girişi' },
+  { value: 'withdrawal', label: 'Ortak çekişi', type: 'expense', category: 'Ortak Çekişi' },
+  { value: 'loan_out', label: 'Ortağa borç geri ödemesi', type: 'expense', category: 'Ortağa Borç Ödemesi' },
+  { value: 'profit_distribution', label: 'Kâr dağıtımı', type: 'expense', category: 'Kâr Dağıtımı' },
+];
+
 const EMPTY_ENTRY_FORM = {
   type: 'income',
   date: new Date().toISOString().slice(0, 10),
@@ -163,6 +171,16 @@ export default function AccountingPage() {
     openingBalance: '',
     openingBalanceDirection: 'receivable',
   });
+  const [partnerMovementForm, setPartnerMovementForm] = useState({
+    partyId: '',
+    movementType: 'capital_in',
+    date: new Date().toISOString().slice(0, 10),
+    amount: '',
+    currency: 'TRY',
+    accountId: '',
+    description: '',
+  });
+  const [partnerSaving, setPartnerSaving] = useState(false);
   const commissionIdempotencyKeyRef = useRef(null);
 
   const periodParams = useMemo(() => ({ ...getPeriodBounds(period), currency }), [period, currency]);
@@ -255,7 +273,7 @@ export default function AccountingPage() {
   }, [activeTab, loadRents]);
 
   useEffect(() => {
-    if (activeTab !== 'ledgers') return undefined;
+    if (activeTab !== 'ledgers' && activeTab !== 'partners') return undefined;
     loadParties();
     return undefined;
   }, [activeTab, loadParties]);
@@ -282,6 +300,55 @@ export default function AccountingPage() {
       }
       return next;
     });
+  }
+
+  async function handleCreatePartnerMovement(event) {
+    event.preventDefault();
+    const movement = PARTNER_MOVEMENT_TYPES.find((item) => item.value === partnerMovementForm.movementType);
+    const party = parties.find((item) => item.id === partnerMovementForm.partyId);
+    if (!party) {
+      setError('Önce bir ortak cari kartı seçin.');
+      return;
+    }
+    if (!partnerMovementForm.amount || Number(partnerMovementForm.amount) <= 0) {
+      setError('Ortak hareket tutarı sıfırdan büyük olmalıdır.');
+      return;
+    }
+    if (!partnerMovementForm.accountId) {
+      setError('Ortak hareketi için para hesabı seçin.');
+      return;
+    }
+
+    setPartnerSaving(true);
+    setError('');
+    try {
+      await accountingApi.createEntry({
+        type: movement.type,
+        date: partnerMovementForm.date,
+        amount: Number(partnerMovementForm.amount),
+        currency: partnerMovementForm.currency,
+        accountId: partnerMovementForm.accountId,
+        category: movement.category,
+        partyType: 'partner',
+        partyId: party.id,
+        partyName: party.name,
+        description: partnerMovementForm.description.trim() || movement.label,
+      });
+      setPartnerMovementForm({
+        partyId: '',
+        movementType: 'capital_in',
+        date: new Date().toISOString().slice(0, 10),
+        amount: '',
+        currency,
+        accountId: '',
+        description: '',
+      });
+      await Promise.all([loadParties(), loadData()]);
+    } catch (saveError) {
+      setError(saveError.response?.data?.message || 'Ortak hareketi kaydedilemedi.');
+    } finally {
+      setPartnerSaving(false);
+    }
   }
 
   async function handleCreateParty(event) {
@@ -1129,7 +1196,101 @@ export default function AccountingPage() {
         </>
       )}
       {activeTab === 'partners' && (
-        <EmptyTab title="Ortaklar" description="Sermaye katkısı, ortağa borç, ortak çekişi ve kâr dağıtımı hareketleri ortak cari hesabında tutulacak." />
+        <>
+          <div className="folder-panel" style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 14 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni ortak hareketi</h3>
+              <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                Ortak şirkete para verdiğinde giriş, şirket ortaktan para aldığında veya kâr dağıttığında çıkış hareketi oluşturun. Her hareket ortak cari kartına bağlanır.
+              </p>
+            </div>
+            {parties.filter((party) => party.type === 'partner').length === 0 ? (
+              <div style={{ color: 'var(--muted)', background: 'var(--paper-raised)', border: '1px solid var(--paper-line)', borderRadius: 5, padding: '10px 12px', fontSize: 13 }}>
+                Önce Cari Kartlar sekmesinden kart türü “Ortak” olan bir cari kart oluşturun.
+              </div>
+            ) : (
+              <form onSubmit={handleCreatePartnerMovement} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <FormField label="Ortak" style={{ minWidth: 210 }}>
+                  <select value={partnerMovementForm.partyId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, partyId: event.target.value })} required>
+                    <option value="">Ortak seçin</option>
+                    {parties.filter((party) => party.type === 'partner').map((party) => <option value={party.id} key={party.id}>{party.name} · {party.currency}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Hareket türü" style={{ minWidth: 240 }}>
+                  <select value={partnerMovementForm.movementType} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, movementType: event.target.value })}>
+                    {PARTNER_MOVEMENT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Tarih">
+                  <input type="date" value={partnerMovementForm.date} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, date: event.target.value })} required />
+                </FormField>
+                <FormField label="Tutar" style={{ minWidth: 150 }}>
+                  <input type="number" min="0.01" step="0.01" value={partnerMovementForm.amount} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, amount: event.target.value })} placeholder="Örn. 10.000" required />
+                </FormField>
+                <FormField label="Para birimi">
+                  <select value={partnerMovementForm.currency} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, currency: event.target.value, accountId: '' })}>
+                    {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Para hesabı" style={{ minWidth: 210 }}>
+                  <select value={partnerMovementForm.accountId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, accountId: event.target.value })} required>
+                    <option value="">Hesap seçin</option>
+                    {accounts.filter((account) => account.currency === partnerMovementForm.currency && account.isActive !== false).map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+                  <input value={partnerMovementForm.description} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, description: event.target.value })} placeholder="Opsiyonel" />
+                </FormField>
+                <button type="submit" className="btn btn-primary" disabled={partnerSaving}>
+                  {partnerSaving ? 'Kaydediliyor…' : 'Ortak Hareketini Kaydet'}
+                </button>
+              </form>
+            )}
+          </div>
+
+          <div className="folder-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Ortak cari bakiyeleri</h3>
+                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Şirkete giren ortak parası borç, şirkete yapılan ortak ödemesi/çekişi bu borcu azaltır.</p>
+              </div>
+              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{parties.filter((party) => party.type === 'partner').length} ortak</span>
+            </div>
+            {parties.filter((party) => party.type === 'partner').length === 0 ? (
+              <div className="empty-state">Henüz ortak cari kartı yok.</div>
+            ) : (
+              <div className="table-scroll">
+                <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                      <th style={{ padding: '7px 8px' }}>Ortak</th>
+                      <th style={{ padding: '7px 8px' }}>Para birimi</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirketten alacak</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirkete borç</th>
+                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net bakiye</th>
+                      <th style={{ padding: '7px 8px' }}>Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parties.filter((party) => party.type === 'partner').map((party) => {
+                      const netBalance = Number(party.balance || 0);
+                      return (
+                        <tr key={party.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                          <td style={{ padding: '10px 8px' }}><strong>{party.name}</strong>{party.companyName && <div style={{ color: 'var(--muted)', fontSize: 12 }}>{party.companyName}</div>}</td>
+                          <td style={{ padding: '10px 8px' }}>{party.currency}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(party.receivable, party.currency)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: netBalance >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
+                          <td style={{ padding: '10px 8px', color: 'var(--muted)' }}>{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
       )}
       {activeTab === 'recurring' && (
         <EmptyTab title="Tekrarlayan kayıtlar" description="Danışman kiraları ve ileride eklenecek düzenli giderler, başlangıç ve bitiş dönemleriyle idempotent şekilde üretilecek." />
