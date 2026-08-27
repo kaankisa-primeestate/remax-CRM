@@ -11,6 +11,7 @@ export enum AccountingCommissionStatus {
   PENDING = 'pending_collection',
   COLLECTED = 'collected',
   PAID = 'agent_paid',
+  VOIDED = 'voided',
 }
 
 @Entity('accounting_commissions')
@@ -24,6 +25,10 @@ export class AccountingCommission {
   // danışman adı değişse bile eski kapama anlaşılır kalır.
   @Column({ type: 'uuid' })
   agentId: string;
+
+  // Aynı form gönderiminin çift tıklama/retry ile iki kez oluşmasını önler.
+  @Column({ type: 'varchar', length: 100, nullable: true, unique: true })
+  idempotencyKey: string | null;
 
   @Column({ type: 'varchar' })
   agentNameSnapshot: string;
@@ -77,6 +82,9 @@ export class AccountingCommission {
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  voidedAt: Date | null;
 
   @Column({ type: 'uuid', nullable: true })
   createdBy: string | null;

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -200,6 +201,13 @@ export class AccountingService {
 
   async createCommission(dto: CreateAccountingCommissionDto, createdBy: string) {
     this.assertCurrency(dto.currency);
+
+    const idempotencyKey = dto.idempotencyKey?.trim() || null;
+    if (idempotencyKey) {
+      const existing = await this.commissionRepo.findOne({ where: { idempotencyKey } });
+      if (existing) return existing;
+    }
+
     const agent = await this.userRepo.findOne({
       where: { id: dto.agentId, role: UserRole.AGENT },
     });
@@ -218,6 +226,7 @@ export class AccountingService {
 
     const commission = this.commissionRepo.create({
       agentId: agent.id,
+      idempotencyKey,
       agentNameSnapshot: agent.name,
       transactionType: dto.transactionType,
       propertyTitle: dto.propertyTitle?.trim() || null,
@@ -235,9 +244,32 @@ export class AccountingService {
       paymentEntryId: null,
       paidAt: null,
       notes: dto.notes?.trim() || null,
+      voidedAt: null,
       createdBy,
     });
 
+    try {
+      return await this.commissionRepo.save(commission);
+    } catch (error: any) {
+      // Aynı form gönderimi iki istek olarak aynı anda geldiyse, unique
+      // idempotency anahtarı nedeniyle ikinci isteği mevcut kayda bağla.
+      if (idempotencyKey && error?.code === '23505') {
+        const existing = await this.commissionRepo.findOne({ where: { idempotencyKey } });
+        if (existing) return existing;
+      }
+      throw error;
+    }
+  }
+
+  async voidCommission(id: string, createdBy: string) {
+    const commission = await this.getCommission(id);
+    if (commission.status !== AccountingCommissionStatus.PENDING) {
+      throw new ConflictException('Yalnızca henüz tahsil edilmemiş komisyonlar iptal edilebilir');
+    }
+    commission.status = AccountingCommissionStatus.VOIDED;
+    commission.voidedAt = new Date();
+    commission.updatedAt = new Date();
+    commission.notes = [commission.notes, `İptal edildi (${createdBy})`].filter(Boolean).join(' · ');
     return this.commissionRepo.save(commission);
   }
 

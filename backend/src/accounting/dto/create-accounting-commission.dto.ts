@@ -3,6 +3,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  MaxLength,
   IsOptional,
   IsString,
   IsUUID,
@@ -10,6 +11,11 @@ import {
 } from 'class-validator';
 
 export class CreateAccountingCommissionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  idempotencyKey?: string;
+
   @IsUUID()
   agentId: string;
 

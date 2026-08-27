@@ -80,6 +80,11 @@ export class AccountingController {
     return this.accountingService.collectCommission(id, dto, req.user.userId);
   }
 
+  @Post('commissions/:id/void')
+  voidCommission(@Param('id') id: string, @Req() req: any) {
+    return this.accountingService.voidCommission(id, req.user.userId);
+  }
+
   @Post('commissions/:id/pay')
   payCommission(
     @Param('id') id: string,

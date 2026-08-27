@@ -28,6 +28,7 @@ export const accountingApi = {
   createCommission: (payload) => apiClient.post('/accounting/commissions', payload).then((response) => response.data),
   collectCommission: (id, payload) => apiClient.post(`/accounting/commissions/${id}/collect`, payload).then((response) => response.data),
   payCommission: (id, payload) => apiClient.post(`/accounting/commissions/${id}/pay`, payload).then((response) => response.data),
+  voidCommission: (id) => apiClient.post(`/accounting/commissions/${id}/void`).then((response) => response.data),
 };
 
 export function formatAccountingMoney(amount, currency = 'TRY') {

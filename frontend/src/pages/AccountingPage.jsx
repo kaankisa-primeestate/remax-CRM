@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ACCOUNTING_ACCOUNT_TYPES,
   ACCOUNTING_CURRENCIES,
@@ -145,6 +145,7 @@ export default function AccountingPage() {
   const [commissionActionId, setCommissionActionId] = useState(null);
   const [commissionForm, setCommissionForm] = useState(EMPTY_COMMISSION_FORM);
   const [settlementAccounts, setSettlementAccounts] = useState({});
+  const commissionIdempotencyKeyRef = useRef(null);
 
   const periodParams = useMemo(() => ({ ...getPeriodBounds(period), currency }), [period, currency]);
 
@@ -276,13 +277,19 @@ export default function AccountingPage() {
     setCommissionSaving(true);
     setError('');
     try {
+      const idempotencyKey = commissionIdempotencyKeyRef.current
+        || window.crypto?.randomUUID?.()
+        || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      commissionIdempotencyKeyRef.current = idempotencyKey;
       await accountingApi.createCommission({
         ...commissionForm,
+        idempotencyKey,
         grossAmount: Number(commissionForm.grossAmount),
         propertyTitle: commissionForm.propertyTitle.trim() || undefined,
         notes: commissionForm.notes.trim() || undefined,
       });
       setCommissionForm({ ...EMPTY_COMMISSION_FORM, date: new Date().toISOString().slice(0, 10), currency });
+      commissionIdempotencyKeyRef.current = null;
       loadCommissionData().catch(() => undefined);
     } catch (saveError) {
       setError(saveError.response?.data?.message || 'Komisyon kaydı oluşturulamadı.');
@@ -301,11 +308,15 @@ export default function AccountingPage() {
 
   async function handleCommissionAction(commission, action) {
     const accountId = getSettlementAccount(commission.id);
-    if (!accountId) {
+    if (action !== 'void' && !accountId) {
       setError('Önce bu komisyon için bir banka, kasa veya kredi kartı hesabı seçin.');
       return;
     }
-    const actionLabel = action === 'collect' ? 'tahsilatı' : 'danışman ödemesini';
+    const actionLabel = action === 'collect'
+      ? 'tahsilatı'
+      : action === 'pay'
+        ? 'danışman ödemesi'
+        : 'iptali';
     if (!window.confirm(`Bu komisyonun ${actionLabel} kaydedilsin mi?`)) return;
 
     setCommissionActionId(commission.id);
@@ -317,8 +328,10 @@ export default function AccountingPage() {
       };
       if (action === 'collect') {
         await accountingApi.collectCommission(commission.id, payload);
-      } else {
+      } else if (action === 'pay') {
         await accountingApi.payCommission(commission.id, payload);
+      } else {
+        await accountingApi.voidCommission(commission.id);
       }
       Promise.all([loadCommissionData(), loadData()]).catch(() => undefined);
     } catch (actionError) {
@@ -739,7 +752,9 @@ export default function AccountingPage() {
                         ? 'Tahsilat bekliyor'
                         : commission.status === 'collected'
                           ? 'Tahsil edildi · ödeme bekliyor'
-                          : 'Danışmana ödendi';
+                          : commission.status === 'voided'
+                            ? 'İptal edildi'
+                            : 'Danışmana ödendi';
                       return (
                         <tr key={commission.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
                           <td style={{ padding: '10px 8px' }}>{formatDate(commission.date)}</td>
@@ -753,7 +768,7 @@ export default function AccountingPage() {
                           <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(commission.officeShare, commission.currency)}</td>
                           <td style={{ padding: '10px 8px', minWidth: 250 }}>
                             <div style={{ fontSize: 12, color: commission.status === 'agent_paid' ? 'var(--success)' : 'var(--muted)', marginBottom: 6 }}>{statusLabel}</div>
-                            {commission.status !== 'agent_paid' && (
+                            {commission.status !== 'agent_paid' && commission.status !== 'voided' && (
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                                 <select value={getSettlementAccount(commission.id)} onChange={(event) => setSettlementAccount(commission.id, event.target.value)} disabled={isBusy}>
                                   <option value="">Hesap seçin</option>
@@ -769,9 +784,14 @@ export default function AccountingPage() {
                                     {isBusy ? '…' : 'Danışmana Öde'}
                                   </button>
                                 )}
+                                {commission.status === 'pending_collection' && (
+                                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy} onClick={() => handleCommissionAction(commission, 'void')}>
+                                    {isBusy ? '…' : 'İptal Et'}
+                                  </button>
+                                )}
                               </div>
                             )}
-                            {matchingAccounts.length === 0 && commission.status !== 'agent_paid' && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
+                            {matchingAccounts.length === 0 && commission.status !== 'agent_paid' && commission.status !== 'voided' && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
                           </td>
                         </tr>
                       );
