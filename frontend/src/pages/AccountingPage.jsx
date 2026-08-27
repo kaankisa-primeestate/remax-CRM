@@ -131,6 +131,28 @@ function entryTypeLabel(type) {
   return ACCOUNTING_ENTRY_TYPES.find((item) => item.value === type)?.label || type;
 }
 
+function statementTypeLabel(type) {
+  if (type === 'opening_balance') return 'Açılış';
+  if (type === 'rent_accrual') return 'Kira tahakkuku';
+  if (type === 'commission_accrual') return 'Komisyon hakedişi';
+  return entryTypeLabel(type);
+}
+
+function buildStatementRows(entries) {
+  let receivable = 0;
+  let payable = 0;
+  return (entries || []).map((entry) => {
+    receivable = Number((receivable + Number(entry.receivableDelta || 0)).toFixed(2));
+    payable = Number((payable + Number(entry.payableDelta || 0)).toFixed(2));
+    return {
+      ...entry,
+      runningReceivable: receivable,
+      runningPayable: payable,
+      runningBalance: Number((receivable - payable).toFixed(2)),
+    };
+  });
+}
+
 function EmptyTab({ title, description }) {
   return (
     <div className="folder-panel" style={{ padding: 28, textAlign: 'center' }}>
@@ -189,6 +211,8 @@ export default function AccountingPage() {
   const [rentActionId, setRentActionId] = useState(null);
   const [parties, setParties] = useState([]);
   const [partyLoading, setPartyLoading] = useState(false);
+  const [partyStatement, setPartyStatement] = useState(null);
+  const [partyStatementLoading, setPartyStatementLoading] = useState(false);
   const [partySaving, setPartySaving] = useState(false);
   const [partyForm, setPartyForm] = useState({
     type: 'partner',
@@ -377,6 +401,11 @@ export default function AccountingPage() {
     () => categoryNames(EXPENSE_CATEGORIES, customCategories.expense),
     [customCategories],
   );
+  const statementRows = useMemo(() => buildStatementRows(partyStatement?.entries), [partyStatement]);
+  const statementLastRow = statementRows[statementRows.length - 1];
+  const statementReceivable = statementLastRow?.runningReceivable || 0;
+  const statementPayable = statementLastRow?.runningPayable || 0;
+  const statementBalance = statementLastRow?.runningBalance || 0;
 
   function handleEntryChange(event) {
     const { name, value } = event.target;
@@ -492,6 +521,21 @@ export default function AccountingPage() {
       setError(saveError.response?.data?.message || 'Cari kart oluşturulamadı.');
     } finally {
       setPartySaving(false);
+    }
+  }
+
+  async function handleViewPartyStatement(party) {
+    setPartyStatementLoading(true);
+    setPartyStatement({ party, entries: [] });
+    setError('');
+    try {
+      const statement = await accountingApi.listPartyEntries(party.id);
+      setPartyStatement(statement);
+    } catch (loadError) {
+      setPartyStatement(null);
+      setError(loadError.response?.data?.message || 'Cari ekstre yüklenemedi.');
+    } finally {
+      setPartyStatementLoading(false);
     }
   }
 
@@ -1150,15 +1194,17 @@ export default function AccountingPage() {
                 <table style={{ width: '100%', minWidth: 1050, borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '7px 8px' }}>Cari kart</th>
-                      <th style={{ padding: '7px 8px' }}>Tür</th>
-                      <th style={{ padding: '7px 8px' }}>Para birimi</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirketten alacak</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirkete borç</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net bakiye</th>
-                      <th style={{ padding: '7px 8px' }}>Durum</th>
-                    </tr>
-                  </thead>
+                                              <th style={{ padding: '7px 8px' }}>Cari kart</th>
+                        <th style={{ padding: '7px 8px' }}>Tür</th>
+                        <th style={{ padding: '7px 8px' }}>Para birimi</th>
+                        <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirketten alacak</th>
+                        <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirkete borç</th>
+                        <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net bakiye</th>
+                        <th style={{ padding: '7px 8px' }}>Durum</th>
+                        <th style={{ padding: '7px 8px' }}>Ekstre</th>
+                      </tr>
+                    </thead>
+
                   <tbody>
                     {parties.map((party) => {
                       const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
@@ -1175,6 +1221,7 @@ export default function AccountingPage() {
                           <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: netBalance >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
                           <td style={{ padding: '10px 8px', color: 'var(--muted)' }}>{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
+                          <td style={{ padding: '10px 8px' }}><button type="button" className="btn btn-secondary" onClick={() => handleViewPartyStatement(party)}>Ekstreyi Aç</button></td>
                         </tr>
                       );
                     })}
@@ -1183,6 +1230,79 @@ export default function AccountingPage() {
               </div>
             )}
           </div>
+
+          {partyStatement && (
+            <div className="folder-panel" style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div>
+                  <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>{partyStatement.party?.name || 'Cari'} · Cari Ekstresi</h3>
+                  <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
+                    {partyStatement.party?.currency || currency} · İptal edilen kayıtlar ekstreye dahil edilmez
+                  </p>
+                </div>
+                <button type="button" className="btn btn-secondary" onClick={() => setPartyStatement(null)}>Ekstreyi Kapat</button>
+              </div>
+              {partyStatementLoading ? (
+                <div className="empty-state">Cari ekstre yükleniyor…</div>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 14 }}>
+                    <div style={{ padding: 14, background: 'var(--paper-soft)', border: '1px solid var(--paper-line)' }}>
+                      <div style={{ color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase' }}>Şirketten alacak</div>
+                      <strong style={{ display: 'block', marginTop: 6, color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(statementReceivable, partyStatement.party?.currency || currency)}</strong>
+                    </div>
+                    <div style={{ padding: 14, background: 'var(--paper-soft)', border: '1px solid var(--paper-line)' }}>
+                      <div style={{ color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase' }}>Şirkete borç</div>
+                      <strong style={{ display: 'block', marginTop: 6, color: 'var(--danger)', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(statementPayable, partyStatement.party?.currency || currency)}</strong>
+                    </div>
+                    <div style={{ padding: 14, background: 'var(--paper-soft)', border: '1px solid var(--paper-line)' }}>
+                      <div style={{ color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase' }}>Net bakiye</div>
+                      <strong style={{ display: 'block', marginTop: 6, color: statementBalance >= 0 ? 'var(--success)' : 'var(--danger)', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(Math.abs(statementBalance), partyStatement.party?.currency || currency)}</strong>
+                      <span style={{ color: 'var(--muted)', fontSize: 12 }}>{statementBalance > 0 ? 'Şirketten alacaklı' : statementBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</span>
+                    </div>
+                  </div>
+                  {statementRows.length === 0 ? (
+                    <div className="empty-state">Bu cari kartta henüz hareket bulunmuyor.</div>
+                  ) : (
+                    <div className="table-scroll">
+                      <table style={{ width: '100%', minWidth: 1050, borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                            <th style={{ padding: '7px 8px' }}>Tarih</th>
+                            <th style={{ padding: '7px 8px' }}>İşlem</th>
+                            <th style={{ padding: '7px 8px' }}>Kategori</th>
+                            <th style={{ padding: '7px 8px' }}>Hesap / açıklama</th>
+                            <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirket alacağı</th>
+                            <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirket borcu</th>
+                            <th style={{ padding: '7px 8px', textAlign: 'right' }}>Kümülatif net</th>
+                            <th style={{ padding: '7px 8px' }}>Durum</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {statementRows.map((entry) => (
+                            <tr key={entry.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                              <td style={{ padding: '10px 8px' }}>{formatDate(entry.date)}</td>
+                              <td style={{ padding: '10px 8px' }}>{statementTypeLabel(entry.type)}</td>
+                              <td style={{ padding: '10px 8px' }}>{entry.category || '—'}</td>
+                              <td style={{ padding: '10px 8px' }}>
+                                {entry.accountName || entry.counterAccountName || '—'}
+                                {entry.counterAccountName && entry.accountName && <span style={{ color: 'var(--muted)' }}> → {entry.counterAccountName}</span>}
+                                {entry.description && <div style={{ color: 'var(--muted)', fontSize: 12 }}>{entry.description}</div>}
+                              </td>
+                              <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{entry.receivableDelta > 0 ? formatAccountingMoney(entry.receivableDelta, entry.currency) : '—'}</td>
+                              <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{entry.payableDelta > 0 ? formatAccountingMoney(entry.payableDelta, entry.currency) : '—'}</td>
+                              <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: entry.runningBalance >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(Math.abs(entry.runningBalance), entry.currency)}</td>
+                              <td style={{ padding: '10px 8px', color: 'var(--muted)' }}>{entry.statusLabel || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
       {activeTab === 'commissions' && (

@@ -329,11 +329,131 @@ export class AccountingService {
 
   async listPartyEntries(partyId: string) {
     const party = await this.partyRepo.findOne({ where: { id: partyId } });
-    const entryPartyId = party?.linkedUserId || partyId;
-    return this.entryRepo.find({
-      where: { partyId: entryPartyId, voidedAt: IsNull() },
-      order: { date: 'DESC', createdAt: 'DESC' },
+    if (!party) throw new NotFoundException('Cari kart bulunamadı');
+    const entryPartyId = party.linkedUserId || partyId;
+    const [entries, accounts, rents, commissions] = await Promise.all([
+      this.entryRepo.find({
+        where: { partyId: entryPartyId, voidedAt: IsNull() },
+        order: { date: 'ASC', createdAt: 'ASC' },
+      }),
+      this.accountRepo.find(),
+      party.linkedUserId
+        ? this.rentRepo.find({ where: { agentId: party.linkedUserId }, order: { dueDate: 'ASC', createdAt: 'ASC' } })
+        : Promise.resolve([]),
+      party.linkedUserId
+        ? this.commissionRepo.find({ where: { agentId: party.linkedUserId }, order: { date: 'ASC', createdAt: 'ASC' } })
+        : Promise.resolve([]),
+    ]);
+    const accountMap = new Map(accounts.map((account) => [account.id, account]));
+    const statementEntries: Array<Record<string, any>> = [];
+    const addEntry = (entry: Record<string, any>) => statementEntries.push(entry);
+    const entryDelta = (entry: AccountingEntry) => {
+      let receivableDelta = 0;
+      let payableDelta = 0;
+      if (party.type === AccountingPartyType.PARTNER) {
+        payableDelta = entry.type === AccountingEntryType.INCOME ? Number(entry.amount) : -Number(entry.amount);
+      } else if (party.type === AccountingPartyType.CUSTOMER) {
+        receivableDelta = entry.type === AccountingEntryType.INCOME ? -Number(entry.amount) : Number(entry.amount);
+      } else if (party.type === AccountingPartyType.AGENT) {
+        if (entry.category === 'Danışman Kirası Tahsilatı') {
+          receivableDelta = -Number(entry.amount);
+        } else if (entry.category === 'Komisyon Tahsilatı') {
+          receivableDelta = 0;
+        } else {
+          payableDelta = entry.type === AccountingEntryType.INCOME ? Number(entry.amount) : -Number(entry.amount);
+        }
+      } else {
+        payableDelta = entry.type === AccountingEntryType.INCOME ? Number(entry.amount) : -Number(entry.amount);
+      }
+      return { receivableDelta: this.money(receivableDelta), payableDelta: this.money(payableDelta) };
+    };
+
+    const openingAmount = Number(party.openingBalance || 0);
+    if (openingAmount > 0) {
+      addEntry({
+        id: `opening:${party.id}`,
+        date: party.createdAt ? new Date(party.createdAt).toISOString().slice(0, 10) : null,
+        type: 'opening_balance',
+        category: 'Açılış bakiyesi',
+        amount: this.money(openingAmount),
+        currency: party.currency,
+        accountName: null,
+        counterAccountName: null,
+        partyName: party.name,
+        description: party.openingBalanceDirection === AccountingPartyBalanceDirection.RECEIVABLE
+          ? 'Şirketten alacak açılış bakiyesi'
+          : 'Şirkete borç açılış bakiyesi',
+        statusLabel: party.openingBalanceDirection === AccountingPartyBalanceDirection.RECEIVABLE ? 'Şirket alacağı' : 'Şirket borcu',
+        receivableDelta: party.openingBalanceDirection === AccountingPartyBalanceDirection.RECEIVABLE ? this.money(openingAmount) : 0,
+        payableDelta: party.openingBalanceDirection === AccountingPartyBalanceDirection.PAYABLE ? this.money(openingAmount) : 0,
+        createdAt: party.createdAt,
+      });
+    }
+
+    for (const rent of rents) {
+      if (rent.status === AccountingRentStatus.VOIDED || rent.voidedAt) continue;
+      addEntry({
+        id: `rent:${rent.id}`,
+        date: rent.dueDate,
+        type: 'rent_accrual',
+        category: 'Danışman Kirası Tahakkuku',
+        amount: this.money(rent.amount),
+        currency: rent.currency,
+        accountName: null,
+        counterAccountName: null,
+        partyName: rent.agentNameSnapshot,
+        description: `Danışman kirası: ${rent.period}`,
+        statusLabel: rent.status === AccountingRentStatus.COLLECTED ? 'Tahsil edildi' : 'Tahsilat bekliyor',
+        receivableDelta: this.money(rent.amount),
+        payableDelta: 0,
+        createdAt: rent.createdAt,
+      });
+    }
+
+    for (const commission of commissions) {
+      if (commission.status === AccountingCommissionStatus.VOIDED || commission.voidedAt) continue;
+      const commissionIsPayable = commission.status === AccountingCommissionStatus.COLLECTED || commission.status === AccountingCommissionStatus.PAID;
+      addEntry({
+        id: `commission:${commission.id}`,
+        date: commission.date,
+        type: 'commission_accrual',
+        category: 'Danışman Hakedişi Tahakkuku',
+        amount: this.money(commission.agentGrossShare),
+        currency: commission.currency,
+        accountName: null,
+        counterAccountName: null,
+        partyName: commission.agentNameSnapshot,
+        description: commission.propertyTitle || 'Komisyon hakedişi',
+        statusLabel: commission.status === AccountingCommissionStatus.PENDING ? 'Komisyon tahsilatı bekliyor' : commission.status === AccountingCommissionStatus.COLLECTED ? 'Danışmana ödeme bekliyor' : 'Danışmana ödendi',
+        receivableDelta: 0,
+        payableDelta: commissionIsPayable ? this.money(commission.agentGrossShare) : 0,
+        createdAt: commission.createdAt,
+      });
+    }
+
+    for (const entry of entries) {
+      const deltas = entryDelta(entry);
+      addEntry({
+        ...entry,
+        accountName: entry.accountId ? accountMap.get(entry.accountId)?.name || null : null,
+        counterAccountName: entry.counterAccountId ? accountMap.get(entry.counterAccountId)?.name || null : null,
+        statusLabel: entry.type === AccountingEntryType.INCOME ? 'Tahsilat / giriş' : entry.type === AccountingEntryType.EXPENSE ? 'Ödeme / çıkış' : 'Transfer',
+        ...deltas,
+      });
+    }
+
+    statementEntries.sort((left, right) => {
+      const dateCompare = String(left.date || '').localeCompare(String(right.date || ''));
+      if (dateCompare !== 0) return dateCompare;
+      return String(left.createdAt || '').localeCompare(String(right.createdAt || ''));
     });
+    return {
+      party: {
+        ...party,
+        currency: party.type === AccountingPartyType.AGENT ? 'TRY' : party.currency,
+      },
+      entries: statementEntries,
+    };
   }
 
   async listCategories(filters: { type?: AccountingEntryType }) {
