@@ -1435,9 +1435,9 @@ export default function AccountingPage() {
               <div className="metric-card__delta is-muted">{currency} görünümü</div>
             </div>
             <div className="metric-card">
-              <div className="metric-card__label">Toplam tahsilat</div>
+              <div className="metric-card__label">Operasyonel gelir</div>
               <div className="metric-card__value">{loading ? '…' : formatAccountingMoney(summary?.totalIncome, currency)}</div>
-              <div className="metric-card__delta is-muted">Gelir / tahsilat hareketleri</div>
+              <div className="metric-card__delta is-muted">Ortak finansmanı hariç gelir / tahsilat</div>
             </div>
             <div className="metric-card">
               <div className="metric-card__label">Toplam gider</div>
@@ -1449,16 +1449,30 @@ export default function AccountingPage() {
               <div className="metric-card__value" style={{ color: Number(summary?.netOperatingResult || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                 {loading ? '…' : formatAccountingMoney(summary?.netOperatingResult, currency)}
               </div>
-              <div className="metric-card__delta is-muted">{summary?.entryCount || 0} hareket</div>
+              <div className="metric-card__delta is-muted">{summary?.operatingEntryCount || 0} operasyon hareketi</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Ortak finansmanı (net)</div>
+              <div className="metric-card__value" style={{ color: Number(summary?.netPartnerFinancing || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {loading ? '…' : formatAccountingMoney(summary?.netPartnerFinancing, currency)}
+              </div>
+              <div className="metric-card__delta is-muted">Giriş {formatAccountingMoney(summary?.partnerInflow, currency)} · çıkış {formatAccountingMoney(summary?.partnerOutflow, currency)}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-card__label">Net nakit hareketi</div>
+              <div className="metric-card__value" style={{ color: Number(summary?.netCashMovement || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {loading ? '…' : formatAccountingMoney(summary?.netCashMovement, currency)}
+              </div>
+              <div className="metric-card__delta is-muted">Operasyon + ortak finansmanı · {summary?.entryCount || 0} toplam hareket</div>
             </div>
           </div>
 
           <div className="folder-panel" style={{ marginTop: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Hızlı başlangıç</h3>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Modül rehberi</h3>
                 <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
-                  Önce bir banka, kasa veya kredi kartı hesabı oluşturun; ardından Hareketler sekmesinden kayıt ekleyin.
+                  Aşağıdaki dört kutu rakam alanı değil, Muhasebe bölümlerinin işlevlerini anlatan kısa bilgilendirmelerdir.
                 </p>
               </div>
               <button type="button" className="btn btn-primary" onClick={() => setActiveTab('entries')}>+ Hareket Ekle</button>
@@ -2480,9 +2494,9 @@ export default function AccountingPage() {
                   <div className="metric-card__delta is-muted">Seçilen para birimindeki hesaplar</div>
                 </div>
                 <div className="metric-card">
-                  <div className="metric-card__label">Toplam giriş</div>
+                  <div className="metric-card__label">Operasyonel gelir</div>
                   <div className="metric-card__value" style={{ color: 'var(--success)' }}>{formatAccountingMoney(managementReport.summary?.totalIncome, currency)}</div>
-                  <div className="metric-card__delta is-muted">{managementReport.summary?.entryCount || 0} hareket içinde</div>
+                  <div className="metric-card__delta is-muted">Ortak finansmanı hariç · {managementReport.summary?.operatingEntryCount || 0} hareket</div>
                 </div>
                 <div className="metric-card">
                   <div className="metric-card__label">Toplam çıkış</div>
@@ -2492,7 +2506,17 @@ export default function AccountingPage() {
                 <div className="metric-card">
                   <div className="metric-card__label">Net operasyon sonucu</div>
                   <div className="metric-card__value" style={{ color: Number(managementReport.summary?.netOperatingResult || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.netOperatingResult, currency)}</div>
-                  <div className="metric-card__delta is-muted">Giriş eksi çıkış · transfer hariç</div>
+                  <div className="metric-card__delta is-muted">Operasyonel gelir eksi operasyonel gider</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-card__label">Ortak finansmanı (net)</div>
+                  <div className="metric-card__value" style={{ color: Number(managementReport.summary?.netPartnerFinancing || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.netPartnerFinancing, currency)}</div>
+                  <div className="metric-card__delta is-muted">Giriş {formatAccountingMoney(managementReport.summary?.partnerInflow, currency)} · çıkış {formatAccountingMoney(managementReport.summary?.partnerOutflow, currency)}</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-card__label">Net nakit hareketi</div>
+                  <div className="metric-card__value" style={{ color: Number(managementReport.summary?.netCashMovement || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.netCashMovement, currency)}</div>
+                  <div className="metric-card__delta is-muted">Operasyon + ortak finansmanı · transfer hariç</div>
                 </div>
               </div>
 
@@ -2500,7 +2524,7 @@ export default function AccountingPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                   <div>
                     <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Hesap bazında dönem özeti</h3>
-                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Dönem başı, giriş-çıkış ve dönem sonu bakiyesini hesap bazında gösterir.</p>
+                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Dönem başı, tüm nakit giriş-çıkışları ve dönem sonu bakiyesini hesap bazında gösterir. Ortak finansmanı bu tabloda banka hareketi olduğu için dahildir; operasyon sonucunda hariçtir.</p>
                   </div>
                   <span style={{ color: 'var(--muted)', fontSize: 12 }}>{managementReport.accountBalances?.length || 0} hesap</span>
                 </div>
@@ -2514,8 +2538,8 @@ export default function AccountingPage() {
                           <th style={{ padding: '7px 8px' }}>Hesap</th>
                           <th style={{ padding: '7px 8px' }}>Tür</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Dönem başı</th>
-                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Giriş</th>
-                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Çıkış</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Hesap girişi</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Hesap çıkışı</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Transfer neti</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Dönem sonu</th>
                         </tr>
@@ -2542,7 +2566,7 @@ export default function AccountingPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                   <div>
                     <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Günlük nakit akışı</h3>
-                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Yalnız hareket olan günler gösterilir; transferler ayrıca ayrıştırılır.</p>
+                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Yalnız hareket olan günler gösterilir; operasyon, ortak finansmanı ve hesaplar arası transferler ayrı izlenir.</p>
                   </div>
                   <span style={{ color: 'var(--muted)', fontSize: 12 }}>{managementReport.dailyCashFlow?.length || 0} gün</span>
                 </div>
@@ -2550,13 +2574,16 @@ export default function AccountingPage() {
                   <div className="empty-state">Seçilen dönemde hareket bulunmuyor.</div>
                 ) : (
                   <div className="table-scroll">
-                    <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', fontSize: 13 }}>
+                    <table style={{ width: '100%', minWidth: 1080, borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
                           <th style={{ padding: '7px 8px' }}>Tarih</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Giriş</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Çıkış</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net operasyon</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Ortak girişi</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Ortak çıkışı</th>
+                          <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net nakit</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Transfer girişi</th>
                           <th style={{ padding: '7px 8px', textAlign: 'right' }}>Transfer çıkışı</th>
                         </tr>
@@ -2568,6 +2595,9 @@ export default function AccountingPage() {
                             <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(day.income, currency)}</td>
                             <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(day.expense, currency)}</td>
                             <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: Number(day.netOperating || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(day.netOperating, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(day.partnerIn, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(day.partnerOut, currency)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: Number(day.netCashMovement || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(day.netCashMovement, currency)}</td>
                             <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(day.transferIn, currency)}</td>
                             <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(day.transferOut, currency)}</td>
                           </tr>

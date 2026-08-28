@@ -1308,6 +1308,8 @@ export class AccountingService {
     const dailyMap = new Map<string, {
       income: number;
       expense: number;
+      partnerIn: number;
+      partnerOut: number;
       transferIn: number;
       transferOut: number;
     }>();
@@ -1315,24 +1317,42 @@ export class AccountingService {
     const expenseCategoryMap = new Map<string, number>();
     let totalIncome = 0;
     let totalExpense = 0;
+    let totalPartnerIn = 0;
+    let totalPartnerOut = 0;
     let totalTransfer = 0;
+    let operatingEntryCount = 0;
 
     for (const entry of entries) {
       const amount = Number(entry.amount || 0);
-      if (entry.type === AccountingEntryType.INCOME) totalIncome += amount;
-      if (entry.type === AccountingEntryType.EXPENSE) totalExpense += amount;
-      if (entry.type === AccountingEntryType.TRANSFER) totalTransfer += amount;
+      const isPartnerMovement = entry.partyType === AccountingPartyType.PARTNER;
+      const day = dailyMap.get(entry.date) || {
+        income: 0,
+        expense: 0,
+        partnerIn: 0,
+        partnerOut: 0,
+        transferIn: 0,
+        transferOut: 0,
+      };
 
-      const day = dailyMap.get(entry.date) || { income: 0, expense: 0, transferIn: 0, transferOut: 0 };
-      if (entry.type === AccountingEntryType.INCOME) {
+      if (isPartnerMovement && entry.type === AccountingEntryType.INCOME) {
+        totalPartnerIn += amount;
+        day.partnerIn += amount;
+      } else if (isPartnerMovement && entry.type === AccountingEntryType.EXPENSE) {
+        totalPartnerOut += amount;
+        day.partnerOut += amount;
+      } else if (entry.type === AccountingEntryType.INCOME) {
+        totalIncome += amount;
+        operatingEntryCount += 1;
         day.income += amount;
         incomeCategoryMap.set(entry.category || 'Kategorisiz', (incomeCategoryMap.get(entry.category || 'Kategorisiz') || 0) + amount);
       } else if (entry.type === AccountingEntryType.EXPENSE) {
+        totalExpense += amount;
+        operatingEntryCount += 1;
         day.expense += amount;
         expenseCategoryMap.set(entry.category || 'Kategorisiz', (expenseCategoryMap.get(entry.category || 'Kategorisiz') || 0) + amount);
       } else if (entry.type === AccountingEntryType.TRANSFER) {
+        totalTransfer += amount;
         day.transferOut += amount;
-        totalTransfer += 0;
       }
       dailyMap.set(entry.date, day);
 
@@ -1388,7 +1408,12 @@ export class AccountingService {
         totalIncome: this.money(totalIncome),
         totalExpense: this.money(totalExpense),
         netOperatingResult: this.money(totalIncome - totalExpense),
+        partnerInflow: this.money(totalPartnerIn),
+        partnerOutflow: this.money(totalPartnerOut),
+        netPartnerFinancing: this.money(totalPartnerIn - totalPartnerOut),
+        netCashMovement: this.money(totalIncome - totalExpense + totalPartnerIn - totalPartnerOut),
         totalInternalTransfer: this.money(totalTransfer),
+        operatingEntryCount,
         entryCount: entries.length,
       },
       accountBalances,
@@ -1396,9 +1421,12 @@ export class AccountingService {
         date,
         income: this.money(day.income),
         expense: this.money(day.expense),
+        partnerIn: this.money(day.partnerIn),
+        partnerOut: this.money(day.partnerOut),
         transferIn: this.money(day.transferIn),
         transferOut: this.money(day.transferOut),
         netOperating: this.money(day.income - day.expense),
+        netCashMovement: this.money(day.income - day.expense + day.partnerIn - day.partnerOut),
       })),
       incomeByCategory: toCategoryRows(incomeCategoryMap),
       expenseByCategory: toCategoryRows(expenseCategoryMap),
@@ -1418,30 +1446,50 @@ export class AccountingService {
     const query = this.entryRepo
       .createQueryBuilder('entry')
       .select(
-        `COALESCE(SUM(CASE WHEN entry.type = :income THEN entry.amount ELSE 0 END), 0)`,
+        `COALESCE(SUM(CASE WHEN entry.type = :income AND (entry.partyType IS NULL OR entry.partyType != :partner) THEN entry.amount ELSE 0 END), 0)`,
         'totalIncome',
       )
       .addSelect(
-        `COALESCE(SUM(CASE WHEN entry.type = :expense THEN entry.amount ELSE 0 END), 0)`,
+        `COALESCE(SUM(CASE WHEN entry.type = :expense AND (entry.partyType IS NULL OR entry.partyType != :partner) THEN entry.amount ELSE 0 END), 0)`,
         'totalExpense',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN entry.type = :income AND entry.partyType = :partner THEN entry.amount ELSE 0 END), 0)`,
+        'partnerInflow',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN entry.type = :expense AND entry.partyType = :partner THEN entry.amount ELSE 0 END), 0)`,
+        'partnerOutflow',
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN entry.type IN (:income, :expense) AND (entry.partyType IS NULL OR entry.partyType != :partner) THEN 1 ELSE 0 END), 0)`,
+        'operatingEntryCount',
       )
       .addSelect('COUNT(entry.id)', 'entryCount')
       .where('entry.voidedAt IS NULL')
       .setParameters({
         income: AccountingEntryType.INCOME,
         expense: AccountingEntryType.EXPENSE,
+        partner: AccountingPartyType.PARTNER,
       });
     this.applyEntryFilters(query, filters);
 
     const row = await query.getRawOne();
     const income = Number(row?.totalIncome || 0);
     const expense = Number(row?.totalExpense || 0);
+    const partnerInflow = Number(row?.partnerInflow || 0);
+    const partnerOutflow = Number(row?.partnerOutflow || 0);
 
     return {
       currency: filters.currency || 'ALL',
       totalIncome: income,
       totalExpense: expense,
       netOperatingResult: income - expense,
+      partnerInflow,
+      partnerOutflow,
+      netPartnerFinancing: partnerInflow - partnerOutflow,
+      netCashMovement: income - expense + partnerInflow - partnerOutflow,
+      operatingEntryCount: Number(row?.operatingEntryCount || 0),
       entryCount: Number(row?.entryCount || 0),
     };
   }
