@@ -76,6 +76,7 @@ export default function CalendarPage() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPast, setShowPast] = useState(false);
+  const [newEntryMenuOpen, setNewEntryMenuOpen] = useState(false);
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(todayStr());
@@ -97,6 +98,15 @@ export default function CalendarPage() {
   useEffect(() => {
     localStorage.setItem('crm-calendar-view', view);
   }, [view]);
+
+  useEffect(() => {
+    if (!newEntryMenuOpen) return undefined;
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') setNewEntryMenuOpen(false);
+    }
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [newEntryMenuOpen]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -182,6 +192,20 @@ export default function CalendarPage() {
     setCustomerId('');
     setPropertyId('');
     setDisclosureAccepted(false);
+  }
+
+  function handleNewEntryChoice(choice) {
+    setNewEntryMenuOpen(false);
+    if (choice === 'task') {
+      navigate('/gorevler', { state: { openQuickAdd: true } });
+      return;
+    }
+
+    resetForm();
+    setDate(selectedDate || todayStr());
+    setType(choice);
+    setView('agenda');
+    window.requestAnimationFrame(() => document.getElementById('calendar-new-entry-title')?.focus());
   }
 
   async function handleAdd(e) {
@@ -387,14 +411,51 @@ export default function CalendarPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
         <h2 className="dossier__name" style={{ margin: 0 }}>Takvim</h2>
-        <div className="folder-tabs">
-          {VIEW_TABS.map((t) => (
-            <button key={t.key} className={`folder-tab ${view === t.key ? 'active' : ''}`} onClick={() => setView(t.key)}>
-              {t.label}
-            </button>
-          ))}
+        <div className="calendar-header-actions">
+          <button type="button" className="btn btn-primary calendar-new-entry-button" onClick={() => setNewEntryMenuOpen(true)}>
+            + Yeni Ekle
+          </button>
+          <div className="folder-tabs">
+            {VIEW_TABS.map((t) => (
+              <button key={t.key} className={`folder-tab ${view === t.key ? 'active' : ''}`} onClick={() => setView(t.key)}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {newEntryMenuOpen && (
+        <div className="modal-backdrop calendar-new-entry-backdrop" role="presentation" onMouseDown={() => setNewEntryMenuOpen(false)}>
+          <div className="modal calendar-new-entry-modal" role="dialog" aria-modal="true" aria-labelledby="calendar-new-entry-heading" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="calendar-new-entry-modal__header">
+              <div>
+                <h2 id="calendar-new-entry-heading">Yeni kayıt ekle</h2>
+                <p>Eklemek istediğiniz kayıt türünü seçin.</p>
+              </div>
+              <button type="button" className="calendar-new-entry-modal__close" onClick={() => setNewEntryMenuOpen(false)} aria-label="Pencereyi kapat">×</button>
+            </div>
+            <div className="calendar-new-entry-options">
+              <button type="button" onClick={() => handleNewEntryChoice('task')}>
+                <strong>Yeni görev ekle</strong>
+                <span>Görev başlığı, tarih ve açıklama kaydedin.</span>
+              </button>
+              <button type="button" onClick={() => handleNewEntryChoice('showing')}>
+                <strong>Yeni yer gösterme / ilan gösterimi ekle</strong>
+                <span>Müşteri ve portföy seçerek yer gösterme kaydı oluşturun.</span>
+              </button>
+              <button type="button" onClick={() => handleNewEntryChoice('meeting')}>
+                <strong>Yeni müşteri görüşmesi ekle</strong>
+                <span>Tarih ve saat bilgisiyle görüşme planlayın.</span>
+              </button>
+              <button type="button" onClick={() => handleNewEntryChoice('other')}>
+                <strong>Yeni not / hatırlatıcı ekle</strong>
+                <span>Takvimde görünecek kişisel bir not oluşturun.</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {(view === 'month' || view === 'week') && (
         <>
@@ -553,7 +614,7 @@ export default function CalendarPage() {
             <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div className="form-field" style={{ flex: 1, minWidth: 180, margin: 0 }}>
                 <label>Başlık</label>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn: Ahmet Bey ile görüşme" />
+                <input id="calendar-new-entry-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn: Ahmet Bey ile görüşme" />
               </div>
               <div className="form-field" style={{ margin: 0 }}>
                 <label>Tarih</label>
