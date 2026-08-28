@@ -1401,6 +1401,82 @@ button {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
+button.metric-card--clickable {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+.accounting-report-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.accounting-report-presets .btn {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.accounting-report-presets .btn.active {
+  border-color: var(--ink-navy);
+  background: var(--ink-navy);
+  color: #fff;
+}
+.accounting-report-date-form,
+.accounting-report-detail-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.accounting-report-detail-filters {
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+}
+.accounting-report-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.accounting-report-table th {
+  padding: 8px;
+  text-align: left;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.accounting-report-table td {
+  padding: 10px 8px;
+  vertical-align: top;
+  border-top: 1px solid var(--paper-line);
+}
+.accounting-report-subtext {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.accounting-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.accounting-report-actions .btn {
+  padding: 5px 7px;
+  font-size: 10px;
+}
+.accounting-report-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .metric-card__label {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -2961,6 +3037,57 @@ button {
   .accounting-page .metric-grid {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .accounting-page .accounting-report-presets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accounting-page .accounting-report-date-form,
+  .accounting-page .accounting-report-detail-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .accounting-page .accounting-report-date-form > .btn,
+  .accounting-page .accounting-report-detail-filters > .btn {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .accounting-page .accounting-report-table {
+    display: block;
+  }
+
+  .accounting-page .accounting-report-table thead {
+    display: none;
+  }
+
+  .accounting-page .accounting-report-table tbody,
+  .accounting-page .accounting-report-table tr,
+  .accounting-page .accounting-report-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .accounting-page .accounting-report-table tr {
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: var(--paper-raised);
+  }
+
+  .accounting-page .accounting-report-table td {
+    padding: 5px 0 !important;
+    border: 0;
+    text-align: left !important;
+  }
+
+  .accounting-page .accounting-report-actions .btn {
+    width: auto;
+    min-height: 36px;
   }
 
   .accounting-page .metric-card {

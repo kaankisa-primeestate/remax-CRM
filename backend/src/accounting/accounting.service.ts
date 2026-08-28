@@ -1412,6 +1412,33 @@ export class AccountingService {
       .map(([category, amount]) => ({ category, amount: this.money(amount) }))
       .sort((left, right) => right.amount - left.amount);
 
+    const accountNameMap = new Map(accounts.map((account) => [account.id, account.name]));
+    const movements = [...entries]
+      .sort((left, right) => {
+        const dateCompare = right.date.localeCompare(left.date);
+        if (dateCompare !== 0) return dateCompare;
+        return right.createdAt.getTime() - left.createdAt.getTime();
+      })
+      .map((entry) => {
+        const isPartnerFinancingIn = entry.partyType === AccountingPartyType.PARTNER
+          && entry.type === AccountingEntryType.INCOME
+          && PARTNER_FINANCING_INCOME_CATEGORIES.has(entry.category);
+        const isPartnerFinancingOut = entry.partyType === AccountingPartyType.PARTNER
+          && entry.type === AccountingEntryType.EXPENSE
+          && PARTNER_FINANCING_EXPENSE_CATEGORIES.has(entry.category);
+        const classification = isPartnerFinancingIn
+          ? 'partner_in'
+          : isPartnerFinancingOut
+            ? 'partner_out'
+            : entry.type;
+        return {
+          ...entry,
+          classification,
+          accountName: entry.accountId ? accountNameMap.get(entry.accountId) || null : null,
+          counterAccountName: entry.counterAccountId ? accountNameMap.get(entry.counterAccountId) || null : null,
+        };
+      });
+
     const filteredRents = pendingRents.filter((rent) => (!filters.currency || rent.currency === filters.currency) && (!filters.to || rent.dueDate <= filters.to));
     const filteredCommissions = pendingCommissions.filter((commission) => (!filters.currency || commission.currency === filters.currency) && (!filters.to || commission.date <= filters.to));
     const uncollectedCommissions = filteredCommissions.filter((commission) => commission.status === AccountingCommissionStatus.PENDING);
@@ -1431,6 +1458,7 @@ export class AccountingService {
         entryCount: entries.length,
       },
       accountBalances,
+      movements,
       dailyCashFlow: [...dailyMap.entries()].map(([date, day]) => ({
         date,
         income: this.money(day.income),

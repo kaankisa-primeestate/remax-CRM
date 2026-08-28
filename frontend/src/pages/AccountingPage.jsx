@@ -21,25 +21,6 @@ const ACCOUNTING_TABS = [
   { key: 'reports', label: 'Raporlar' },
 ];
 
-const MODULE_AREAS = [
-  {
-    title: 'Komisyon ve hakediş',
-    description: 'Kapama sırasında girilen brüt komisyonu, danışman kaydındaki oranla otomatik paylaştırır.',
-  },
-  {
-    title: 'Danışman kiraları',
-    description: 'Danışman kaydındaki tutar ve başlangıç ayından itibaren her dönemi tek kez oluşturur.',
-  },
-  {
-    title: 'Cari ve ortak hareketleri',
-    description: 'Danışman, ortak ve tedarikçi bakiyelerini para hesabı hareketlerinden ayrı izler.',
-  },
-  {
-    title: 'Banka, kasa ve kredi kartı',
-    description: 'TL, EUR ve USD hesaplarını birbirine karıştırmadan ayrı bakiyeler hâlinde gösterir.',
-  },
-];
-
 const EMPTY_COMMISSION_FORM = {
   agentId: '',
   transactionType: 'sale',
@@ -72,6 +53,26 @@ const INCOME_CATEGORIES = [
 
 const NEW_CATEGORY_VALUE = '__new_category__';
 const PARTY_PAGE_SIZE = 20;
+const REPORT_PAGE_SIZE = 20;
+const REPORT_MOVEMENT_FILTERS = [
+  { value: 'all', label: 'Tüm hareketler' },
+  { value: 'operation', label: 'Gelir ve giderler' },
+  { value: 'income', label: 'Yalnız gelirler' },
+  { value: 'expense', label: 'Yalnız giderler' },
+  { value: 'partner', label: 'Ortak hareketleri' },
+  { value: 'cash', label: 'Nakit etkili hareketler' },
+  { value: 'transfer', label: 'Hesap transferleri' },
+];
+const REPORT_PRESETS = [
+  { value: 'today', label: 'Bugün' },
+  { value: 'last_7_days', label: 'Son 7 gün' },
+  { value: 'this_month', label: 'Bu ay' },
+  { value: 'last_month', label: 'Geçen ay' },
+  { value: 'last_3_months', label: 'Son 3 ay' },
+  { value: 'last_6_months', label: 'Son 6 ay' },
+  { value: 'this_year', label: 'Bu yıl' },
+  { value: 'all_time', label: 'Tüm zamanlar' },
+];
 const RESET_COUNT_LABELS = {
   accounts: 'Muhasebe hesapları',
   entries: 'Para hareketleri',
@@ -136,6 +137,50 @@ function getPeriodBounds(period) {
 function formatDate(date) {
   if (!date) return '—';
   return new Intl.DateTimeFormat('tr-TR').format(new Date(`${date}T00:00:00`));
+}
+
+function toIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getReportDateRange(preset = 'this_month') {
+  const today = new Date();
+  const to = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let from = new Date(to);
+  if (preset === 'today') from = new Date(to);
+  if (preset === 'last_7_days') from.setDate(from.getDate() - 6);
+  if (preset === 'this_month') from = new Date(to.getFullYear(), to.getMonth(), 1);
+  if (preset === 'last_month') {
+    from = new Date(to.getFullYear(), to.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(to.getFullYear(), to.getMonth(), 0);
+    return { from: toIsoDate(from), to: toIsoDate(lastMonthEnd) };
+  }
+  if (preset === 'last_3_months') from = new Date(to.getFullYear(), to.getMonth() - 2, 1);
+  if (preset === 'last_6_months') from = new Date(to.getFullYear(), to.getMonth() - 5, 1);
+  if (preset === 'this_year') from = new Date(to.getFullYear(), 0, 1);
+  if (preset === 'all_time') from = new Date(2000, 0, 1);
+  return { from: toIsoDate(from), to: toIsoDate(to) };
+}
+
+const DEFAULT_REPORT_RANGE = getReportDateRange('this_month');
+
+function reportMovementLabel(classification) {
+  if (classification === 'partner_in') return 'Ortak girişi';
+  if (classification === 'partner_out') return 'Ortak çıkışı';
+  return entryTypeLabel(classification);
+}
+
+function reportSourceLabel(sourceType) {
+  if (sourceType === 'manual') return 'Manuel';
+  if (sourceType === 'manual_correction') return 'Düzeltme';
+  if (sourceType === 'accounting_recurring_expense') return 'Tekrarlayan gider';
+  if (sourceType === 'accounting_commission_collection') return 'Komisyon tahsilatı';
+  if (sourceType === 'accounting_commission_payment') return 'Komisyon ödemesi';
+  if (sourceType === 'accounting_rent_collection') return 'Kira tahsilatı';
+  return sourceType || 'Sistem';
 }
 
 function entryTypeLabel(type) {
@@ -330,8 +375,14 @@ export default function AccountingPage() {
   const [recurringGenerating, setRecurringGenerating] = useState(false);
   const [recurringGenerateNotice, setRecurringGenerateNotice] = useState(null);
   const [recurringPeriodCount, setRecurringPeriodCount] = useState('1');
-  const [reportFromPeriod, setReportFromPeriod] = useState(getCurrentPeriod());
-  const [reportToPeriod, setReportToPeriod] = useState(getCurrentPeriod());
+  const [reportFromDate, setReportFromDate] = useState(DEFAULT_REPORT_RANGE.from);
+  const [reportToDate, setReportToDate] = useState(DEFAULT_REPORT_RANGE.to);
+  const [reportPreset, setReportPreset] = useState('this_month');
+  const [reportMovementFilter, setReportMovementFilter] = useState('all');
+  const [reportAccountFilter, setReportAccountFilter] = useState('all');
+  const [reportCategoryFilter, setReportCategoryFilter] = useState('all');
+  const [reportSearch, setReportSearch] = useState('');
+  const [reportPage, setReportPage] = useState(1);
   const [managementReport, setManagementReport] = useState(null);
   const [managementReportLoading, setManagementReportLoading] = useState(false);
   const [migrationPreview, setMigrationPreview] = useState(null);
@@ -361,6 +412,7 @@ export default function AccountingPage() {
   });
   const commissionIdempotencyKeyRef = useRef(null);
   const entryIdempotencyKeyRef = useRef(null);
+  const reportDetailRef = useRef(null);
 
   const periodParams = useMemo(() => ({ ...getPeriodBounds(period), currency }), [period, currency]);
 
@@ -483,24 +535,38 @@ export default function AccountingPage() {
   }, [currency]);
 
   const loadManagementReport = useCallback(async () => {
-    if (!reportFromPeriod || !reportToPeriod) return;
-    const from = getPeriodBounds(reportFromPeriod).from;
-    const to = getPeriodBounds(reportToPeriod).to;
-    if (from > to) {
-      setError('Rapor başlangıç dönemi bitiş döneminden sonra olamaz.');
+    if (!reportFromDate || !reportToDate) return;
+    if (reportFromDate > reportToDate) {
+      setError('Rapor başlangıç tarihi bitiş tarihinden sonra olamaz.');
       return;
     }
     setManagementReportLoading(true);
     setError('');
     try {
-      const report = await accountingApi.getManagementReport({ from, to, currency });
+      const report = await accountingApi.getManagementReport({ from: reportFromDate, to: reportToDate, currency });
       setManagementReport(report || null);
     } catch (loadError) {
       setError(loadError.response?.data?.message || 'Yönetimsel rapor yüklenemedi.');
     } finally {
       setManagementReportLoading(false);
     }
-  }, [reportFromPeriod, reportToPeriod, currency]);
+  }, [reportFromDate, reportToDate, currency]);
+
+  function handleReportPreset(preset) {
+    const nextRange = getReportDateRange(preset);
+    setReportPreset(preset);
+    setReportFromDate(nextRange.from);
+    setReportToDate(nextRange.to);
+    setReportPage(1);
+  }
+
+  function handleReportDrilldown(filter, category = 'all') {
+    setReportMovementFilter(filter);
+    setReportCategoryFilter(category);
+    setReportSearch('');
+    setReportPage(1);
+    window.requestAnimationFrame(() => reportDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
 
   useEffect(() => {
     if (activeTab !== 'entries') return undefined;
@@ -521,7 +587,7 @@ export default function AccountingPage() {
   }, [activeTab, loadRents]);
 
   useEffect(() => {
-    if (activeTab !== 'ledgers' && activeTab !== 'partners' && activeTab !== 'entries' && activeTab !== 'recurring') return undefined;
+    if (activeTab !== 'ledgers' && activeTab !== 'partners' && activeTab !== 'entries' && activeTab !== 'recurring' && activeTab !== 'reports') return undefined;
     loadParties();
     return undefined;
   }, [activeTab, loadParties]);
@@ -617,6 +683,38 @@ export default function AccountingPage() {
     });
     return Array.from(latestByLabel.values()).sort((left, right) => quickExpenseLabel(left).localeCompare(quickExpenseLabel(right), 'tr-TR', { sensitivity: 'base' }));
   }, [recentExpenseEntries, hiddenQuickExpenseLabels]);
+  const reportMovements = managementReport?.movements || [];
+  const reportCategoryOptions = useMemo(
+    () => Array.from(new Set(reportMovements.map((entry) => entry.category || 'Kategorisiz')))
+      .sort((left, right) => left.localeCompare(right, 'tr-TR', { sensitivity: 'base' })),
+    [reportMovements],
+  );
+  const filteredReportMovements = useMemo(() => {
+    const query = reportSearch.trim().toLocaleLowerCase('tr-TR');
+    return reportMovements.filter((entry) => {
+      const classification = entry.classification || entry.type;
+      const matchesType = reportMovementFilter === 'all'
+        || (reportMovementFilter === 'operation' && ['income', 'expense'].includes(classification))
+        || (reportMovementFilter === 'partner' && ['partner_in', 'partner_out'].includes(classification))
+        || (reportMovementFilter === 'cash' && classification !== 'transfer')
+        || classification === reportMovementFilter;
+      const matchesAccount = reportAccountFilter === 'all'
+        || entry.accountId === reportAccountFilter
+        || entry.counterAccountId === reportAccountFilter;
+      const matchesCategory = reportCategoryFilter === 'all'
+        || (entry.category || 'Kategorisiz') === reportCategoryFilter;
+      const searchable = [entry.category, entry.description, entry.partyName, entry.accountName, entry.counterAccountName, entry.referenceNo]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('tr-TR');
+      return matchesType && matchesAccount && matchesCategory && (!query || searchable.includes(query));
+    });
+  }, [reportMovements, reportMovementFilter, reportAccountFilter, reportCategoryFilter, reportSearch]);
+  const reportPageCount = Math.max(1, Math.ceil(filteredReportMovements.length / REPORT_PAGE_SIZE));
+  const visibleReportMovements = useMemo(
+    () => filteredReportMovements.slice((reportPage - 1) * REPORT_PAGE_SIZE, reportPage * REPORT_PAGE_SIZE),
+    [filteredReportMovements, reportPage],
+  );
   const entryCategoryOptions = useMemo(
     () => entryForm.type === 'expense'
       ? categoryNames(EXPENSE_CATEGORIES, customCategories.expense)
@@ -652,6 +750,10 @@ export default function AccountingPage() {
   useEffect(() => {
     setPartyPage(1);
   }, [partySearch, partyTypeFilter, currency]);
+
+  useEffect(() => {
+    setReportPage(1);
+  }, [reportMovementFilter, reportAccountFilter, reportCategoryFilter, reportSearch, currency, reportFromDate, reportToDate]);
 
   useEffect(() => {
     if (partyPage > partyPageCount) setPartyPage(partyPageCount);
@@ -965,6 +1067,7 @@ export default function AccountingPage() {
       return;
     }
     setEditingEntry(entry);
+    setActiveTab('entries');
     setSelectedQuickExpenseId('');
     setCorrectionReason('');
     setEntryForm({
@@ -1009,6 +1112,7 @@ export default function AccountingPage() {
     try {
       await accountingApi.voidEntry(entry.id, { reason: reason.trim() });
       await loadData();
+      if (activeTab === 'reports') await loadManagementReport();
     } catch (voidError) {
       setError(voidError.response?.data?.message || 'Muhasebe hareketi iptal edilemedi.');
     } finally {
@@ -1381,14 +1485,18 @@ export default function AccountingPage() {
           </p>
         </div>
         <div className="accounting-page__filters" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <label style={{ color: 'var(--muted)', fontSize: 12 }} htmlFor="accounting-period">Dönem</label>
-          <input
-            id="accounting-period"
-            type="month"
-            value={period}
-            onChange={(event) => setPeriod(event.target.value)}
-            style={{ minWidth: 150 }}
-          />
+          {activeTab !== 'reports' && (
+            <>
+              <label style={{ color: 'var(--muted)', fontSize: 12 }} htmlFor="accounting-period">Dönem</label>
+              <input
+                id="accounting-period"
+                type="month"
+                value={period}
+                onChange={(event) => setPeriod(event.target.value)}
+                style={{ minWidth: 150 }}
+              />
+            </>
+          )}
           <label style={{ color: 'var(--muted)', fontSize: 12 }} htmlFor="accounting-currency">Para birimi</label>
           <select id="accounting-currency" value={currency} onChange={(event) => setCurrency(event.target.value)}>
             {ACCOUNTING_CURRENCIES.map((item) => (
@@ -1398,14 +1506,6 @@ export default function AccountingPage() {
         </div>
       </div>
 
-      <div className="folder-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--brass)' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--ink-navy)', marginBottom: 5 }}>
-          Bağımsız çalışma alanı
-        </div>
-        <p style={{ color: 'var(--muted)', margin: 0, fontSize: 13 }}>
-          Bu modül mevcut Finans ekranını değiştirmez. Buradaki kayıtlar kendi muhasebe akışında tutulur; danışman komisyonu, aylık kira ve ortak hareketleri sonraki adımlarda kontrollü biçimde CRM verileriyle ilişkilendirilecektir.
-        </p>
-      </div>
 
       {error && (
         <div className="folder-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--danger)', color: 'var(--danger)' }}>
@@ -1467,24 +1567,8 @@ export default function AccountingPage() {
             </div>
           </div>
 
-          <div className="folder-panel" style={{ marginTop: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Modül rehberi</h3>
-                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
-                  Aşağıdaki dört kutu rakam alanı değil, Muhasebe bölümlerinin işlevlerini anlatan kısa bilgilendirmelerdir.
-                </p>
-              </div>
-              <button type="button" className="btn btn-primary" onClick={() => setActiveTab('entries')}>+ Hareket Ekle</button>
-            </div>
-            <div className="panel-grid-2">
-              {MODULE_AREAS.map((area) => (
-                <div key={area.title} style={{ border: '1px solid var(--paper-line)', borderRadius: 6, padding: 15, background: 'var(--paper-raised)' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--ink-navy)', marginBottom: 5 }}>{area.title}</div>
-                  <div style={{ color: 'var(--muted)', fontSize: 13 }}>{area.description}</div>
-                </div>
-              ))}
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button type="button" className="btn btn-primary" onClick={() => setActiveTab('entries')}>+ Hareket Ekle</button>
           </div>
         </>
       )}
@@ -2450,22 +2534,34 @@ export default function AccountingPage() {
       )}
       {activeTab === 'reports' && (
         <>
-          <div className="folder-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--brass)' }}>
+          <div className="folder-panel accounting-report-filter" style={{ marginBottom: 20, borderLeft: '4px solid var(--brass)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 19 }}>Yönetimsel Raporlar ve Nakit Akışı</h3>
+                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 19 }}>Sade Muhasebe Raporları</h3>
                 <p style={{ color: 'var(--muted)', margin: '5px 0 0', fontSize: 13 }}>
-                  Para birimlerini birbirine çevirmeden seçilen dönem içindeki kasa, banka, kredi kartı, gelir ve gider hareketlerini özetler.
+                  Tarih aralığını seçin; gelir, gider, ortak hareketleri ve bunları oluşturan kayıtları aynı ekranda görün.
                 </p>
               </div>
-              <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Yönetimsel takip</span>
+              <strong style={{ color: 'var(--ink-navy)', fontSize: 13 }}>{formatDate(reportFromDate)} – {formatDate(reportToDate)}</strong>
             </div>
-            <form onSubmit={(event) => { event.preventDefault(); loadManagementReport(); }} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <FormField label="Başlangıç ayı">
-                <input type="month" value={reportFromPeriod} onChange={(event) => setReportFromPeriod(event.target.value)} required />
+            <div className="accounting-report-presets" aria-label="Hızlı tarih aralığı seçenekleri">
+              {REPORT_PRESETS.map((preset) => (
+                <button
+                  type="button"
+                  key={preset.value}
+                  className={`btn btn-secondary${reportPreset === preset.value ? ' active' : ''}`}
+                  onClick={() => handleReportPreset(preset.value)}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <form onSubmit={(event) => { event.preventDefault(); loadManagementReport(); }} className="accounting-report-date-form">
+              <FormField label="Başlangıç tarihi">
+                <input type="date" value={reportFromDate} onChange={(event) => { setReportFromDate(event.target.value); setReportPreset('custom'); }} required />
               </FormField>
-              <FormField label="Bitiş ayı">
-                <input type="month" value={reportToPeriod} onChange={(event) => setReportToPeriod(event.target.value)} required />
+              <FormField label="Bitiş tarihi">
+                <input type="date" value={reportToDate} onChange={(event) => { setReportToDate(event.target.value); setReportPreset('custom'); }} required />
               </FormField>
               <FormField label="Para birimi">
                 <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
@@ -2473,11 +2569,11 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               <button type="submit" className="btn btn-primary" disabled={managementReportLoading}>
-                {managementReportLoading ? 'Rapor hazırlanıyor…' : 'Raporu Yenile'}
+                {managementReportLoading ? 'Rapor hazırlanıyor…' : 'Raporu Göster'}
               </button>
             </form>
             <p style={{ color: 'var(--muted)', fontSize: 12, margin: '12px 0 0' }}>
-              Not: Hesaplar arası transferler gelir veya gider sayılmaz; hesap bakiyesinde ayrıca gösterilir. Rapor tutarları seçilen para biriminde ayrı tutulur, kur çevirisi yapılmaz.
+              Transferler gelir veya gider değildir. TRY, EUR ve USD raporları kur çevrimi yapılmadan ayrı gösterilir.
             </p>
           </div>
 
@@ -2487,37 +2583,124 @@ export default function AccountingPage() {
             <div className="folder-panel"><div className="empty-state">Rapor verisi bulunamadı.</div></div>
           ) : (
             <>
-              <div className="metric-grid">
+              <div className="metric-grid accounting-report-metrics">
                 <div className="metric-card">
                   <div className="metric-card__label">Dönem başı bakiye</div>
                   <div className="metric-card__value">{formatAccountingMoney((managementReport.accountBalances || []).reduce((sum, account) => sum + Number(account.openingBalance || 0), 0), currency)}</div>
                   <div className="metric-card__delta is-muted">Seçilen para birimindeki hesaplar</div>
                 </div>
-                <div className="metric-card">
-                  <div className="metric-card__label">Operasyonel gelir</div>
+                <button type="button" className="metric-card metric-card--clickable" onClick={() => handleReportDrilldown('income')}>
+                  <div className="metric-card__label">Toplam gelir</div>
                   <div className="metric-card__value" style={{ color: 'var(--success)' }}>{formatAccountingMoney(managementReport.summary?.totalIncome, currency)}</div>
-                  <div className="metric-card__delta is-muted">Ortak finansmanı hariç · {managementReport.summary?.operatingEntryCount || 0} hareket</div>
-                </div>
-                <div className="metric-card">
-                  <div className="metric-card__label">Toplam çıkış</div>
+                  <div className="metric-card__delta is-muted">Detayları görmek için tıklayın</div>
+                </button>
+                <button type="button" className="metric-card metric-card--clickable" onClick={() => handleReportDrilldown('expense')}>
+                  <div className="metric-card__label">Toplam gider</div>
                   <div className="metric-card__value" style={{ color: 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.totalExpense, currency)}</div>
-                  <div className="metric-card__delta is-muted">Gider / ödeme hareketleri</div>
-                </div>
-                <div className="metric-card">
-                  <div className="metric-card__label">Net operasyon sonucu</div>
+                  <div className="metric-card__delta is-muted">Detayları görmek için tıklayın</div>
+                </button>
+                <button type="button" className="metric-card metric-card--clickable" onClick={() => handleReportDrilldown('operation')}>
+                  <div className="metric-card__label">Gelir − gider</div>
                   <div className="metric-card__value" style={{ color: Number(managementReport.summary?.netOperatingResult || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.netOperatingResult, currency)}</div>
-                  <div className="metric-card__delta is-muted">Operasyonel gelir eksi operasyonel gider</div>
-                </div>
-                <div className="metric-card">
-                  <div className="metric-card__label">Ortak finansmanı (net)</div>
+                  <div className="metric-card__delta is-muted">{managementReport.summary?.operatingEntryCount || 0} gelir/gider hareketi</div>
+                </button>
+                <button type="button" className="metric-card metric-card--clickable" onClick={() => handleReportDrilldown('partner')}>
+                  <div className="metric-card__label">Ortak para hareketi (net)</div>
                   <div className="metric-card__value" style={{ color: Number(managementReport.summary?.netPartnerFinancing || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.netPartnerFinancing, currency)}</div>
                   <div className="metric-card__delta is-muted">Giriş {formatAccountingMoney(managementReport.summary?.partnerInflow, currency)} · çıkış {formatAccountingMoney(managementReport.summary?.partnerOutflow, currency)}</div>
-                </div>
-                <div className="metric-card">
+                </button>
+                <button type="button" className="metric-card metric-card--clickable" onClick={() => handleReportDrilldown('cash')}>
                   <div className="metric-card__label">Net nakit hareketi</div>
                   <div className="metric-card__value" style={{ color: Number(managementReport.summary?.netCashMovement || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(managementReport.summary?.netCashMovement, currency)}</div>
-                  <div className="metric-card__delta is-muted">Operasyon + ortak finansmanı · transfer hariç</div>
+                  <div className="metric-card__delta is-muted">Gelir, gider ve ortak hareketleri</div>
+                </button>
+              </div>
+
+              <div ref={reportDetailRef} className="folder-panel accounting-report-detail" style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Giriş ve çıkış detayları</h3>
+                    <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Toplam rakamların hangi kayıtlardan oluştuğunu burada görebilir, manuel kaydı düzeltebilir veya iptal edebilirsiniz.</p>
+                  </div>
+                  <strong style={{ color: 'var(--ink-navy)', fontSize: 13 }}>{filteredReportMovements.length} kayıt</strong>
                 </div>
+                <div className="accounting-report-detail-filters">
+                  <FormField label="Ara" style={{ minWidth: 220 }}>
+                    <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Kategori, açıklama, hesap veya cari ara" />
+                  </FormField>
+                  <FormField label="Hareket">
+                    <select value={reportMovementFilter} onChange={(event) => setReportMovementFilter(event.target.value)}>
+                      {REPORT_MOVEMENT_FILTERS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Hesap">
+                    <select value={reportAccountFilter} onChange={(event) => setReportAccountFilter(event.target.value)}>
+                      <option value="all">Tüm hesaplar</option>
+                      {(managementReport.accountBalances || []).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Kategori">
+                    <select value={reportCategoryFilter} onChange={(event) => setReportCategoryFilter(event.target.value)}>
+                      <option value="all">Tüm kategoriler</option>
+                      {reportCategoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </FormField>
+                  <button type="button" className="btn btn-secondary" onClick={() => { setReportSearch(''); setReportMovementFilter('all'); setReportAccountFilter('all'); setReportCategoryFilter('all'); }}>Temizle</button>
+                </div>
+                {visibleReportMovements.length === 0 ? (
+                  <div className="empty-state">Seçilen tarih ve filtrelerde hareket bulunamadı.</div>
+                ) : (
+                  <div className="table-scroll">
+                    <table className="accounting-report-table">
+                      <thead>
+                        <tr>
+                          <th>Tarih</th>
+                          <th>Tür</th>
+                          <th>Kategori / Açıklama</th>
+                          <th>Hesap / Cari</th>
+                          <th>Kaynak</th>
+                          <th style={{ textAlign: 'right' }}>Tutar</th>
+                          <th>İşlem</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleReportMovements.map((entry) => {
+                          const classification = entry.classification || entry.type;
+                          const isInflow = ['income', 'partner_in'].includes(classification);
+                          const accountText = entry.type === 'transfer'
+                            ? `${entry.accountName || '—'} → ${entry.counterAccountName || '—'}`
+                            : entry.accountName || '—';
+                          return (
+                            <tr key={entry.id}>
+                              <td>{formatDate(entry.date)}</td>
+                              <td><strong>{reportMovementLabel(classification)}</strong></td>
+                              <td><strong>{entry.category || 'Kategorisiz'}</strong><div className="accounting-report-subtext">{entry.description || 'Açıklama yok'}</div></td>
+                              <td><strong>{accountText}</strong><div className="accounting-report-subtext">{entry.partyName || 'Cari yok'}</div></td>
+                              <td>{reportSourceLabel(entry.sourceType)}</td>
+                              <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: isInflow ? 'var(--success)' : classification === 'transfer' ? 'var(--ink-navy)' : 'var(--danger)' }}>
+                                {isInflow ? '+' : classification === 'transfer' ? '' : '-'}{formatAccountingMoney(entry.amount, entry.currency)}
+                              </td>
+                              <td>
+                                <div className="accounting-report-actions">
+                                  {entry.sourceType === 'manual' && <button type="button" className="btn btn-secondary" disabled={saving} onClick={() => handleStartCorrectEntry(entry)}>Düzelt</button>}
+                                  {['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <button type="button" className="btn btn-secondary" disabled={saving} onClick={() => handleVoidEntry(entry)}>İptal</button>}
+                                  <button type="button" className="btn btn-secondary" onClick={() => handleViewAudit(entry)}>Geçmiş</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {reportPageCount > 1 && (
+                  <div className="accounting-report-pagination">
+                    <button type="button" className="btn btn-secondary" disabled={reportPage <= 1} onClick={() => setReportPage((page) => Math.max(1, page - 1))}>Önceki</button>
+                    <span>Sayfa {reportPage} / {reportPageCount}</span>
+                    <button type="button" className="btn btn-secondary" disabled={reportPage >= reportPageCount} onClick={() => setReportPage((page) => Math.min(reportPageCount, page + 1))}>Sonraki</button>
+                  </div>
+                )}
               </div>
 
               <div className="folder-panel" style={{ marginTop: 20 }}>
