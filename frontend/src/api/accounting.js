@@ -31,6 +31,8 @@ export const accountingApi = {
   updateAccount: (id, payload) => apiClient.patch(`/accounting/accounts/${id}`, payload).then((response) => response.data),
   archiveAccount: (id, payload) => apiClient.post(`/accounting/accounts/${id}/archive`, payload).then((response) => response.data),
   listEntries: (params = {}) => apiClient.get('/accounting/entries', { params }).then((response) => response.data),
+  listQuickExpensePreferences: () => apiClient.get('/accounting/quick-expense-preferences').then((response) => response.data),
+  updateQuickExpensePreference: (payload) => apiClient.post('/accounting/quick-expense-preferences', payload).then((response) => response.data),
   createEntry: (payload) => apiClient.post('/accounting/entries', payload).then((response) => response.data),
   voidEntry: (id, payload) => apiClient.post(`/accounting/entries/${id}/void`, payload).then((response) => response.data),
   correctEntry: (id, payload) => apiClient.post(`/accounting/entries/${id}/correct`, payload).then((response) => response.data),

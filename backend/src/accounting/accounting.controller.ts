@@ -29,6 +29,7 @@ import { CreateAccountingEntryDto } from './dto/create-accounting-entry.dto';
 import { CorrectAccountingEntryDto } from './dto/correct-accounting-entry.dto';
 import { VoidAccountingRecordDto } from './dto/void-accounting-record.dto';
 import { ResetAccountingDemoDto } from './dto/reset-accounting-demo.dto';
+import { UpdateQuickExpensePreferenceDto } from './dto/update-quick-expense-preference.dto';
 import {
   UpdateAccountingAccountDto,
   UpdateAccountingPartyDto,
@@ -101,6 +102,16 @@ export class AccountingController {
     @Query('type') type?: AccountingEntryType,
   ) {
     return this.accountingService.listEntries({ from, to, currency, type });
+  }
+
+  @Get('quick-expense-preferences')
+  listQuickExpensePreferences() {
+    return this.accountingService.listQuickExpensePreferences();
+  }
+
+  @Post('quick-expense-preferences')
+  updateQuickExpensePreference(@Body() dto: UpdateQuickExpensePreferenceDto, @Req() req: any) {
+    return this.accountingService.updateQuickExpensePreference(dto, req.user.userId);
   }
 
   @Post('entries')

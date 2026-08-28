@@ -26,6 +26,7 @@ import { AccountingRecurringExpense } from './accounting-recurring-expense.entit
 import { AccountingCategory } from './accounting-category.entity';
 import { AccountingAuditAction, AccountingAuditLog } from './accounting-audit-log.entity';
 import { AccountingResetLog } from './accounting-reset-log.entity';
+import { AccountingQuickExpensePreference } from './accounting-quick-expense-preference.entity';
 import {
   AccountingEntry,
   AccountingEntryType,
@@ -80,6 +81,8 @@ export class AccountingService {
     private readonly auditRepo: Repository<AccountingAuditLog>,
     @InjectRepository(AccountingResetLog)
     private readonly resetLogRepo: Repository<AccountingResetLog>,
+    @InjectRepository(AccountingQuickExpensePreference)
+    private readonly quickExpensePreferenceRepo: Repository<AccountingQuickExpensePreference>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -197,6 +200,28 @@ export class AccountingService {
         ? accountMap.get(entry.counterAccountId)?.name || null
         : null,
     }));
+  }
+
+  async listQuickExpensePreferences() {
+    return this.quickExpensePreferenceRepo.find({ order: { label: 'ASC' } });
+  }
+
+  async updateQuickExpensePreference(dto: { label: string; isHidden: boolean }, updatedBy: string) {
+    const label = dto.label.trim();
+    if (!label) throw new BadRequestException('Hızlı işlem adı boş bırakılamaz');
+    let preference = await this.quickExpensePreferenceRepo.findOne({ where: { label } });
+    if (!preference) {
+      preference = this.quickExpensePreferenceRepo.create({
+        label,
+        isHidden: dto.isHidden,
+        createdBy: updatedBy || null,
+        updatedBy: updatedBy || null,
+      });
+    } else {
+      preference.isHidden = dto.isHidden;
+      preference.updatedBy = updatedBy || null;
+    }
+    return this.quickExpensePreferenceRepo.save(preference);
   }
 
   async createEntry(dto: CreateAccountingEntryDto, createdBy: string) {

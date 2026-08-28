@@ -143,7 +143,7 @@ function entryTypeLabel(type) {
 }
 
 function quickExpenseLabel(entry) {
-  return entry?.description?.trim() || entry?.category?.trim() || 'Gider';
+  return entry?.category?.trim() || 'Gider';
 }
 
 function statementTypeLabel(type) {
@@ -268,7 +268,9 @@ export default function AccountingPage() {
   const [entryForm, setEntryForm] = useState(EMPTY_ENTRY_FORM);
   const [selectedQuickExpenseId, setSelectedQuickExpenseId] = useState('');
   const [recentExpenseEntries, setRecentExpenseEntries] = useState([]);
+  const [quickExpensePreferences, setQuickExpensePreferences] = useState([]);
   const [recentExpenseLoading, setRecentExpenseLoading] = useState(false);
+  const [quickExpensePreferenceAction, setQuickExpensePreferenceAction] = useState('');
   const [accountForm, setAccountForm] = useState({
     type: 'bank',
     name: '',
@@ -387,8 +389,12 @@ export default function AccountingPage() {
   const loadRecentExpenseEntries = useCallback(async () => {
     setRecentExpenseLoading(true);
     try {
-      const expenseList = await accountingApi.listEntries({ type: 'expense' });
+      const [expenseList, preferenceList] = await Promise.all([
+        accountingApi.listEntries({ type: 'expense' }),
+        accountingApi.listQuickExpensePreferences(),
+      ]);
       setRecentExpenseEntries(expenseList || []);
+      setQuickExpensePreferences(preferenceList || []);
     } catch (loadError) {
       setError(loadError.response?.data?.message || 'Önceki gider kayıtları yüklenemedi.');
     } finally {
@@ -593,15 +599,23 @@ export default function AccountingPage() {
     () => accounts.filter((account) => account.currency === entryForm.currency && account.isActive !== false),
     [accounts, entryForm.currency],
   );
+  const hiddenQuickExpenseLabels = useMemo(
+    () => new Set(
+      quickExpensePreferences
+        .filter((preference) => preference.isHidden)
+        .map((preference) => preference.label.toLocaleLowerCase('tr-TR')),
+    ),
+    [quickExpensePreferences],
+  );
   const quickExpenseOptions = useMemo(() => {
     const latestByLabel = new Map();
     recentExpenseEntries.forEach((entry) => {
       const label = quickExpenseLabel(entry);
       const key = label.toLocaleLowerCase('tr-TR');
-      if (!latestByLabel.has(key)) latestByLabel.set(key, entry);
+      if (!hiddenQuickExpenseLabels.has(key) && !latestByLabel.has(key)) latestByLabel.set(key, entry);
     });
-    return Array.from(latestByLabel.values());
-  }, [recentExpenseEntries]);
+    return Array.from(latestByLabel.values()).sort((left, right) => quickExpenseLabel(left).localeCompare(quickExpenseLabel(right), 'tr-TR', { sensitivity: 'base' }));
+  }, [recentExpenseEntries, hiddenQuickExpenseLabels]);
   const entryCategoryOptions = useMemo(
     () => entryForm.type === 'expense'
       ? categoryNames(EXPENSE_CATEGORIES, customCategories.expense)
@@ -642,8 +656,7 @@ export default function AccountingPage() {
     if (partyPage > partyPageCount) setPartyPage(partyPageCount);
   }, [partyPage, partyPageCount]);
 
-  function handleRecentExpenseChange(event) {
-    const expenseId = event.target.value;
+  function applyRecentExpense(expenseId) {
     setSelectedQuickExpenseId(expenseId);
     setEntrySaveNotice(null);
     if (!expenseId) return;
@@ -663,6 +676,29 @@ export default function AccountingPage() {
       description: previousExpense.description || '',
       referenceNo: '',
     }));
+  }
+
+  function handleRecentExpenseChange(event) {
+    applyRecentExpense(event.target.value);
+  }
+
+  async function handleHideQuickExpense(label) {
+    if (!label || quickExpensePreferenceAction) return;
+    if (!window.confirm(`“${label}” hızlı seçim listesinden gizlensin mi? Gerçek Muhasebe hareketi silinmeyecektir.`)) return;
+    setQuickExpensePreferenceAction(label);
+    setError('');
+    try {
+      const saved = await accountingApi.updateQuickExpensePreference({ label, isHidden: true });
+      setQuickExpensePreferences((current) => [
+        ...current.filter((preference) => preference.label.toLocaleLowerCase('tr-TR') !== label.toLocaleLowerCase('tr-TR')),
+        saved,
+      ]);
+      setSelectedQuickExpenseId('');
+    } catch (hideError) {
+      setError(hideError.response?.data?.message || 'Hızlı seçim adı gizlenemedi.');
+    } finally {
+      setQuickExpensePreferenceAction('');
+    }
   }
 
   function handleEntryChange(event) {
@@ -1455,17 +1491,38 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               {!editingEntry && entryForm.type === 'expense' && (
-                <FormField label="Önceki gideri kullan" style={{ minWidth: 280 }}>
-                  <select value={selectedQuickExpenseId} onChange={handleRecentExpenseChange} aria-label="Önceki gideri kullan" disabled={recentExpenseLoading}>
-                    <option value="">{recentExpenseLoading ? 'Önceki giderler yükleniyor…' : 'Önceki kayıt seçmeden devam et'}</option>
-                    {quickExpenseOptions.map((expense) => (
-                      <option value={expense.id} key={expense.id}>
-                        {quickExpenseLabel(expense)} · {expense.currency} · {formatAccountingMoney(expense.amount, expense.currency)}
-                      </option>
-                    ))}
-                  </select>
+                <FormField label="Önceki gideri kullan" style={{ minWidth: 300 }}>
+                  {recentExpenseLoading ? (
+                    <span className="quick-expense-empty">Önceki giderler yükleniyor…</span>
+                  ) : quickExpenseOptions.length > 0 ? (
+                    <div className="quick-expense-picker" role="list" aria-label="Önceki giderler">
+                      {quickExpenseOptions.map((expense) => {
+                        const label = quickExpenseLabel(expense);
+                        return (
+                          <div className="quick-expense-picker__item" role="listitem" key={expense.id}>
+                            <button type="button" className={`quick-expense-picker__select${selectedQuickExpenseId === expense.id ? ' is-selected' : ''}`} onClick={() => applyRecentExpense(expense.id)}>
+                              <strong>{label}</strong>
+                              <span>{expense.currency} · {formatAccountingMoney(expense.amount, expense.currency)}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="quick-expense-picker__remove"
+                              aria-label={`${label} adını hızlı seçim listesinden gizle`}
+                              title="Bu adı hızlı seçim listesinden gizle"
+                              onClick={() => handleHideQuickExpense(label)}
+                              disabled={quickExpensePreferenceAction === label}
+                            >
+                              {quickExpensePreferenceAction === label ? '…' : '×'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span className="quick-expense-empty">Henüz kaydedilmiş bir gider bulunmuyor.</span>
+                  )}
                   <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>
-                    Önceki kaydın alanlarını getirir; bu seçim yeni kayıt oluşturmaz.
+                    İsme tıklayınca son kaydın alanları gelir. Çarpı, gerçek Muhasebe hareketini silmeden yalnızca bu listeden gizler.
                   </span>
                 </FormField>
               )}
@@ -1499,7 +1556,8 @@ export default function AccountingPage() {
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && (
-                <FormField label="Kategori" style={{ minWidth: 220 }}>
+                <FormField label="Kategori · sonraki kayıtlarda bu adla bulunur" style={{ minWidth: 280 }}>
+                  <span className="accounting-category-hint">İlk kayıtta anlaşılır bir isim yazın; açıklama bu seçim adını değiştirmez.</span>
                   <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
                     {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
                     <option value={NEW_CATEGORY_VALUE}>+ Yeni kategori ekle</option>
