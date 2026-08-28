@@ -199,8 +199,15 @@ export default function CalendarPage() {
         disclosureAccepted: type === 'showing' ? disclosureAccepted : undefined,
       });
       resetForm();
+      // Yeni eklenen kayit GECMIS bir tarihliyse, "showPast" kapaliyken
+      // listede GORUNMEZ -- kullanici "hic olusmadi" saniyordu, oysa
+      // kayit olusuyordu ama gizli kalan bir filtre yuzunden GORUNMUYORDU.
+      if (date < todayStr()) setShowPast(true);
       load();
       loadEvents();
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Randevu eklenemedi, tekrar deneyin.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
     } finally {
       setSaving(false);
     }
