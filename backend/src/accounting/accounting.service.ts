@@ -57,6 +57,15 @@ import { CreateAccountingCategoryDto } from './dto/create-accounting-category.dt
 import { User, UserRole } from '../users/user.entity';
 
 const SUPPORTED_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
+const PARTNER_FINANCING_INCOME_CATEGORIES = new Set([
+  'Ortak Sermaye Katkısı',
+  'Ortak Borç Girişi',
+]);
+const PARTNER_FINANCING_EXPENSE_CATEGORIES = new Set([
+  'Ortak Çekişi',
+  'Ortağa Borç Geri Ödemesi',
+  'Kâr Dağıtımı',
+]);
 
 @Injectable()
 export class AccountingService {
@@ -1324,7 +1333,12 @@ export class AccountingService {
 
     for (const entry of entries) {
       const amount = Number(entry.amount || 0);
-      const isPartnerMovement = entry.partyType === AccountingPartyType.PARTNER;
+      const isPartnerFinancingIn = entry.partyType === AccountingPartyType.PARTNER
+        && entry.type === AccountingEntryType.INCOME
+        && PARTNER_FINANCING_INCOME_CATEGORIES.has(entry.category);
+      const isPartnerFinancingOut = entry.partyType === AccountingPartyType.PARTNER
+        && entry.type === AccountingEntryType.EXPENSE
+        && PARTNER_FINANCING_EXPENSE_CATEGORIES.has(entry.category);
       const day = dailyMap.get(entry.date) || {
         income: 0,
         expense: 0,
@@ -1334,10 +1348,10 @@ export class AccountingService {
         transferOut: 0,
       };
 
-      if (isPartnerMovement && entry.type === AccountingEntryType.INCOME) {
+      if (isPartnerFinancingIn) {
         totalPartnerIn += amount;
         day.partnerIn += amount;
-      } else if (isPartnerMovement && entry.type === AccountingEntryType.EXPENSE) {
+      } else if (isPartnerFinancingOut) {
         totalPartnerOut += amount;
         day.partnerOut += amount;
       } else if (entry.type === AccountingEntryType.INCOME) {
@@ -1446,23 +1460,27 @@ export class AccountingService {
     const query = this.entryRepo
       .createQueryBuilder('entry')
       .select(
-        `COALESCE(SUM(CASE WHEN entry.type = :income AND (entry.partyType IS NULL OR entry.partyType != :partner) THEN entry.amount ELSE 0 END), 0)`,
+        `COALESCE(SUM(CASE WHEN entry.type = :income AND (entry.partyType IS NULL OR entry.partyType != :partner OR entry.category NOT IN (:...partnerIncomeCategories)) THEN entry.amount ELSE 0 END), 0)`,
         'totalIncome',
       )
       .addSelect(
-        `COALESCE(SUM(CASE WHEN entry.type = :expense AND (entry.partyType IS NULL OR entry.partyType != :partner) THEN entry.amount ELSE 0 END), 0)`,
+        `COALESCE(SUM(CASE WHEN entry.type = :expense AND (entry.partyType IS NULL OR entry.partyType != :partner OR entry.category NOT IN (:...partnerExpenseCategories)) THEN entry.amount ELSE 0 END), 0)`,
         'totalExpense',
       )
       .addSelect(
-        `COALESCE(SUM(CASE WHEN entry.type = :income AND entry.partyType = :partner THEN entry.amount ELSE 0 END), 0)`,
+        `COALESCE(SUM(CASE WHEN entry.type = :income AND entry.partyType = :partner AND entry.category IN (:...partnerIncomeCategories) THEN entry.amount ELSE 0 END), 0)`,
         'partnerInflow',
       )
       .addSelect(
-        `COALESCE(SUM(CASE WHEN entry.type = :expense AND entry.partyType = :partner THEN entry.amount ELSE 0 END), 0)`,
+        `COALESCE(SUM(CASE WHEN entry.type = :expense AND entry.partyType = :partner AND entry.category IN (:...partnerExpenseCategories) THEN entry.amount ELSE 0 END), 0)`,
         'partnerOutflow',
       )
       .addSelect(
-        `COALESCE(SUM(CASE WHEN entry.type IN (:income, :expense) AND (entry.partyType IS NULL OR entry.partyType != :partner) THEN 1 ELSE 0 END), 0)`,
+        `COALESCE(SUM(CASE
+          WHEN entry.type = :income AND (entry.partyType IS NULL OR entry.partyType != :partner OR entry.category NOT IN (:...partnerIncomeCategories)) THEN 1
+          WHEN entry.type = :expense AND (entry.partyType IS NULL OR entry.partyType != :partner OR entry.category NOT IN (:...partnerExpenseCategories)) THEN 1
+          ELSE 0
+        END), 0)`,
         'operatingEntryCount',
       )
       .addSelect('COUNT(entry.id)', 'entryCount')
@@ -1471,6 +1489,8 @@ export class AccountingService {
         income: AccountingEntryType.INCOME,
         expense: AccountingEntryType.EXPENSE,
         partner: AccountingPartyType.PARTNER,
+        partnerIncomeCategories: [...PARTNER_FINANCING_INCOME_CATEGORIES],
+        partnerExpenseCategories: [...PARTNER_FINANCING_EXPENSE_CATEGORIES],
       });
     this.applyEntryFilters(query, filters);
 
