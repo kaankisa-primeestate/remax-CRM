@@ -77,6 +77,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [showPast, setShowPast] = useState(false);
   const [newEntryMenuOpen, setNewEntryMenuOpen] = useState(false);
+  const [dayDetailOpen, setDayDetailOpen] = useState(false);
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(todayStr());
@@ -100,13 +101,15 @@ export default function CalendarPage() {
   }, [view]);
 
   useEffect(() => {
-    if (!newEntryMenuOpen) return undefined;
+    if (!newEntryMenuOpen && !dayDetailOpen) return undefined;
     function closeOnEscape(event) {
-      if (event.key === 'Escape') setNewEntryMenuOpen(false);
+      if (event.key !== 'Escape') return;
+      setNewEntryMenuOpen(false);
+      setDayDetailOpen(false);
     }
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [newEntryMenuOpen]);
+  }, [newEntryMenuOpen, dayDetailOpen]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -346,7 +349,9 @@ export default function CalendarPage() {
   }
 
   function handleEventClick(e) {
-    if (e.linkPath) navigate(e.linkPath);
+    if (!e.linkPath) return;
+    setDayDetailOpen(false);
+    navigate(e.linkPath);
   }
 
   const today = todayStr();
@@ -468,7 +473,7 @@ export default function CalendarPage() {
                   : `${toDateStr(startOfWeek(anchorDate))} — ${toDateStr(addDays(startOfWeek(anchorDate), 6))}`}
               </span>
               <button type="button" className="btn btn-secondary" style={{ padding: '4px 12px' }} onClick={() => navigatePeriod(1)}>→</button>
-              <button type="button" className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => { setAnchorDate(new Date()); setSelectedDate(todayStr()); }}>
+              <button type="button" className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => { setAnchorDate(new Date()); setSelectedDate(todayStr()); setDayDetailOpen(true); }}>
                 Bugün
               </button>
             </div>
@@ -511,7 +516,7 @@ export default function CalendarPage() {
                     <button
                       key={dStr}
                       type="button"
-                      onClick={() => setSelectedDate(dStr)}
+                      onClick={() => { setSelectedDate(dStr); setDayDetailOpen(true); }}
                       style={{
                         minHeight: view === 'month' ? 66 : 90,
                         padding: 6,
@@ -553,59 +558,68 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* GUN DETAY PANELI */}
-            <div style={{ flex: '1 1 280px', minWidth: 260 }}>
-              <div className="folder-panel">
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 10px', fontSize: 15 }}>
-                  {formatDateLabel(selectedDate)}
-                </h3>
-                {eventsLoading ? (
-                  <div className="empty-state">Yükleniyor…</div>
-                ) : selectedDayEvents.length === 0 ? (
-                  <div className="empty-state">Bu gün için planlanmış bir şey yok.</div>
-                ) : (
-                  selectedDayEvents.map((e) => {
-                    const colors = CALENDAR_EVENT_COLORS[e.type] || { bg: '#eee', fg: '#333' };
-                    return (
-                      <div
-                        key={e.id}
-                        onClick={() => handleEventClick(e)}
-                        style={{
-                          padding: '8px 10px', borderRadius: 6, marginBottom: 6, cursor: e.linkPath ? 'pointer' : 'default',
-                          background: colors.bg, borderLeft: `3px solid ${colors.fg}`,
-                        }}
-                      >
-                        <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.fg, textDecoration: e.completed ? 'line-through' : 'none' }}>
-                          {e.time && <span style={{ fontFamily: 'var(--font-mono)' }}>{e.time} · </span>}
-                          {e.title}
-                        </div>
-                        {e.subtitle && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{e.subtitle}</div>}
-                        {e.overdue && <div style={{ fontSize: 10, color: 'var(--danger)' }}>⏱ Süresi geçti</div>}
-                      </div>
-                    );
-                  })
-                )}
-                <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
-                  <button type="button" className="btn btn-secondary" style={{ fontSize: 11, flex: 1 }} onClick={() => handleQuickAddAppointment(selectedDate)}>
-                    + Randevu
-                  </button>
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                  <input
-                    value={quickTaskTitle}
-                    onChange={(e) => setQuickTaskTitle(e.target.value)}
-                    placeholder="Hızlı görev ekle…"
-                    style={{ flex: 1, fontSize: 12 }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleQuickAddTask(selectedDate)}
-                  />
-                  <button type="button" className="btn btn-primary" style={{ fontSize: 11 }} disabled={quickTaskSaving || !quickTaskTitle.trim()} onClick={() => handleQuickAddTask(selectedDate)}>
-                    Ekle
-                  </button>
-                </div>
+          </div>
+        </>
+      )}
+
+      {dayDetailOpen && (
+        <div className="modal-backdrop calendar-day-detail-backdrop" role="presentation" onMouseDown={() => setDayDetailOpen(false)}>
+          <div className="modal calendar-day-detail-modal" role="dialog" aria-modal="true" aria-labelledby="calendar-day-detail-heading" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="calendar-day-detail-modal__header">
+              <div>
+                <h2 id="calendar-day-detail-heading">{formatDateLabel(selectedDate)}</h2>
+                <p>{new Date(`${selectedDate}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </div>
+              <button type="button" className="calendar-new-entry-modal__close" onClick={() => setDayDetailOpen(false)} aria-label="Gün penceresini kapat">×</button>
+            </div>
+
+            <div className="calendar-day-detail-modal__events">
+              {eventsLoading ? (
+                <div className="empty-state">Yükleniyor…</div>
+              ) : selectedDayEvents.length === 0 ? (
+                <div className="empty-state">Bu gün için planlanmış bir şey yok.</div>
+              ) : (
+                selectedDayEvents.map((event) => {
+                  const colors = CALENDAR_EVENT_COLORS[event.type] || { bg: '#eee', fg: '#333' };
+                  return (
+                    <button
+                      key={event.id}
+                      type="button"
+                      className="calendar-day-detail-event"
+                      onClick={() => handleEventClick(event)}
+                      disabled={!event.linkPath}
+                      style={{ background: colors.bg, borderLeftColor: colors.fg }}
+                    >
+                      <strong style={{ color: colors.fg, textDecoration: event.completed ? 'line-through' : 'none' }}>
+                        {event.time && <span style={{ fontFamily: 'var(--font-mono)' }}>{event.time} · </span>}
+                        {event.title}
+                      </strong>
+                      {event.subtitle && <span>{event.subtitle}</span>}
+                      {event.overdue && <small>⏱ Süresi geçti</small>}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="calendar-day-detail-modal__actions">
+              <button type="button" className="btn btn-secondary" onClick={() => handleQuickAddAppointment(selectedDate)}>
+                + Randevu Ekle
+              </button>
+              <div className="calendar-day-detail-modal__quick-task">
+                <input
+                  value={quickTaskTitle}
+                  onChange={(event) => setQuickTaskTitle(event.target.value)}
+                  placeholder="Bu güne hızlı görev ekle…"
+                  onKeyDown={(event) => event.key === 'Enter' && handleQuickAddTask(selectedDate)}
+                />
+                <button type="button" className="btn btn-primary" disabled={quickTaskSaving || !quickTaskTitle.trim()} onClick={() => handleQuickAddTask(selectedDate)}>
+                  {quickTaskSaving ? 'Ekleniyor…' : 'Görev Ekle'}
+                </button>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {view === 'agenda' && (

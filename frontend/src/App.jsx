@@ -68,7 +68,6 @@ const AGENT_NAV = [
   { to: '/aidatlar', label: 'Aidatlarım', icon: '🧾' },
   { to: '/cari-hesabim', label: 'Cari Hesabım', icon: '💳' },
   { to: '/takvim', label: 'Takvim', icon: '📅' },
-  { to: '/gorevler', label: 'Görevler', icon: '✅' },
   { to: '/piyasa', label: 'Piyasa', icon: '💹' },
   { to: '/degerleme', label: 'Piyasa Değer Analizi', icon: '📊' },
 ];
