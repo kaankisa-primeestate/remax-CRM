@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { tasksApi } from '../api/tasks';
 
 function isOverdue(task) {
@@ -21,6 +21,7 @@ function formatDueDate(dueDate) {
 
 export default function TasksPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
@@ -28,6 +29,15 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Takvim'deki "Yeni kayit ekle" menusunden "Gorev" secildiginde bu
+  // sayfaya yonlendiriliyoruz -- kullanici tekrar "Yeni Gorev" alanini
+  // aramasin diye otomatik odaklaniyoruz.
+  useEffect(() => {
+    if (location.state?.openQuickAdd) {
+      document.getElementById('task-quick-add-title')?.focus();
+    }
+  }, [location.state]);
   const [editForm, setEditForm] = useState({ title: '', dueDate: '', notes: '' });
   const [editSaving, setEditSaving] = useState(false);
 
@@ -133,6 +143,7 @@ export default function TasksPage() {
           <div className="form-field" style={{ flex: 1, minWidth: 200, margin: 0 }}>
             <label>Yeni Görev</label>
             <input
+              id="task-quick-add-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Örn: Ahmet Bey'i ara"

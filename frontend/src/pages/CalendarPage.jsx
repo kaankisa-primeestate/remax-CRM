@@ -240,18 +240,6 @@ export default function CalendarPage() {
     }
   }
 
-  async function handleQuickAddAppointment(dateStr) {
-    const t = prompt('Randevu başlığı:');
-    if (!t || !t.trim()) return;
-    try {
-      await appointmentsApi.create({ title: t.trim(), date: dateStr, type: 'meeting' });
-      load();
-      loadEvents();
-    } catch {
-      alert('Randevu eklenemedi.');
-    }
-  }
-
   async function handleQuickAddTask(dateStr) {
     if (!quickTaskTitle.trim()) return;
     setQuickTaskSaving(true);
@@ -603,7 +591,11 @@ export default function CalendarPage() {
             </div>
 
             <div className="calendar-day-detail-modal__actions">
-              <button type="button" className="btn btn-secondary" onClick={() => handleQuickAddAppointment(selectedDate)}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => { setDayDetailOpen(false); setNewEntryMenuOpen(true); }}
+              >
                 + Randevu Ekle
               </button>
               <div className="calendar-day-detail-modal__quick-task">
