@@ -47,7 +47,6 @@ const BROKER_NAV = [
   { to: '/komisyonlar', label: 'Ciro & Komisyon', icon: '📈' },
   { to: '/talepler', label: 'Sıcak Fırsatlar', icon: '🔥' },
   { to: '/islemler', label: 'İşlemler', icon: '🔄' },
-  { to: '/finans', label: 'Finans', icon: '💵' },
   { to: '/muhasebe', label: 'Muhasebe', icon: '📒' },
   { to: '/aidatlar', label: 'Danışman Aidatları', icon: '🧾' },
   { to: '/raporlar', label: 'Raporlar', icon: '📊' },
