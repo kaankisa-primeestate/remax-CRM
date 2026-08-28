@@ -271,6 +271,7 @@ export default function AccountingPage() {
   const [quickExpensePreferences, setQuickExpensePreferences] = useState([]);
   const [recentExpenseLoading, setRecentExpenseLoading] = useState(false);
   const [quickExpensePreferenceAction, setQuickExpensePreferenceAction] = useState('');
+  const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const [accountForm, setAccountForm] = useState({
     type: 'bank',
     name: '',
@@ -658,6 +659,7 @@ export default function AccountingPage() {
 
   function applyRecentExpense(expenseId) {
     setSelectedQuickExpenseId(expenseId);
+    setQuickExpenseOpen(false);
     setEntrySaveNotice(null);
     if (!expenseId) return;
     const previousExpense = recentExpenseEntries.find((entry) => entry.id === expenseId);
@@ -694,6 +696,7 @@ export default function AccountingPage() {
         saved,
       ]);
       setSelectedQuickExpenseId('');
+      setQuickExpenseOpen(false);
     } catch (hideError) {
       setError(hideError.response?.data?.message || 'Hızlı seçim adı gizlenemedi.');
     } finally {
@@ -1495,34 +1498,48 @@ export default function AccountingPage() {
                   {recentExpenseLoading ? (
                     <span className="quick-expense-empty">Önceki giderler yükleniyor…</span>
                   ) : quickExpenseOptions.length > 0 ? (
-                    <div className="quick-expense-picker" role="list" aria-label="Önceki giderler">
-                      {quickExpenseOptions.map((expense) => {
-                        const label = quickExpenseLabel(expense);
-                        return (
-                          <div className="quick-expense-picker__item" role="listitem" key={expense.id}>
-                            <button type="button" className={`quick-expense-picker__select${selectedQuickExpenseId === expense.id ? ' is-selected' : ''}`} onClick={() => applyRecentExpense(expense.id)}>
-                              <strong>{label}</strong>
-                              <span>{expense.currency} · {formatAccountingMoney(expense.amount, expense.currency)}</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="quick-expense-picker__remove"
-                              aria-label={`${label} adını hızlı seçim listesinden gizle`}
-                              title="Bu adı hızlı seçim listesinden gizle"
-                              onClick={() => handleHideQuickExpense(label)}
-                              disabled={quickExpensePreferenceAction === label}
-                            >
-                              {quickExpensePreferenceAction === label ? '…' : '×'}
-                            </button>
-                          </div>
-                        );
-                      })}
+                    <div className="quick-expense-dropdown">
+                      <button
+                        type="button"
+                        className="quick-expense-dropdown__trigger"
+                        aria-haspopup="listbox"
+                        aria-expanded={quickExpenseOpen}
+                        onClick={() => setQuickExpenseOpen((open) => !open)}
+                      >
+                        <span>{selectedQuickExpenseId ? quickExpenseLabel(recentExpenseEntries.find((entry) => entry.id === selectedQuickExpenseId) || {}) : 'Önceki gider seçin'}</span>
+                        <span aria-hidden="true">⌄</span>
+                      </button>
+                      {quickExpenseOpen && (
+                        <div className="quick-expense-dropdown__menu" role="listbox" aria-label="Önceki giderler">
+                          {quickExpenseOptions.map((expense) => {
+                            const label = quickExpenseLabel(expense);
+                            return (
+                              <div className="quick-expense-dropdown__item" role="option" aria-selected={selectedQuickExpenseId === expense.id} key={expense.id}>
+                                <button type="button" className="quick-expense-dropdown__select" onClick={() => applyRecentExpense(expense.id)}>
+                                  <span>{label}</span>
+                                  <small>{expense.currency} · {formatAccountingMoney(expense.amount, expense.currency)}</small>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="quick-expense-dropdown__remove"
+                                  aria-label={`${label} adını hızlı seçim listesinden gizle`}
+                                  title="Bu adı hızlı seçim listesinden gizle"
+                                  onClick={() => handleHideQuickExpense(label)}
+                                  disabled={quickExpensePreferenceAction === label}
+                                >
+                                  {quickExpensePreferenceAction === label ? '…' : '×'}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <span className="quick-expense-empty">Henüz kaydedilmiş bir gider bulunmuyor.</span>
                   )}
                   <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>
-                    İsme tıklayınca son kaydın alanları gelir. Çarpı, gerçek Muhasebe hareketini silmeden yalnızca bu listeden gizler.
+                    Seçim açıldığında kategori adları alfabetik görünür. İsme tıklayınca son kaydın alanları gelir; çarpı gerçek Muhasebe hareketini silmeden yalnızca listeden gizler.
                   </span>
                 </FormField>
               )}

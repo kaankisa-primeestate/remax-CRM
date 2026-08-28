@@ -741,6 +741,105 @@ button {
   font-size: 12px;
 }
 
+.quick-expense-dropdown {
+  position: relative;
+  min-width: 280px;
+}
+
+.quick-expense-dropdown__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--paper-line);
+  border-radius: 4px;
+  background: #fffdf4;
+  color: var(--ink-navy);
+  text-align: left;
+}
+
+.quick-expense-dropdown__trigger:hover,
+.quick-expense-dropdown__trigger:focus-visible {
+  border-color: var(--ink-navy);
+}
+
+.quick-expense-dropdown__menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 230px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--paper-line);
+  border-radius: 5px;
+  background: #fffdf4;
+  box-shadow: 0 8px 18px rgba(20, 35, 52, 0.14);
+}
+
+.quick-expense-dropdown__item {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid rgba(20, 35, 52, 0.08);
+}
+
+.quick-expense-dropdown__item:last-child {
+  border-bottom: none;
+}
+
+.quick-expense-dropdown__select {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: var(--ink-navy);
+  text-align: left;
+}
+
+.quick-expense-dropdown__select:hover,
+.quick-expense-dropdown__select:focus-visible {
+  background: #eef3f8;
+}
+
+.quick-expense-dropdown__select span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quick-expense-dropdown__select small {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.quick-expense-dropdown__remove {
+  flex: 0 0 27px;
+  padding: 0;
+  border: none;
+  border-left: 1px solid rgba(20, 35, 52, 0.08);
+  background: transparent;
+  color: var(--danger);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.quick-expense-dropdown__remove:hover,
+.quick-expense-dropdown__remove:focus-visible {
+  background: #fbeeeb;
+}
+
 .accounting-category-hint {
   display: block;
   margin: -3px 0 7px;
