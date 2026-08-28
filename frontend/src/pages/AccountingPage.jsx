@@ -10,14 +10,11 @@ import {
 import { usersApi } from '../api/auth';
 
 const ACCOUNTING_TABS = [
-  { key: 'summary', label: 'Özet' },
   { key: 'entries', label: 'Hareketler' },
   { key: 'ledgers', label: 'Cari Kartlar' },
   { key: 'commissions', label: 'Komisyonlar' },
   { key: 'dues', label: 'Danışman Kiraları' },
-  { key: 'partners', label: 'Ortaklar' },
   { key: 'accounts', label: 'Hesaplar' },
-  { key: 'recurring', label: 'Tekrarlayanlar' },
   { key: 'reports', label: 'Raporlar' },
 ];
 
@@ -257,11 +254,6 @@ function addMonthsToDate(dateString, count = 1) {
   return date.toISOString().slice(0, 10);
 }
 
-function shiftPeriod(period, count = 1) {
-  const [year, month] = period.split('-').map(Number);
-  const date = new Date(year, month - 1 + count, 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
 
 function AmountInput({ value, currency, onChange, id, ...props }) {
   const parsed = parseAccountingAmount(value);
@@ -298,12 +290,12 @@ function SavedRecordNotice({ notice }) {
 }
 
 export default function AccountingPage() {
-  const [activeTab, setActiveTab] = useState('summary');
+  const [activeTab, setActiveTab] = useState('entries');
+  const [accountSubTab, setAccountSubTab] = useState('bank');
   const [period, setPeriod] = useState(getCurrentPeriod());
   const [currency, setCurrency] = useState('TRY');
   const [accounts, setAccounts] = useState([]);
   const [entries, setEntries] = useState([]);
-  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [entrySaveNotice, setEntrySaveNotice] = useState(null);
@@ -368,13 +360,6 @@ export default function AccountingPage() {
     description: '',
   });
   const [partnerSaving, setPartnerSaving] = useState(false);
-  const [recurringExpenses, setRecurringExpenses] = useState([]);
-  const [recurringLoading, setRecurringLoading] = useState(false);
-  const [recurringSaving, setRecurringSaving] = useState(false);
-  const [recurringSaveNotice, setRecurringSaveNotice] = useState(null);
-  const [recurringGenerating, setRecurringGenerating] = useState(false);
-  const [recurringGenerateNotice, setRecurringGenerateNotice] = useState(null);
-  const [recurringPeriodCount, setRecurringPeriodCount] = useState('1');
   const [reportFromDate, setReportFromDate] = useState(DEFAULT_REPORT_RANGE.from);
   const [reportToDate, setReportToDate] = useState(DEFAULT_REPORT_RANGE.to);
   const [reportPreset, setReportPreset] = useState('this_month');
@@ -398,18 +383,6 @@ export default function AccountingPage() {
   const [editingEntry, setEditingEntry] = useState(null);
   const [correctionReason, setCorrectionReason] = useState('');
   const [customCategories, setCustomCategories] = useState({ income: [], expense: [] });
-  const [recurringForm, setRecurringForm] = useState({
-    title: '',
-    category: EXPENSE_CATEGORIES[2],
-    customCategory: '',
-    amount: '',
-    currency: 'TRY',
-    dueDay: '1',
-    startPeriod: getCurrentPeriod(),
-    endPeriod: '',
-    defaultAccountId: '',
-    partyId: '',
-  });
   const commissionIdempotencyKeyRef = useRef(null);
   const entryIdempotencyKeyRef = useRef(null);
   const reportDetailRef = useRef(null);
@@ -420,14 +393,12 @@ export default function AccountingPage() {
     setLoading(true);
     setError('');
     try {
-      const [accountList, entryList, summaryData] = await Promise.all([
+      const [accountList, entryList] = await Promise.all([
         accountingApi.listAccounts(),
         accountingApi.listEntries(periodParams),
-        accountingApi.getSummary(periodParams),
       ]);
       setAccounts(accountList || []);
       setEntries(entryList || []);
-      setSummary(summaryData || null);
     } catch (loadError) {
       setError(loadError.response?.data?.message || 'Muhasebe verileri yüklenemedi. Backend bağlantısını kontrol edin.');
     } finally {
@@ -522,18 +493,6 @@ export default function AccountingPage() {
     }
   }, []);
 
-  const loadRecurringExpenses = useCallback(async () => {
-    setRecurringLoading(true);
-    try {
-      const templateList = await accountingApi.listRecurringExpenses({ currency });
-      setRecurringExpenses(templateList || []);
-    } catch (loadError) {
-      setError(loadError.response?.data?.message || 'Tekrarlayan giderler yüklenemedi.');
-    } finally {
-      setRecurringLoading(false);
-    }
-  }, [currency]);
-
   const loadManagementReport = useCallback(async () => {
     if (!reportFromDate || !reportToDate) return;
     if (reportFromDate > reportToDate) {
@@ -587,16 +546,10 @@ export default function AccountingPage() {
   }, [activeTab, loadRents]);
 
   useEffect(() => {
-    if (activeTab !== 'ledgers' && activeTab !== 'partners' && activeTab !== 'entries' && activeTab !== 'recurring' && activeTab !== 'reports') return undefined;
+    if (activeTab !== 'ledgers' && activeTab !== 'accounts' && activeTab !== 'entries' && activeTab !== 'reports') return undefined;
     loadParties();
     return undefined;
   }, [activeTab, loadParties]);
-
-  useEffect(() => {
-    if (activeTab !== 'recurring') return undefined;
-    loadRecurringExpenses();
-    return undefined;
-  }, [activeTab, loadRecurringExpenses]);
 
   useEffect(() => {
     if (activeTab !== 'reports') return undefined;
@@ -657,7 +610,7 @@ export default function AccountingPage() {
   }, [activeTab, loadMigrationPreview]);
 
   useEffect(() => {
-    if (activeTab !== 'entries' && activeTab !== 'recurring') return undefined;
+    if (activeTab !== 'entries') return undefined;
     loadCategories();
     return undefined;
   }, [activeTab, loadCategories]);
@@ -720,10 +673,6 @@ export default function AccountingPage() {
       ? categoryNames(EXPENSE_CATEGORIES, customCategories.expense)
       : categoryNames(INCOME_CATEGORIES, customCategories.income),
     [entryForm.type, customCategories],
-  );
-  const recurringCategoryOptions = useMemo(
-    () => categoryNames(EXPENSE_CATEGORIES, customCategories.expense),
-    [customCategories],
   );
   const statementRows = useMemo(() => buildStatementRows(partyStatement?.entries), [partyStatement]);
   const statementLastRow = statementRows[statementRows.length - 1];
@@ -952,97 +901,6 @@ export default function AccountingPage() {
       setError(loadError.response?.data?.message || 'Cari ekstre yüklenemedi.');
     } finally {
       setPartyStatementLoading(false);
-    }
-  }
-
-  async function handleCreateRecurringExpense(event) {
-    event.preventDefault();
-    if (!recurringForm.title.trim()) {
-      setError('Tekrarlayan gider adı boş bırakılamaz.');
-      return;
-    }
-    const recurringAmount = parseAccountingAmount(recurringForm.amount);
-    if (!Number.isFinite(recurringAmount) || recurringAmount <= 0) {
-      setError('Tekrarlayan gider tutarı sıfırdan büyük olmalıdır. Örn. 170000 veya 170.000 yazabilirsiniz.');
-      return;
-    }
-    if (!recurringForm.defaultAccountId) {
-      setError('Tekrarlayan gider için varsayılan ödeme hesabı seçin.');
-      return;
-    }
-    const selectedCategory = recurringForm.category === NEW_CATEGORY_VALUE
-      ? recurringForm.customCategory.trim()
-      : recurringForm.category;
-    if (!selectedCategory) {
-      setError('Yeni kategori adı boş bırakılamaz.');
-      return;
-    }
-    setRecurringSaving(true);
-    setError('');
-    try {
-      if (!EXPENSE_CATEGORIES.includes(selectedCategory)) {
-        await accountingApi.createCategory({ type: 'expense', name: selectedCategory });
-        await loadCategories();
-      }
-      await accountingApi.createRecurringExpense({
-        title: recurringForm.title.trim(),
-        category: selectedCategory,
-        amount: recurringAmount,
-        currency: recurringForm.currency,
-        dueDay: Number(recurringForm.dueDay),
-        startPeriod: recurringForm.startPeriod,
-        endPeriod: recurringForm.endPeriod || undefined,
-        defaultAccountId: recurringForm.defaultAccountId,
-        partyId: recurringForm.partyId || undefined,
-      });
-      setRecurringSaveNotice({
-        title: 'Tekrarlayan gider şablonu kaydedildi',
-        details: `${recurringForm.title.trim()} · ${formatAccountingMoney(recurringAmount, recurringForm.currency)} · ${periodLabel(recurringForm.startPeriod)} başlangıç`,
-      });
-      setRecurringForm({
-        title: '',
-        category: EXPENSE_CATEGORIES[2],
-        customCategory: '',
-        amount: '',
-        currency,
-        dueDay: '1',
-        startPeriod: period,
-        endPeriod: '',
-        defaultAccountId: '',
-        partyId: '',
-      });
-      await loadRecurringExpenses();
-    } catch (saveError) {
-      setError(saveError.response?.data?.message || 'Tekrarlayan gider şablonu oluşturulamadı.');
-    } finally {
-      setRecurringSaving(false);
-    }
-  }
-
-  async function handleGenerateRecurringExpenses() {
-    const periodCount = Math.max(1, Math.min(12, Number(recurringPeriodCount) || 1));
-    const lastPeriod = shiftPeriod(period, periodCount - 1);
-    const rangeLabel = periodCount === 1 ? periodLabel(period) : `${periodLabel(period)} – ${periodLabel(lastPeriod)}`;
-    if (!window.confirm(`${rangeLabel} için ${currency} tekrarlayan giderleri oluşturulsun mu? Aynı gider ikinci kez oluşturulmaz.`)) return;
-    setRecurringGenerating(true);
-    setRecurringGenerateNotice(null);
-    setError('');
-    try {
-      const results = [];
-      for (let index = 0; index < periodCount; index += 1) {
-        results.push(await accountingApi.generateRecurringExpenses({ period: shiftPeriod(period, index), currency }));
-      }
-      const created = results.reduce((sum, result) => sum + Number(result.created || 0), 0);
-      const skipped = results.reduce((sum, result) => sum + Number(result.skipped || 0), 0);
-      setRecurringGenerateNotice({
-        title: 'Tekrarlayan giderler işlendi',
-        details: `${rangeLabel} · ${created} kayıt oluşturuldu · ${skipped} kayıt zaten vardı veya atlandı`,
-      });
-      await Promise.all([loadRecurringExpenses(), loadData()]);
-    } catch (generateError) {
-      setError(generateError.response?.data?.message || 'Tekrarlayan giderler oluşturulamadı.');
-    } finally {
-      setRecurringGenerating(false);
     }
   }
 
@@ -1404,41 +1262,6 @@ export default function AccountingPage() {
     }
   }
 
-  async function handleEditRecurringExpense(template) {
-    const title = window.prompt('Tekrarlayan gider adı:', template.title);
-    if (title === null) return;
-    const amountText = window.prompt('Aylık tutar:', String(template.amount));
-    if (amountText === null) return;
-    const amount = parseAccountingAmount(amountText);
-    if (!title.trim() || !Number.isFinite(amount) || amount <= 0) { setError('Gider adı ve tutarı geçerli olmalıdır.'); return; }
-    setMasterSaving(true);
-    setError('');
-    try {
-      await accountingApi.updateRecurringExpense(template.id, { title: title.trim(), category: template.category, amount, currency: template.currency, dueDay: template.dueDay, startPeriod: template.startPeriod, endPeriod: template.endPeriod || undefined, defaultAccountId: template.defaultAccountId, partyId: template.partyId || undefined });
-      await loadRecurringExpenses();
-    } catch (editError) {
-      setError(editError.response?.data?.message || 'Tekrarlayan gider şablonu güncellenemedi.');
-    } finally {
-      setMasterSaving(false);
-    }
-  }
-
-  async function handleArchiveRecurringExpense(template) {
-    const reason = window.prompt('Tekrarlayan gider şablonunu neden pasifleştiriyorsunuz?');
-    if (reason === null || reason.trim().length < 3) { if (reason !== null) setError('Pasifleştirme nedeni en az 3 karakter olmalıdır.'); return; }
-    if (!window.confirm(`${template.title} pasifleştirilsin mi? Önceden oluşturulan giderler korunacak; yeni dönemlerde otomatik oluşturulmayacak.`)) return;
-    setMasterSaving(true);
-    setError('');
-    try {
-      await accountingApi.archiveRecurringExpense(template.id, { reason: reason.trim() });
-      await loadRecurringExpenses();
-    } catch (archiveError) {
-      setError(archiveError.response?.data?.message || 'Tekrarlayan gider şablonu pasifleştirilemedi.');
-    } finally {
-      setMasterSaving(false);
-    }
-  }
-
   async function handleCreateAccount(event) {
     event.preventDefault();
     if (!accountForm.name.trim()) {
@@ -1525,53 +1348,6 @@ export default function AccountingPage() {
           </button>
         ))}
       </div>
-
-      {activeTab === 'summary' && (
-        <>
-          <div className="metric-grid">
-            <div className="metric-card">
-              <div className="metric-card__label">Dönem</div>
-              <div className="metric-card__value" style={{ fontSize: 20 }}>{periodLabel(period)}</div>
-              <div className="metric-card__delta is-muted">{currency} görünümü</div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-card__label">Operasyonel gelir</div>
-              <div className="metric-card__value">{loading ? '…' : formatAccountingMoney(summary?.totalIncome, currency)}</div>
-              <div className="metric-card__delta is-muted">Ortak finansmanı hariç gelir / tahsilat</div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-card__label">Toplam gider</div>
-              <div className="metric-card__value">{loading ? '…' : formatAccountingMoney(summary?.totalExpense, currency)}</div>
-              <div className="metric-card__delta is-muted">Gider / ödeme hareketleri</div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-card__label">Net operasyon sonucu</div>
-              <div className="metric-card__value" style={{ color: Number(summary?.netOperatingResult || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                {loading ? '…' : formatAccountingMoney(summary?.netOperatingResult, currency)}
-              </div>
-              <div className="metric-card__delta is-muted">{summary?.operatingEntryCount || 0} operasyon hareketi</div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-card__label">Ortak finansmanı (net)</div>
-              <div className="metric-card__value" style={{ color: Number(summary?.netPartnerFinancing || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                {loading ? '…' : formatAccountingMoney(summary?.netPartnerFinancing, currency)}
-              </div>
-              <div className="metric-card__delta is-muted">Giriş {formatAccountingMoney(summary?.partnerInflow, currency)} · çıkış {formatAccountingMoney(summary?.partnerOutflow, currency)}</div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-card__label">Net nakit hareketi</div>
-              <div className="metric-card__value" style={{ color: Number(summary?.netCashMovement || 0) >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                {loading ? '…' : formatAccountingMoney(summary?.netCashMovement, currency)}
-              </div>
-              <div className="metric-card__delta is-muted">Operasyon + ortak finansmanı · {summary?.entryCount || 0} toplam hareket</div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-            <button type="button" className="btn btn-primary" onClick={() => setActiveTab('entries')}>+ Hareket Ekle</button>
-          </div>
-        </>
-      )}
 
       {activeTab === 'entries' && (
         <>
@@ -1788,6 +1564,25 @@ export default function AccountingPage() {
       )}
 
       {activeTab === 'accounts' && (
+        <div className="folder-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
+          <button
+            type="button"
+            className={`folder-tab${accountSubTab === 'bank' ? ' active' : ''}`}
+            onClick={() => setAccountSubTab('bank')}
+          >
+            Banka / Kasa
+          </button>
+          <button
+            type="button"
+            className={`folder-tab${accountSubTab === 'partners' ? ' active' : ''}`}
+            onClick={() => setAccountSubTab('partners')}
+          >
+            Ortaklar
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'accounts' && accountSubTab === 'bank' && (
         <>
           <div className="folder-panel" style={{ marginBottom: 20 }}>
             <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 14px', fontSize: 18 }}>Yeni muhasebe hesabı</h3>
@@ -2299,7 +2094,7 @@ export default function AccountingPage() {
           </div>
         </>
       )}
-      {activeTab === 'partners' && (
+      {activeTab === 'accounts' && accountSubTab === 'partners' && (
         <>
           <div className="folder-panel" style={{ marginBottom: 20 }}>
             <div style={{ marginBottom: 14 }}>
@@ -2392,139 +2187,6 @@ export default function AccountingPage() {
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-      {activeTab === 'recurring' && (
-        <>
-          <div className="folder-panel" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Yeni tekrarlayan gider</h3>
-                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
-                  Kira, aidat, elektrik, su, internet gibi düzenli giderleri bir kez şablon olarak kaydedin. Üstten kaç ay seçerseniz seçtiğiniz dönemler için aynı tutarlarla otomatik oluşturulur; aynı kayıt ikinci kez oluşmaz.
-                </p>
-              </div>
-              <div className="accounting-recurring-actions">
-                <FormField label="Kaç ay oluşturulsun?" style={{ minWidth: 150 }}>
-                  <select value={recurringPeriodCount} onChange={(event) => setRecurringPeriodCount(event.target.value)} aria-label="Kaç ay oluşturulsun">
-                    <option value="1">1 ay</option>
-                    <option value="2">2 ay</option>
-                    <option value="3">3 ay</option>
-                    <option value="6">6 ay</option>
-                    <option value="12">12 ay</option>
-                  </select>
-                </FormField>
-                <button type="button" className="btn btn-secondary" onClick={handleGenerateRecurringExpenses} disabled={recurringGenerating}>
-                  {recurringGenerating ? 'Oluşturuluyor…' : recurringPeriodCount === '1' ? `${periodLabel(period)} giderini oluştur` : `${recurringPeriodCount} aylık giderleri oluştur`}
-                </button>
-              </div>
-            </div>
-            <form onSubmit={handleCreateRecurringExpense} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <FormField label="Gider adı" style={{ minWidth: 210 }}>
-                <input value={recurringForm.title} onChange={(event) => setRecurringForm({ ...recurringForm, title: event.target.value })} placeholder="Örn. Ofis kirası" required />
-              </FormField>
-              <FormField label="Kategori" style={{ minWidth: 210 }}>
-                <select value={recurringForm.category} onChange={(event) => setRecurringForm({ ...recurringForm, category: event.target.value, customCategory: event.target.value === NEW_CATEGORY_VALUE ? recurringForm.customCategory : '' })}>
-                  {recurringCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
-                  <option value={NEW_CATEGORY_VALUE}>+ Yeni kategori ekle</option>
-                </select>
-              </FormField>
-              {recurringForm.category === NEW_CATEGORY_VALUE && (
-                <FormField label="Yeni kategori adı" style={{ minWidth: 210 }}>
-                  <input value={recurringForm.customCategory} onChange={(event) => setRecurringForm({ ...recurringForm, customCategory: event.target.value })} placeholder="Örn. Reklam gideri" required />
-                </FormField>
-              )}
-              <FormField label="Aylık tutar" style={{ minWidth: 140 }}>
-                <AmountInput id="accounting-recurring-amount" value={recurringForm.amount} currency={recurringForm.currency} onChange={(event) => { setRecurringSaveNotice(null); setRecurringForm({ ...recurringForm, amount: event.target.value }); }} placeholder="Örn. 170000 veya 170.000,00" required />
-              </FormField>
-              <FormField label="Para birimi">
-                <select value={recurringForm.currency} onChange={(event) => setRecurringForm({ ...recurringForm, currency: event.target.value, defaultAccountId: '', partyId: '' })}>
-                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-                </select>
-              </FormField>
-              <FormField label="Vade günü" style={{ minWidth: 110 }}>
-                <input type="number" min="1" max="31" value={recurringForm.dueDay} onChange={(event) => setRecurringForm({ ...recurringForm, dueDay: event.target.value })} required />
-              </FormField>
-              <FormField label="Başlangıç ayı">
-                <input type="month" value={recurringForm.startPeriod} onChange={(event) => setRecurringForm({ ...recurringForm, startPeriod: event.target.value })} required />
-              </FormField>
-              <FormField label="Bitiş ayı">
-                <input type="month" value={recurringForm.endPeriod} onChange={(event) => setRecurringForm({ ...recurringForm, endPeriod: event.target.value })} />
-              </FormField>
-              <FormField label="Varsayılan hesap" style={{ minWidth: 210 }}>
-                <select value={recurringForm.defaultAccountId} onChange={(event) => setRecurringForm({ ...recurringForm, defaultAccountId: event.target.value })} required>
-                  <option value="">Hesap seçin</option>
-                  {accounts.filter((account) => account.currency === recurringForm.currency && account.isActive !== false).map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
-                </select>
-              </FormField>
-              <FormField label="Cari kart" style={{ minWidth: 210 }}>
-                <select value={recurringForm.partyId} onChange={(event) => setRecurringForm({ ...recurringForm, partyId: event.target.value })}>
-                  <option value="">Cari kart seçmeden devam et</option>
-                  {parties.filter((party) => party.currency === recurringForm.currency || party.type === 'agent').map((party) => {
-                    const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
-                    return <option value={party.id} key={party.id}>{party.name} · {typeLabel}</option>;
-                  })}
-                </select>
-              </FormField>
-              <button type="submit" className="btn btn-primary" disabled={recurringSaving}>
-                {recurringSaving ? 'Kaydediliyor…' : 'Şablonu Kaydet'}
-              </button>
-            </form>
-            <SavedRecordNotice notice={recurringSaveNotice} />
-            <SavedRecordNotice notice={recurringGenerateNotice} />
-            {accounts.filter((account) => account.currency === recurringForm.currency && account.isActive !== false).length === 0 && (
-              <p style={{ color: 'var(--danger)', fontSize: 13, margin: '12px 0 0' }}>Bu para biriminde hesap yok. Önce Hesaplar sekmesinden hesap oluşturun.</p>
-            )}
-          </div>
-
-          <div className="folder-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Gider şablonları</h3>
-                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>{currency} görünümü · Dönem üretimi tekrar çalıştırıldığında aynı kayıt ikinci kez oluşmaz</p>
-              </div>
-              <span style={{ color: 'var(--muted)', fontSize: 12 }}>{recurringExpenses.length} şablon</span>
-            </div>
-            {recurringLoading ? (
-              <div className="empty-state">Tekrarlayan giderler yükleniyor…</div>
-            ) : recurringExpenses.length === 0 ? (
-              <div className="empty-state">Henüz tekrarlayan gider şablonu oluşturulmamış.</div>
-            ) : (
-              <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 930, borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '7px 8px' }}>Gider</th>
-                      <th style={{ padding: '7px 8px' }}>Kategori</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Tutar</th>
-                      <th style={{ padding: '7px 8px' }}>Vade</th>
-                      <th style={{ padding: '7px 8px' }}>Dönem</th>
-                      <th style={{ padding: '7px 8px' }}>Ödeme hesabı</th>
-                      <th style={{ padding: '7px 8px' }}>Durum</th>
-                      <th style={{ padding: '7px 8px' }}>İşlem</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recurringExpenses.map((template) => (
-                      <tr key={template.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
-                        <td style={{ padding: '10px 8px' }}><strong>{template.title}</strong>{template.partyName && <div style={{ color: 'var(--muted)', fontSize: 12 }}>{template.partyName}</div>}</td>
-                        <td style={{ padding: '10px 8px' }}>{template.category}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(template.amount, template.currency)}</td>
-                        <td style={{ padding: '10px 8px' }}>{template.dueDay}. gün</td>
-                        <td style={{ padding: '10px 8px' }}>{periodLabel(template.startPeriod)}{template.endPeriod ? ` – ${periodLabel(template.endPeriod)}` : ' sonrası'}</td>
-                        <td style={{ padding: '10px 8px' }}>{template.accountName || '—'}</td>
-                        <td style={{ padding: '10px 8px', color: 'var(--success)' }}>Aktif</td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleEditRecurringExpense(template)}>Düzenle</button>
-                          <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11, marginLeft: 4 }} disabled={masterSaving} onClick={() => handleArchiveRecurringExpense(template)}>Pasifleştir</button>
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>

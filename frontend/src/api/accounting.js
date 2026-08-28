@@ -59,11 +59,6 @@ export const accountingApi = {
   listCategories: (params = {}) => apiClient.get('/accounting/categories', { params }).then((response) => response.data),
   createCategory: (payload) => apiClient.post('/accounting/categories', payload).then((response) => response.data),
   archiveCategory: (id, payload) => apiClient.post(`/accounting/categories/${id}/archive`, payload).then((response) => response.data),
-  listRecurringExpenses: (params = {}) => apiClient.get('/accounting/recurring-expenses', { params }).then((response) => response.data),
-  createRecurringExpense: (payload) => apiClient.post('/accounting/recurring-expenses', payload).then((response) => response.data),
-  updateRecurringExpense: (id, payload) => apiClient.patch(`/accounting/recurring-expenses/${id}`, payload).then((response) => response.data),
-  archiveRecurringExpense: (id, payload) => apiClient.post(`/accounting/recurring-expenses/${id}/archive`, payload).then((response) => response.data),
-  generateRecurringExpenses: (payload) => apiClient.post('/accounting/recurring-expenses/generate', payload).then((response) => response.data),
 };
 
 export function formatAccountingMoney(amount, currency = 'TRY') {
