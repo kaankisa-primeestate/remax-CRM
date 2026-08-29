@@ -8,6 +8,7 @@ import { User, UserRole } from '../users/user.entity';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 import { AccountingAgentReadService } from '../accounting/accounting-agent-read.service';
+import { AccountingRent, AccountingRentStatus } from '../accounting/accounting-rent.entity';
 
 @Injectable()
 export class AgentDuesService {
@@ -15,13 +16,15 @@ export class AgentDuesService {
     @InjectRepository(AgentDue) private readonly dueRepo: Repository<AgentDue>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
+    @InjectRepository(AccountingRent) private readonly accountingRentRepo: Repository<AccountingRent>,
     private readonly accountingAgentReadService: AccountingAgentReadService,
   ) {}
 
   // Broker: "Bu ayin aidatlarini olustur" -- aylik aidat tutari
   // tanimlanmis tum aktif danismanlar icin, o ay henuz kaydi yoksa
-  // otomatik bir AgentDue acar. Idempotent: zaten var olan (agentId,
-  // period) ciftleri icin ikinci bir kayit ACMAZ.
+  // otomatik bir AccountingRent acar. Idempotent: zaten var olan
+  // (agentId, period) ciftleri icin ikinci bir kayit ACMAZ (hem kod
+  // seviyesinde hem de AccountingRent'in kendi unique index'i ile).
   // Broker'in elle tetikledigi endpoint -- yetki kontrolu yapar, sonra
   // asil isi generateForMonthInternal'a devreder.
   async generateForMonth(dto: GenerateDuesDto, currentUser: CurrentUserPayload): Promise<{ created: number; skipped: number }> {
@@ -33,7 +36,10 @@ export class AgentDuesService {
 
   // Cron job (otomasyon) tarafindan cagrilan, yetki kontrolu OLMAYAN ic
   // metod -- Broker'in elle tetikledigi generateForMonth ile AYNI
-  // idempotent/muafiyet mantigini kullanir.
+  // idempotent/muafiyet mantigini kullanir. GUNCELLEME: artik ESKI
+  // AgentDue tablosuna DEGIL, dogrudan YENI AccountingRent tablosuna
+  // yaziyor -- boylece danismanin "Aidatlarim" sayfasinda (Muhasebe
+  // verisinden okuyor) otomatik olusan aidat HEMEN gorunur.
   async generateForMonthInternal(period: string): Promise<{ created: number; skipped: number }> {
     const agents = await this.userRepo.find({ where: { role: UserRole.AGENT } });
     let created = 0;
@@ -52,17 +58,21 @@ export class AgentDuesService {
           continue;
         }
       }
-      const existing = await this.dueRepo.findOne({ where: { agentId: agent.id, period } });
+      const existing = await this.accountingRentRepo.findOne({ where: { agentId: agent.id, period } });
       if (existing) {
         skipped++;
         continue;
       }
-      const due = this.dueRepo.create({
+      const rent = this.accountingRentRepo.create({
         agentId: agent.id,
+        agentNameSnapshot: agent.name,
         period,
-        expectedAmount: agent.monthlyDuesAmount,
+        dueDate: `${period}-01`,
+        amount: agent.monthlyDuesAmount,
+        currency: 'TRY',
+        status: AccountingRentStatus.PENDING,
       });
-      await this.dueRepo.save(due);
+      await this.accountingRentRepo.save(rent);
       created++;
     }
     return { created, skipped };
