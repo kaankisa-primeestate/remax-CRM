@@ -222,6 +222,7 @@ export class NotificationsService {
         title: `Tapu onayı bekleyen işlem`,
         agentName: nameFor(t.agentId),
         occurredAt: (t.stageChangedAt as Date) || t.createdAt,
+        transactionId: t.id,
         read: false,
         propertyId: t.propertyId || undefined,
       })),

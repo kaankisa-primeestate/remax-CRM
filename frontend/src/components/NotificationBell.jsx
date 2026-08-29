@@ -345,7 +345,7 @@ export default function NotificationBell() {
             ) : (
               <p style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>Bu bildirim için ek içerik yok.</p>
             )}
-            {detailItem.type === 'commission_added' && detailItem.transactionId && (
+            {(detailItem.type === 'commission_added' || detailItem.type === 'deal_pending_approval') && detailItem.transactionId && (
               <button
                 type="button"
                 className="btn btn-primary"
@@ -356,6 +356,19 @@ export default function NotificationBell() {
                 }}
               >
                 📂 İşlem Dosyasını Aç ve Onayla
+              </button>
+            )}
+            {detailItem.type === 'showing_disclosure' && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: 4 }}
+                onClick={() => {
+                  navigate('/sozlesmeler');
+                  setDetailItem(null);
+                }}
+              >
+                📄 Sözleşmeler & Tapu'yu Aç
               </button>
             )}
             <div className="modal-actions" style={{ marginTop: 16, justifyContent: detailItem.type === 'announcement' && !detailItem.fromArchive ? 'space-between' : 'flex-end' }}>
