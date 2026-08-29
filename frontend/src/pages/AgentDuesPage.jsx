@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { agentDuesApi, currentPeriod, periodLabel } from '../api/agentDues';
 import { bankAccountsApi, formatMoney } from '../api/bankAccounts';
 import { usersApi } from '../api/auth';
@@ -10,6 +11,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 // icin acik bir uyari bandi var.
 export default function AgentDuesPage() {
   const { isBroker } = useAuth();
+  const navigate = useNavigate();
   const [dues, setDues] = useState([]);
   const [agents, setAgents] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -19,7 +21,17 @@ export default function AgentDuesPage() {
   const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [payAccountId, setPayAccountId] = useState('');
 
+  useEffect(() => {
+    if (isBroker) {
+      navigate('/muhasebe', { replace: true });
+    }
+  }, [isBroker, navigate]);
+
   const load = useCallback(async () => {
+    if (isBroker) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [duesData, agentsData, accountsData] = await Promise.all([
@@ -86,6 +98,8 @@ export default function AgentDuesPage() {
   const agentNameById = Object.fromEntries(agents.map((a) => [a.id, a.name]));
   const nowPeriod = currentPeriod();
   const unpaidOverdue = dues.filter((d) => !d.paid && d.period <= nowPeriod);
+
+  if (isBroker) return null;
 
   return (
     <div>

@@ -83,9 +83,16 @@ export default function CommissionsPage() {
   const [payChequeDrawerName, setPayChequeDrawerName] = useState('');
   const [paySaving, setPaySaving] = useState(false);
 
+  useEffect(() => {
+    if (user?.role === 'broker') {
+      navigate('/muhasebe', { replace: true });
+    }
+  }, [user?.role, navigate]);
+
   // Islemler sayfasindan "Tapu Onayla" ile geldiyse, formu otomatik ac
   // ve ilgili bilgileri (danisman/portfoy/musteri/tutar) on-doldur.
   useEffect(() => {
+    if (user?.role === 'broker') return;
     if (location.state?.prefillCommission) {
       setPrefill(location.state.prefillCommission);
       setShowForm(true);
@@ -96,12 +103,8 @@ export default function CommissionsPage() {
   }, []);
 
   useEffect(() => {
-    if (isBroker) {
-      usersApi.listAgents().then(setAgents).catch(() => setAgents([]));
-      bankAccountsApi.list().then(setAccounts).catch(() => setAccounts([]));
-    } else {
-      agentLedgerApi.getBalance().then(setMyBalance).catch(() => setMyBalance(null));
-    }
+    if (isBroker) return;
+    agentLedgerApi.getBalance().then(setMyBalance).catch(() => setMyBalance(null));
   }, [isBroker]);
 
   const buildFilters = useCallback(() => {
@@ -112,6 +115,10 @@ export default function CommissionsPage() {
   }, [activeStatus, agentFilter, isBroker]);
 
   const load = useCallback(async () => {
+    if (isBroker) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const params = buildFilters();
@@ -207,6 +214,8 @@ export default function CommissionsPage() {
   }
 
   const agentName = (agentId) => agents.find((a) => a.id === agentId)?.name ?? agentId;
+
+  if (isBroker) return null;
 
   return (
     <div>

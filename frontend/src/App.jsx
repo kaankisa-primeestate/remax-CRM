@@ -19,7 +19,6 @@ import RequestsPage from './pages/RequestsPage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
 import TransactionDetailPage from './pages/TransactionDetailPage.jsx';
 import AccountingPage from './pages/AccountingPage.jsx';
-import ReportsPage from './pages/ReportsPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
 import MarketPage from './pages/MarketPage.jsx';
@@ -43,12 +42,9 @@ const BROKER_NAV = [
   { to: '/danismanlar', label: 'Danışman Yönetimi', icon: '👥' },
   { to: '/musteriler', label: 'Müşteri Havuzu', icon: '👤' },
   { to: '/portfoyler', label: 'Portföy Havuzu', icon: '🏠' },
-  { to: '/komisyonlar', label: 'Ciro & Komisyon', icon: '📈' },
   { to: '/talepler', label: 'Sıcak Fırsatlar', icon: '🔥' },
   { to: '/islemler', label: 'İşlemler', icon: '🔄' },
   { to: '/muhasebe', label: 'Muhasebe', icon: '📒' },
-  { to: '/aidatlar', label: 'Danışman Aidatları', icon: '🧾' },
-  { to: '/raporlar', label: 'Raporlar', icon: '📊' },
   { to: '/piyasa', label: 'Piyasa', icon: '💹' },
   { to: '/degerleme', label: 'Piyasa Değer Analizi', icon: '📊' },
   { to: '/sozlesmeler', label: 'Sözleşmeler & Tapu', icon: '📄' },
@@ -316,14 +312,6 @@ export default function App() {
               element={
                 <ProtectedRoute brokerOnly>
                   <AccountingPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/raporlar"
-              element={
-                <ProtectedRoute brokerOnly>
-                  <ReportsPage />
                 </ProtectedRoute>
               }
             />
