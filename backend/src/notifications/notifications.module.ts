@@ -5,7 +5,7 @@ import { NotificationsController } from './notifications.controller';
 import { Property } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
-import { Commission } from '../commissions/commission.entity';
+import { AccountingCommission } from '../accounting/accounting-commission.entity';
 import { User } from '../users/user.entity';
 import { PropertyComment } from '../property-comments/property-comment.entity';
 import { Appointment } from '../appointments/appointment.entity';
@@ -15,7 +15,7 @@ import { NotificationDismissal } from './notification-dismissal.entity';
 import { Transaction } from '../transactions/transaction.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, PropertyComment, Appointment, Announcement, AnnouncementDismissal, NotificationDismissal, Transaction])],
+  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, AccountingCommission, User, PropertyComment, Appointment, Announcement, AnnouncementDismissal, NotificationDismissal, Transaction])],
   controllers: [NotificationsController],
   providers: [NotificationsService],
 })

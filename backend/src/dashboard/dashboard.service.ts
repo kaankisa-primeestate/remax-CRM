@@ -4,11 +4,11 @@ import { Between, In, IsNull, MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
-import { Commission } from '../commissions/commission.entity';
+import { AccountingCommission } from '../accounting/accounting-commission.entity';
+import { AccountingRent, AccountingRentStatus } from '../accounting/accounting-rent.entity';
 import { User, UserRole } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { TransactionNote } from '../transactions/transaction-note.entity';
-import { AgentDue } from '../agent-dues/agent-due.entity';
 
 interface AgentStats {
   propertiesCount: number;
@@ -24,11 +24,11 @@ export class DashboardService {
     @InjectRepository(Property) private readonly propertyRepo: Repository<Property>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     @InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
-    @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
+    @InjectRepository(AccountingCommission) private readonly commissionRepo: Repository<AccountingCommission>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
     @InjectRepository(TransactionNote) private readonly noteRepo: Repository<TransactionNote>,
-    @InjectRepository(AgentDue) private readonly agentDueRepo: Repository<AgentDue>,
+    @InjectRepository(AccountingRent) private readonly agentDueRepo: Repository<AccountingRent>,
   ) {}
 
   async getSummary(from: Date, to: Date) {
@@ -72,7 +72,7 @@ export class DashboardService {
     }
     for (const cm of commissions) {
       ensure(cm.agentId).commissionsCount += 1;
-      ensure(cm.agentId).salesValue += Number(cm.netPayable);
+      ensure(cm.agentId).salesValue += Number(cm.agentGrossShare);
     }
 
     const leaderboard = Array.from(statsByAgent.entries())
@@ -183,7 +183,7 @@ export class DashboardService {
     }
     for (const cm of commissions) {
       ensure(cm.agentId).commissionsCount += 1;
-      ensure(cm.agentId).salesValue += Number(cm.netPayable);
+      ensure(cm.agentId).salesValue += Number(cm.agentGrossShare);
     }
 
     return Array.from(statsByAgent.entries())
@@ -206,7 +206,7 @@ export class DashboardService {
     const commissions = await this.commissionRepo.find({
       where: { agentId, createdAt: Between(monthStart, monthEnd) },
     });
-    const currentMonthSales = commissions.reduce((sum, c) => sum + Number(c.netPayable), 0);
+    const currentMonthSales = commissions.reduce((sum, c) => sum + Number(c.agentGrossShare), 0);
     const monthlyTarget = agent?.monthlyTarget != null ? Number(agent.monthlyTarget) : null;
     const percentage = monthlyTarget && monthlyTarget > 0
       ? Math.min(100, Math.round((currentMonthSales / monthlyTarget) * 100))
@@ -277,7 +277,7 @@ export class DashboardService {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const bucket = monthByKey.get(key);
       if (bucket) {
-        bucket.total += Number(c.netPayable);
+        bucket.total += Number(c.agentGrossShare);
       }
     }
 
@@ -373,7 +373,7 @@ export class DashboardService {
     // odenmemis kalan kayitlar "gecikmis" sayilir. (agents/agentNameById
     // zaten fonksiyonun basinda tanimli, tekrar tanimlamiyoruz.)
     const currentPeriod = new Date().toISOString().slice(0, 7);
-    const overdueDues = await this.agentDueRepo.find({ where: { paid: false }, order: { period: 'ASC' } });
+    const overdueDues = await this.agentDueRepo.find({ where: { status: AccountingRentStatus.PENDING }, order: { period: 'ASC' } });
     const overdueDueItems = overdueDues
       .filter((d) => d.period < currentPeriod)
       .map((d) => ({
@@ -381,7 +381,7 @@ export class DashboardService {
         dueId: d.id,
         title: `Gecikmiş Aidat: ${d.period}`,
         agentName: agentNameById.get(d.agentId) || 'Bilinmeyen',
-        amount: d.expectedAmount,
+        amount: d.amount,
         createdAt: d.createdAt,
       }));
 

@@ -4,8 +4,8 @@ import { Between, In, Repository } from 'typeorm';
 import { Appointment } from '../appointments/appointment.entity';
 import { Task } from '../tasks/task.entity';
 import { Transaction } from '../transactions/transaction.entity';
-import { Commission, CommissionStatus } from '../commissions/commission.entity';
-import { AgentDue } from '../agent-dues/agent-due.entity';
+import { AccountingCommission, AccountingCommissionStatus } from '../accounting/accounting-commission.entity';
+import { AccountingRent, AccountingRentStatus } from '../accounting/accounting-rent.entity';
 import { Property } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
@@ -43,8 +43,8 @@ export class CalendarService {
     @InjectRepository(Appointment) private readonly appointmentRepo: Repository<Appointment>,
     @InjectRepository(Task) private readonly taskRepo: Repository<Task>,
     @InjectRepository(Transaction) private readonly transactionRepo: Repository<Transaction>,
-    @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
-    @InjectRepository(AgentDue) private readonly agentDueRepo: Repository<AgentDue>,
+    @InjectRepository(AccountingCommission) private readonly commissionRepo: Repository<AccountingCommission>,
+    @InjectRepository(AccountingRent) private readonly agentDueRepo: Repository<AccountingRent>,
     @InjectRepository(Property) private readonly propertyRepo: Repository<Property>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
   ) {}
@@ -148,8 +148,8 @@ export class CalendarService {
     // 5) Komisyon Vade Tarihi -- sadece HENUZ ODENMEMIS olanlar (odenmis
     // eski kayitlar takvimde gereksiz kalabalik yaratir)
     for (const c of commissions) {
-      if (c.status === CommissionStatus.PAID) continue;
-      const d = c.dueDate?.slice(0, 10);
+      if (c.status === AccountingCommissionStatus.PAID) continue;
+      const d = c.date?.slice(0, 10);
       if (!d || d < from || d > to) continue;
       events.push({
         id: `commission-${c.id}`,
@@ -157,7 +157,7 @@ export class CalendarService {
         date: d,
         time: null,
         title: `💰 Komisyon Vadesi: ${c.propertyTitle || 'İşlem'}`,
-        subtitle: `${Number(c.netPayable).toLocaleString('tr-TR')} ₺`,
+        subtitle: `${Number(c.agentGrossShare).toLocaleString('tr-TR')} ₺`,
         completed: false,
         overdue: d < todayStr,
         linkPath: '/komisyonlar',
@@ -166,7 +166,7 @@ export class CalendarService {
 
     // 6) Aidat Odeme Tarihi -- period (YYYY-MM) ayin 1'i olarak kabul edilir
     for (const due of agentDues) {
-      if (due.paid) continue;
+      if (due.status !== AccountingRentStatus.PENDING) continue;
       const d = `${due.period}-01`;
       if (d < from || d > to) continue;
       events.push({
@@ -175,7 +175,7 @@ export class CalendarService {
         date: d,
         time: null,
         title: `🧾 Aylık Ofis Aidatı (${due.period})`,
-        subtitle: `${Number(due.expectedAmount).toLocaleString('tr-TR')} ₺`,
+        subtitle: `${Number(due.amount).toLocaleString('tr-TR')} ₺`,
         completed: false,
         overdue: d < todayStr,
         linkPath: '/aidatlar',

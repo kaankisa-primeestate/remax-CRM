@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChequeNote, ChequeNoteStatus, ChequeNoteDirection } from '../cheque-notes/cheque-note.entity';
-import { Commission, CommissionStatus } from '../commissions/commission.entity';
-import { AgentDue } from '../agent-dues/agent-due.entity';
+import { AccountingCommission, AccountingCommissionStatus } from '../accounting/accounting-commission.entity';
+import { AccountingRent, AccountingRentStatus } from '../accounting/accounting-rent.entity';
 import { RecurringExpensesService } from '../recurring-expenses/recurring-expenses.service';
 
 export interface CashFlowItem {
@@ -36,8 +36,8 @@ const FORECAST_DAYS = 30;
 export class CashFlowService {
   constructor(
     @InjectRepository(ChequeNote) private readonly chequeNoteRepo: Repository<ChequeNote>,
-    @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
-    @InjectRepository(AgentDue) private readonly agentDueRepo: Repository<AgentDue>,
+    @InjectRepository(AccountingCommission) private readonly commissionRepo: Repository<AccountingCommission>,
+    @InjectRepository(AccountingRent) private readonly agentDueRepo: Repository<AccountingRent>,
     private readonly recurringExpensesService: RecurringExpensesService,
   ) {}
 
@@ -69,38 +69,38 @@ export class CashFlowService {
       else outflows.push(item);
     }
 
-    // --- 2. Komisyonlar: henuz odenmemis (pending/approved), vadesi bu
-    // 30 gun icinde olanlar. VARSAYIM: brut komisyonun TAMAMI (musteriden/
-    // bankadan) vade gununde tahsil edilir (Girdi), danismana odenecek
-    // net tutar da AYNI gunde cikar (Cikti) -- gercekte birkac gun
-    // gecikebilir, bu basitlestirilmis bir varsayimdir. ---
+    // --- 2. Komisyonlar: henuz tahsil edilmemis (pending_collection),
+    // vadesi bu 30 gun icinde olanlar. VARSAYIM: brut komisyonun
+    // TAMAMI (musteriden/bankadan) vade gununde tahsil edilir (Girdi),
+    // danismana odenecek pay da AYNI gunde cikar (Cikti) -- gercekte
+    // birkac gun gecikebilir, bu basitlestirilmis bir varsayimdir. ---
     const pendingCommissions = await this.commissionRepo
       .createQueryBuilder('c')
-      .where('c.status IN (:...statuses)', { statuses: [CommissionStatus.PENDING, CommissionStatus.APPROVED] })
-      .andWhere('c.dueDate BETWEEN :from AND :to', { from: fromDate, to: toDate })
+      .where('c.status = :status', { status: AccountingCommissionStatus.PENDING })
+      .andWhere('c.date BETWEEN :from AND :to', { from: fromDate, to: toDate })
       .getMany();
     for (const c of pendingCommissions) {
       const label = c.propertyTitle || 'Komisyon';
-      inflows.push({ source: 'commission_in', label: `Komisyon tahsilatı: ${label}`, amount: Number(c.grossCommission), date: c.dueDate });
-      outflows.push({ source: 'commission_out', label: `Danışman hakedişi: ${label}`, amount: Number(c.netPayable), date: c.dueDate });
+      inflows.push({ source: 'commission_in', label: `Komisyon tahsilatı: ${label}`, amount: Number(c.grossAmount), date: c.date });
+      outflows.push({ source: 'commission_out', label: `Danışman hakedişi: ${label}`, amount: Number(c.agentGrossShare), date: c.date });
     }
 
-    // --- 3. Danisman Aidatlari: odenmemis, bu ay VEYA gelecek ay icin
-    // olan kayitlar. VARSAYIM: vade tarihi net tutulmadigi icin (sadece
-    // 'YYYY-MM' donemi var), her donemin 5. gunu vade kabul edilir. ---
+    // --- 3. Danisman Aidatlari: tahsil edilmemis, bu ay VEYA gelecek ay
+    // icin olan kayitlar. VARSAYIM: vade tarihi net tutulmadigi icin
+    // (sadece 'YYYY-MM' donemi var), her donemin 5. gunu vade kabul edilir. ---
     const periodThis = fromDate.slice(0, 7);
     const nextMonthDate = new Date(today);
     nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
     const periodNext = nextMonthDate.toISOString().slice(0, 7);
     const unpaidDues = await this.agentDueRepo
       .createQueryBuilder('d')
-      .where('d.paid = false')
+      .where('d.status = :status', { status: AccountingRentStatus.PENDING })
       .andWhere('d.period IN (:...periods)', { periods: [periodThis, periodNext] })
       .getMany();
     for (const due of unpaidDues) {
       const approxDate = `${due.period}-05`;
       if (approxDate >= fromDate && approxDate <= toDate) {
-        inflows.push({ source: 'agent_due', label: `Danışman aidatı (${due.period})`, amount: Number(due.expectedAmount), date: approxDate });
+        inflows.push({ source: 'agent_due', label: `Danışman aidatı (${due.period})`, amount: Number(due.amount), date: approxDate });
       }
     }
 

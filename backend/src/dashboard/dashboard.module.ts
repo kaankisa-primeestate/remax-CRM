@@ -5,14 +5,14 @@ import { DashboardController } from './dashboard.controller';
 import { Property } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
-import { Commission } from '../commissions/commission.entity';
+import { AccountingCommission } from '../accounting/accounting-commission.entity';
+import { AccountingRent } from '../accounting/accounting-rent.entity';
 import { User } from '../users/user.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { TransactionNote } from '../transactions/transaction-note.entity';
-import { AgentDue } from '../agent-dues/agent-due.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, Commission, User, Transaction, TransactionNote, AgentDue])],
+  imports: [TypeOrmModule.forFeature([Property, Customer, Interaction, AccountingCommission, User, Transaction, TransactionNote, AccountingRent])],
   controllers: [DashboardController],
   providers: [DashboardService],
 })

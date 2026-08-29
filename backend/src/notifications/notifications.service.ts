@@ -4,7 +4,7 @@ import { IsNull, Not, Repository, In } from 'typeorm';
 import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
 import { Interaction } from '../customers/interaction.entity';
-import { Commission } from '../commissions/commission.entity';
+import { AccountingCommission, AccountingCommissionStatus } from '../accounting/accounting-commission.entity';
 import { User, UserRole } from '../users/user.entity';
 import { PropertyComment } from '../property-comments/property-comment.entity';
 import { Appointment } from '../appointments/appointment.entity';
@@ -59,7 +59,7 @@ export class NotificationsService {
     @InjectRepository(Property) private readonly propertyRepo: Repository<Property>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
     @InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
-    @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
+    @InjectRepository(AccountingCommission) private readonly commissionRepo: Repository<AccountingCommission>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(PropertyComment) private readonly commentRepo: Repository<PropertyComment>,
     @InjectRepository(Appointment) private readonly appointmentRepo: Repository<Appointment>,
@@ -117,8 +117,8 @@ export class NotificationsService {
       }),
       this.commissionRepo.find({ order: { createdAt: 'DESC' }, take: LIMIT_PER_SOURCE }),
       this.commissionRepo.find({
-        where: { status: 'approved' as any, statusChangedAt: Not(IsNull()) },
-        order: { statusChangedAt: 'DESC' },
+        where: { status: AccountingCommissionStatus.COLLECTED, collectedAt: Not(IsNull()) },
+        order: { updatedAt: 'DESC' },
         take: LIMIT_PER_SOURCE,
       }),
       // Onay bekleyen (veya revizyon sonrasi tekrar gonderilen) ilanlar --
@@ -188,11 +188,11 @@ export class NotificationsService {
         read: false,
       })),
       ...approvedCommissions.map((cm) => ({
-        id: `commission-approved-${cm.id}-${new Date(cm.statusChangedAt as Date).getTime()}`,
+        id: `commission-approved-${cm.id}-${new Date(cm.collectedAt as unknown as string).getTime()}`,
         type: 'commission_approved' as const,
-        title: `Komisyon onaylandı: ${cm.propertyTitle || cm.transactionType}`,
+        title: `Komisyon tahsil edildi: ${cm.propertyTitle || cm.transactionType}`,
         agentName: nameFor(cm.agentId),
-        occurredAt: cm.statusChangedAt as Date,
+        occurredAt: new Date(cm.collectedAt as unknown as string),
         read: false,
       })),
       ...pendingApprovalProperties.map((p) => ({
