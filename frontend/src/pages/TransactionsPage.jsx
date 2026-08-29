@@ -253,7 +253,7 @@ export default function TransactionsPage() {
                             </div>
                           )}
                           {t.stage === 'closed' && !t.dealApproved && isBroker && (
-                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }} onClick={() => navigate(`/islemler/${t.id}`)}>
+                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }} onClick={() => navigate(`/islemler/${t.id}?tab=financial`)}>
                               📂 İncele ve Onayla
                             </button>
                           )}

@@ -87,6 +87,13 @@ export class Transaction {
   deedChecklist: DeedChecklistItem[] | null;
 
   // --- KAPANIŞ & KOMİSYON DÖKÜMÜ (7.5) ---
+  // GERCEK kapanis satis/kira bedeli -- offerAmount (Teklif asamasindaki
+  // tutar) ile KARISTIRILMAMALI, bunlar farkli olabilir (pazarlik sonrasi
+  // degisebilir). Bu alan olmadan, Broker onay ekranina girdiginde
+  // "Satis/Kira Bedeli" hep 0.00 goruyordu -- KAYIT EDILEN bir yer yoktu.
+  @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
+  closingAmount: number | null;
+
   @Column({ type: 'numeric', precision: 14, scale: 2, nullable: true })
   totalCommissionAmount: number | null;
 

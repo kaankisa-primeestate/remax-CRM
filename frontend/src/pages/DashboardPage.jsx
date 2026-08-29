@@ -284,7 +284,7 @@ export default function DashboardPage() {
                           {p.totalCommission ? ` · Komisyon: ${money(p.totalCommission)}` : ''}
                         </div>
                         <div className="action-item__buttons">
-                          <Link to={`/islemler/${p.transactionId}`} className="btn btn-primary" style={{ textDecoration: 'none' }}>
+                          <Link to={`/islemler/${p.transactionId}?tab=financial`} className="btn btn-primary" style={{ textDecoration: 'none' }}>
                             İşlem Dosyasını Aç ve Onayla
                           </Link>
                         </div>

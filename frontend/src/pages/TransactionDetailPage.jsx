@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { transactionsApi, TRANSACTION_STAGES, TRANSACTION_DOC_TYPES } from '../api/transactions';
 import { commissionsApi } from '../api/commissions';
 import { customersApi } from '../api/customers';
@@ -32,7 +32,12 @@ export default function TransactionDetailPage() {
   const [property, setProperty] = useState(null);
   const [agentRoster, setAgentRoster] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('activity');
+  const [searchParams] = useSearchParams();
+  // Bildirim zili / Panelim'deki "Islem Dosyasini Ac ve Onayla"
+  // linklerinden geldiyse, dogrudan "Kapanis & Komisyon" sekmesini ac --
+  // eskiden her zaman "Aktivite Akisi" ile aciliyordu, Broker EKSTRA bir
+  // tiklama yapip dogru sekmeyi ARAMAK zorunda kaliyordu.
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'financial' ? 'financial' : 'activity');
 
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
@@ -62,6 +67,7 @@ export default function TransactionDetailPage() {
   // icin kullanilir. Kullanici hala elle DEGISTIREBILIR (zorunlu degil).
   const [agentSharePercent, setAgentSharePercent] = useState(null);
   const [agentShareTouched, setAgentShareTouched] = useState(false);
+  const [totalCommissionTouched, setTotalCommissionTouched] = useState(false);
 
   const [splitDraft, setSplitDraft] = useState('50');
   const [splitSaving, setSplitSaving] = useState(false);
@@ -87,13 +93,16 @@ export default function TransactionDetailPage() {
       setDepositAmount(t.depositAmount != null ? String(t.depositAmount) : '');
       setDepositDate(t.depositDate ? t.depositDate.slice(0, 10) : '');
       setTotalCommission(t.totalCommissionAmount != null ? String(t.totalCommissionAmount) : '');
+      // Eger bu islemde ZATEN kayitli bir toplam komisyon varsa, otomatik
+      // hesaplama bunun UZERINE YAZMASIN.
+      setTotalCommissionTouched(t.totalCommissionAmount != null);
       setAgentCommission(t.agentCommissionAmount != null ? String(t.agentCommissionAmount) : '');
       setOfficeCommission(t.officeCommissionAmount != null ? String(t.officeCommissionAmount) : '');
       // Eger bu islemde ZATEN kayitli bir danisman payi varsa (daha once
       // girilmis/kaydedilmis), otomatik hesaplama bunun UZERINE YAZMASIN
       // -- kullanicinin onceki girisi/duzenlemesi korunur.
       setAgentShareTouched(t.agentCommissionAmount != null);
-      setSaleAmount(t.offerAmount != null ? String(t.offerAmount) : '');
+      setSaleAmount(t.closingAmount != null ? String(t.closingAmount) : (t.offerAmount != null ? String(t.offerAmount) : ''));
       setSplitDraft(t.commissionSplitPercentage != null ? String(t.commissionSplitPercentage) : '50');
 
       const [notesList, docsList, roster] = await Promise.all([
@@ -134,6 +143,25 @@ export default function TransactionDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // "Satis/Kira Bedeli" girildiginde, eger kullanici HENUZ "Toplam
+  // Komisyon"a elle dokunmadiysa, Tasinmaz Ticareti Hakkinda Yonetmelik
+  // uyarinca varsayilan orani OTOMATIK uygula: Satista bedelin %4'u,
+  // Kirada 1 aylik kira bedelinin TAMAMI. Kullanici isterse elle
+  // degistirebilir (zorunlu degil, sadece varsayilan).
+  useEffect(() => {
+    if (totalCommissionTouched) return;
+    const amount = Number(saleAmount);
+    if (!amount) return;
+    const isRent = property?.listingType === 'rent';
+    const computed = isRent ? amount : Math.round(amount * 0.04 * 100) / 100;
+    setTotalCommission(String(computed));
+  }, [saleAmount, property, totalCommissionTouched]);
+
+  function handleTotalCommissionChange(value) {
+    setTotalCommissionTouched(true);
+    setTotalCommission(value);
+  }
 
   // "Toplam Komisyon" girildiginde, eger kullanici HENUZ "Danisman Payi"na
   // elle dokunmadiysa (agentShareTouched=false), danismanin KAYITLI
@@ -231,6 +259,7 @@ export default function TransactionDetailPage() {
     setSavingCommission(true);
     try {
       const updated = await transactionsApi.update(id, {
+        closingAmount: saleAmountNum,
         totalCommissionAmount: totalCommissionNum,
         agentCommissionAmount: agentCommissionNum,
         officeCommissionAmount: officeCommission ? Number(officeCommission) : undefined,
@@ -421,6 +450,8 @@ export default function TransactionDetailPage() {
           <h2 className="dossier__name" style={{ margin: 0 }}>{property?.title || tx.externalPropertyLabel || 'İşlem Dosyası'}</h2>
           <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>
             {customer ? `${customer.firstName} ${customer.lastName}` : tx.externalCustomerLabel || 'Müşteri belirtilmemiş'}
+            {' · '}
+            <span style={{ fontWeight: 600 }}>🧑‍💼 {agentNameFor(tx.agentId)}</span>
           </p>
         </div>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, background: 'var(--ink-navy)', color: 'white', borderRadius: 999, padding: '5px 14px' }}>
@@ -433,6 +464,7 @@ export default function TransactionDetailPage() {
         <div style={{ flex: '1 1 280px', minWidth: 260, maxWidth: 340 }}>
           <div className="folder-panel" style={{ marginBottom: 16 }}>
             <h4 style={{ marginTop: 0, fontSize: 13, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Özet</h4>
+            <div style={{ fontSize: 13, marginBottom: 6, fontWeight: 600 }}>🧑‍💼 Danışman: {agentNameFor(tx.agentId)}</div>
             {customer ? (
               <Link to={`/musteriler/${customer.id}`} style={{ display: 'block', marginBottom: 6, fontSize: 13 }}>👤 {customer.firstName} {customer.lastName} →</Link>
             ) : (
@@ -679,8 +711,15 @@ export default function TransactionDetailPage() {
                   <input type="number" value={saleAmount} onChange={(e) => setSaleAmount(e.target.value)} placeholder="0.00" />
                 </div>
                 <div className="form-field" style={{ marginBottom: 10 }}>
-                  <label>Toplam Hizmet Bedeli / Komisyon (TL)</label>
-                  <input type="number" value={totalCommission} onChange={(e) => setTotalCommission(e.target.value)} placeholder="0.00" />
+                  <label>
+                    Toplam Hizmet Bedeli / Komisyon (TL)
+                    {!totalCommissionTouched && saleAmount && (
+                      <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 10.5 }}>
+                        {' '}· {property?.listingType === 'rent' ? '1 aylık kira bedelinden' : '%4 yasal orandan'} otomatik
+                      </span>
+                    )}
+                  </label>
+                  <input type="number" value={totalCommission} onChange={(e) => handleTotalCommissionChange(e.target.value)} placeholder="0.00" />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                   <div className="form-field">

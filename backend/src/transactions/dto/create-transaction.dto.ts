@@ -82,6 +82,10 @@ export class CreateTransactionDto {
   // Komisyon
   @IsOptional()
   @IsNumber()
+  closingAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
   totalCommissionAmount?: number;
 
   @IsOptional()

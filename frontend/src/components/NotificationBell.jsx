@@ -351,7 +351,7 @@ export default function NotificationBell() {
                 className="btn btn-primary"
                 style={{ width: '100%', marginTop: 4 }}
                 onClick={() => {
-                  navigate(`/islemler/${detailItem.transactionId}`);
+                  navigate(`/islemler/${detailItem.transactionId}?tab=financial`);
                   setDetailItem(null);
                 }}
               >
