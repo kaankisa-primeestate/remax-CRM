@@ -53,7 +53,7 @@ export declare class CommissionsController {
             rate: number;
         } | null;
     }>;
-    findOne(id: string, req: any): Promise<import("./commission.entity").Commission | {
+    findOne(id: string, req: any): Promise<import("../accounting/accounting-commission.entity").AccountingCommission | {
         id: string;
         propertyId: null;
         customerId: null;
@@ -86,7 +86,7 @@ export declare class CommissionsController {
     }>;
     update(id: string, dto: Partial<CreateCommissionDto> & {
         status?: string;
-    }, req: any): Promise<import("./commission.entity").Commission>;
+    }, req: any): Promise<void>;
     remove(id: string, req: any): Promise<void>;
     getPayments(id: string, req: any): Promise<any[]>;
     addPayment(id: string, dto: CreateCommissionPaymentDto, req: any): Promise<import("./commission-payment.entity").CommissionPayment>;

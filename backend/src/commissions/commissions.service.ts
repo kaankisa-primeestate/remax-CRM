@@ -73,6 +73,14 @@ export class CommissionsService {
     // izin veriliyor (baskasi adina degil -- guvenlik icin transactionId
     // uzerinden agentId/collaboratorAgentId dogrulaniyor).
     let agentId = dto.agentId;
+    // KRITIK KURAL: Danisman icin komisyon SADECE "Islemler" uzerinden
+    // GERCEK bir kapanistan olusabilir -- transactionId ZORUNLU. Bu
+    // olmadan, Danisman "Komisyonlar" sayfasindan (varsa) elle, hicbir
+    // islemle iliskisi olmayan bir kayit OLUSTURAMAZ. Broker (Muhasebe
+    // uzerinden) zaten farkli, kendi mekanizmasini kullaniyor.
+    if (requestingUserRole === 'agent' && !dto.transactionId) {
+      throw new ForbiddenException('Komisyon kaydı sadece bir İşlem üzerinden (Kapanışı Yap) oluşturulabilir');
+    }
     if (!agentId && !dto.transactionId) {
       throw new ForbiddenException(
         'Bir danışman seçilmelidir (agentId zorunlu)',
@@ -291,17 +299,12 @@ export class CommissionsService {
       return accountingCommission;
     }
 
-    const commission = await this.commissionsRepository.findOne({
-      where: { id },
-    });
+    // Broker: eski Commission tablosuna DEGIL, YENI AccountingCommission
+    // tablosuna bakiyor -- create() artik SADECE bu tabloya yaziyor,
+    // eski tabloya bakmaya devam etmek "bulunamadi" hatasi verirdi.
+    const commission = await this.accountingCommissionRepository.findOne({ where: { id } });
     if (!commission) {
       throw new NotFoundException('Komisyon kaydı bulunamadı');
-    }
-    if (
-      requestingUserRole === 'agent' &&
-      commission.agentId !== requestingUserId
-    ) {
-      throw new ForbiddenException('Bu kayda erişim yetkiniz yok');
     }
     return commission;
   }
@@ -312,45 +315,19 @@ export class CommissionsService {
     requestingUserId: string,
     requestingUserRole: string,
   ) {
-    if (requestingUserRole === 'agent') {
-      throw new ForbiddenException('Komisyon kayıtları yalnız Broker Muhasebesinden yönetilir');
-    }
-    const commission = await this.findOne(
-      id,
-      requestingUserId,
-      requestingUserRole,
-    ) as Commission;
-
-
-    const statusChanging = dto.status !== undefined && dto.status !== commission.status;
-
-    const merged = { ...commission, ...dto } as any;
-    const { grossCommission, agentGrossShare, netPayable } =
-      this.calculateAmounts(merged);
-
-    Object.assign(commission, dto, {
-      grossCommission,
-      agentGrossShare,
-      netPayable,
-    });
-    if (statusChanging) {
-      commission.statusChangedAt = new Date();
-    }
-
-    return this.commissionsRepository.save(commission);
+    // KRITIK DUZELTME: Bu metod artik kullanilmiyor -- Broker ZATEN
+    // '/komisyonlar' sayfasina giremiyor (dogrudan '/muhasebe'ye
+    // yonlendiriliyor), ve Danisman zaten asagida engelleniyor. Komisyon
+    // durumu (tahsil/ode) artik SADECE Muhasebe modulunun kendi
+    // 'collectCommission'/'payCommission' akisiyla degistirilebilir --
+    // eskiden burada AccountingCommission'in ESKI Commission alan
+    // isimleriyle (grossCommission/netPayable) YANLIS guncellenmeye
+    // calisiliyordu (hicbir zaman calismasa da, kod TUTARSIZDI).
+    throw new ForbiddenException('Komisyon kayıtları artık sadece Muhasebe modülünden yönetilir');
   }
 
   async remove(id: string, requestingUserRole: string) {
-    if (requestingUserRole !== 'broker') {
-      throw new ForbiddenException('Sadece Broker silebilir');
-    }
-    const commission = await this.commissionsRepository.findOne({
-      where: { id },
-    });
-    if (!commission) {
-      throw new NotFoundException('Komisyon kaydı bulunamadı');
-    }
-    await this.commissionsRepository.remove(commission);
+    throw new ForbiddenException('Komisyon kayıtları artık sadece Muhasebe modülünden yönetilir');
   }
 
   async summary(

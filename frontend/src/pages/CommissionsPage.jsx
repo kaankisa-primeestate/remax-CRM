@@ -288,9 +288,6 @@ export default function CommissionsPage() {
             </select>
           )}
           <div style={{ flex: 1 }} />
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Yeni Komisyon Kaydı
-          </button>
         </div>
 
         {loading ? (
@@ -357,13 +354,6 @@ export default function CommissionsPage() {
                       {expandedPaymentsId === c.id ? 'Kapat' : 'Ödeme Geçmişi'}
                     </button>
                   )}
-                  <button
-                    className="btn btn-secondary"
-                    style={{ padding: '4px 10px', fontSize: 12 }}
-                    onClick={() => setEditing(c)}
-                  >
-                    Düzenle
-                  </button>
                   {isBroker && (
                     <button
                       className="btn btn-secondary"

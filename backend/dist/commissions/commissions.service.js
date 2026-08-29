@@ -46,6 +46,9 @@ let CommissionsService = class CommissionsService {
     }
     async create(dto, requestingUserId, requestingUserRole) {
         let agentId = dto.agentId;
+        if (requestingUserRole === 'agent' && !dto.transactionId) {
+            throw new common_1.ForbiddenException('Komisyon kaydı sadece bir İşlem üzerinden (Kapanışı Yap) oluşturulabilir');
+        }
         if (!agentId && !dto.transactionId) {
             throw new common_1.ForbiddenException('Bir danışman seçilmelidir (agentId zorunlu)');
         }
@@ -199,47 +202,17 @@ let CommissionsService = class CommissionsService {
             }
             return accountingCommission;
         }
-        const commission = await this.commissionsRepository.findOne({
-            where: { id },
-        });
+        const commission = await this.accountingCommissionRepository.findOne({ where: { id } });
         if (!commission) {
             throw new common_1.NotFoundException('Komisyon kaydı bulunamadı');
-        }
-        if (requestingUserRole === 'agent' &&
-            commission.agentId !== requestingUserId) {
-            throw new common_1.ForbiddenException('Bu kayda erişim yetkiniz yok');
         }
         return commission;
     }
     async update(id, dto, requestingUserId, requestingUserRole) {
-        if (requestingUserRole === 'agent') {
-            throw new common_1.ForbiddenException('Komisyon kayıtları yalnız Broker Muhasebesinden yönetilir');
-        }
-        const commission = await this.findOne(id, requestingUserId, requestingUserRole);
-        const statusChanging = dto.status !== undefined && dto.status !== commission.status;
-        const merged = { ...commission, ...dto };
-        const { grossCommission, agentGrossShare, netPayable } = this.calculateAmounts(merged);
-        Object.assign(commission, dto, {
-            grossCommission,
-            agentGrossShare,
-            netPayable,
-        });
-        if (statusChanging) {
-            commission.statusChangedAt = new Date();
-        }
-        return this.commissionsRepository.save(commission);
+        throw new common_1.ForbiddenException('Komisyon kayıtları artık sadece Muhasebe modülünden yönetilir');
     }
     async remove(id, requestingUserRole) {
-        if (requestingUserRole !== 'broker') {
-            throw new common_1.ForbiddenException('Sadece Broker silebilir');
-        }
-        const commission = await this.commissionsRepository.findOne({
-            where: { id },
-        });
-        if (!commission) {
-            throw new common_1.NotFoundException('Komisyon kaydı bulunamadı');
-        }
-        await this.commissionsRepository.remove(commission);
+        throw new common_1.ForbiddenException('Komisyon kayıtları artık sadece Muhasebe modülünden yönetilir');
     }
     async summary(requestingUserId, requestingUserRole, filters) {
         if (requestingUserRole === 'agent') {

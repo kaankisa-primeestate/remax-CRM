@@ -58,7 +58,7 @@ export declare class CommissionsService {
         createdAt: Date;
         updatedAt: Date;
     }[] | Commission[]>;
-    findOne(id: string, requestingUserId: string, requestingUserRole: string): Promise<Commission | {
+    findOne(id: string, requestingUserId: string, requestingUserRole: string): Promise<AccountingCommission | {
         id: string;
         propertyId: null;
         customerId: null;
@@ -91,7 +91,7 @@ export declare class CommissionsService {
     }>;
     update(id: string, dto: Partial<CreateCommissionDto> & {
         status?: string;
-    }, requestingUserId: string, requestingUserRole: string): Promise<Commission>;
+    }, requestingUserId: string, requestingUserRole: string): Promise<void>;
     remove(id: string, requestingUserRole: string): Promise<void>;
     summary(requestingUserId: string, requestingUserRole: string, filters: {
         agentId?: string;
