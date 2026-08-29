@@ -507,6 +507,7 @@ export default function CalendarPage() {
                       onClick={() => { setSelectedDate(dStr); setDayDetailOpen(true); }}
                       style={{
                         minHeight: view === 'month' ? 66 : 90,
+                        minWidth: 0,
                         padding: 6,
                         textAlign: 'left',
                         borderRadius: 8,

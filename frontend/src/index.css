@@ -258,6 +258,16 @@ button {
   display: flex;
   gap: 4px;
   margin-bottom: 0;
+  /* Mobilde sekme sayisi ekran genisligini astiginda TASMA yerine
+     yatay KAYDIRMA -- daha once hicbir tasma onleme mekanizmasi yoktu,
+     dar ekranlarda sag taraftaki sekmeler tamamen kesiliyordu. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.folder-tab {
+  flex-shrink: 0;
 }
 
 .folder-tab {
