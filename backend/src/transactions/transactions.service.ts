@@ -16,7 +16,7 @@ import { AddDocumentDto } from './dto/add-document.dto';
 import { UpdateSplitDto } from './dto/update-split.dto';
 import { Property, PropertyStatus } from '../portfolios/property.entity';
 import { Customer } from '../customers/customer.entity';
-import { Commission, CommissionStatus } from '../commissions/commission.entity';
+import { AccountingCommission } from '../accounting/accounting-commission.entity';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
 const DEFAULT_DEED_CHECKLIST: DeedChecklistItem[] = [
@@ -54,7 +54,7 @@ export class TransactionsService {
     @InjectRepository(TransactionDocument) private readonly documentRepo: Repository<TransactionDocument>,
     @InjectRepository(Property) private readonly propertyRepo: Repository<Property>,
     @InjectRepository(Customer) private readonly customerRepo: Repository<Customer>,
-    @InjectRepository(Commission) private readonly commissionRepo: Repository<Commission>,
+    @InjectRepository(AccountingCommission) private readonly accountingCommissionRepo: Repository<AccountingCommission>,
   ) {}
 
   async create(dto: CreateTransactionDto, currentUser: CurrentUserPayload): Promise<Transaction> {
@@ -215,35 +215,26 @@ export class TransactionsService {
       );
     }
     if (dealJustApproved) {
-      // KRITIK DUZELTME: Bu satirdan once, Broker'in "Onayla" demesi
-      // SADECE Transaction.dealApproved bayragini isaretliyordu -- ilgili
-      // Commission kaydi(lari)nin durumunu HIC guncellemiyordu. Sonuc:
-      // danisman cari ekstresi (sadece 'approved'/'paid' durumundaki
-      // komisyonlari sayar) bu hakedisi ASLA gormuyordu, ta ki Broker
-      // AYRICA, bagimsiz olarak Komisyonlar sayfasindan da elle "Onayla"
-      // demeyi hatirlayana kadar -- iki kopuk onay adimi, unutulmaya
-      // acik bir tasarim hatasiydi (mentorluk dokumaniyla karsilastirma
-      // sirasinda tespit edildi). Artik TEK onay adimi yeterli: Broker
-      // Transaction'i onaylar onaylamaz, o islemle iliskili TUM
-      // 'pending' komisyonlar (isbirlikli satista birden fazla olabilir)
-      // otomatik olarak 'approved' durumuna geciyor.
-      const relatedCommissions = await this.commissionRepo.find({
-        where: { transactionId: saved.id, status: CommissionStatus.PENDING },
+      // GUNCELLEME: Komisyon kaydi artik Danisman "Kapanisi Yap" dedigi
+      // ANDA (islem olusturulurken degil, ayrica CommissionsService.create()
+      // uzerinden) dogrudan YENI Muhasebe tablosuna (AccountingCommission,
+      // PENDING durumunda) yaziliyor -- ESKI Commission tablosuna HIC
+      // yazilmiyor artik. YENI sistemde "Broker onayi" ile "tahsil etme"
+      // FARKLI kavramlar (tahsilat, Muhasebe ekranindan Broker'in ELLE
+      // hangi hesaba girdigini secmesini gerektiriyor) -- bu yuzden
+      // burada komisyon DURUMUNU degistirmiyoruz, sadece ISLEM onayinin
+      // notunu, o islemle iliskili kac komisyon kaydi oldugunu bilgi
+      // amacli belirtecek sekilde yaziyoruz.
+      const relatedCommissions = await this.accountingCommissionRepo.find({
+        where: { transactionId: saved.id },
       });
-      for (const commission of relatedCommissions) {
-        commission.status = CommissionStatus.APPROVED;
-        commission.statusChangedAt = new Date();
-      }
-      if (relatedCommissions.length > 0) {
-        await this.commissionRepo.save(relatedCommissions);
-      }
 
       await this.noteRepo.save(
         this.noteRepo.create({
           transactionId: saved.id,
           text:
             relatedCommissions.length > 0
-              ? `✅ İşlem Broker (${currentUser.name}) tarafından onaylandı — ${relatedCommissions.length} komisyon kaydı hakedişe dönüştü.`
+              ? `✅ İşlem Broker (${currentUser.name}) tarafından onaylandı — ${relatedCommissions.length} komisyon kaydı Muhasebe'de tahsilat bekliyor.`
               : `✅ İşlem Broker (${currentUser.name}) tarafından onaylandı — komisyon süreci başladı.`,
           authorId: currentUser.userId,
           authorName: currentUser.name,

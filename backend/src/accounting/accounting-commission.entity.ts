@@ -26,6 +26,12 @@ export class AccountingCommission {
   @Column({ type: 'uuid' })
   agentId: string;
 
+  // Bu komisyonun hangi Islem'den (Transaction) dogdugunu izler --
+  // Danisman "Kapanisi Yap" dedigi anda BURADAN otomatik komisyon
+  // olusturulur, iliskiyi kaybetmemek icin saklanir.
+  @Column({ type: 'uuid', nullable: true })
+  transactionId: string | null;
+
   // Aynı form gönderiminin çift tıklama/retry ile iki kez oluşmasını önler.
   @Column({ type: 'varchar', length: 100, nullable: true, unique: true })
   idempotencyKey: string | null;

@@ -21,13 +21,19 @@ const commission_payment_entity_1 = require("./commission-payment.entity");
 const bank_transaction_entity_1 = require("../bank-accounts/bank-transaction.entity");
 const transaction_entity_1 = require("../transactions/transaction.entity");
 const cheque_note_entity_1 = require("../cheque-notes/cheque-note.entity");
+const accounting_agent_read_service_1 = require("../accounting/accounting-agent-read.service");
+const accounting_commission_entity_1 = require("../accounting/accounting-commission.entity");
+const user_entity_1 = require("../users/user.entity");
 let CommissionsService = class CommissionsService {
-    constructor(commissionsRepository, paymentsRepository, bankTransactionRepository, transactionRepository, chequeNoteRepository) {
+    constructor(commissionsRepository, paymentsRepository, bankTransactionRepository, transactionRepository, chequeNoteRepository, accountingCommissionRepository, userRepository, accountingAgentReadService) {
         this.commissionsRepository = commissionsRepository;
         this.paymentsRepository = paymentsRepository;
         this.bankTransactionRepository = bankTransactionRepository;
         this.transactionRepository = transactionRepository;
         this.chequeNoteRepository = chequeNoteRepository;
+        this.accountingCommissionRepository = accountingCommissionRepository;
+        this.userRepository = userRepository;
+        this.accountingAgentReadService = accountingAgentReadService;
     }
     calculateAmounts(dto) {
         const grossCommission = (dto.transactionAmount * dto.commissionRate) / 100;
@@ -40,11 +46,8 @@ let CommissionsService = class CommissionsService {
     }
     async create(dto, requestingUserId, requestingUserRole) {
         let agentId = dto.agentId;
-        if (requestingUserRole === 'agent') {
-            agentId = requestingUserId;
-        }
-        else if (!agentId && !dto.transactionId) {
-            throw new common_1.ForbiddenException('Broker bir danışman seçmelidir (agentId zorunlu)');
+        if (!agentId && !dto.transactionId) {
+            throw new common_1.ForbiddenException('Bir danışman seçilmelidir (agentId zorunlu)');
         }
         if (dto.transactionId) {
             const transaction = await this.transactionRepository.findOne({
@@ -52,6 +55,11 @@ let CommissionsService = class CommissionsService {
             });
             if (!transaction) {
                 throw new common_1.NotFoundException('İşlem bulunamadı');
+            }
+            if (requestingUserRole === 'agent' &&
+                transaction.agentId !== requestingUserId &&
+                transaction.collaboratorAgentId !== requestingUserId) {
+                throw new common_1.ForbiddenException('Bu işlem için komisyon oluşturma yetkiniz yok');
             }
             if (transaction.collaboratorAgentId && transaction.splitFinalizedAt) {
                 const ownerAgentId = transaction.agentId;
@@ -63,61 +71,97 @@ let CommissionsService = class CommissionsService {
                     ...dto,
                     agentSharePercent: (baseSharePercent * ownerSplitPercent) / 100,
                 };
-                const { grossCommission: g1, agentGrossShare: a1, netPayable: n1 } = this.calculateAmounts(ownerDto);
-                const ownerCommission = this.commissionsRepository.create({
-                    ...dto,
+                const { grossCommission: g1, agentGrossShare: a1 } = this.calculateAmounts(ownerDto);
+                const ownerCommission = await this.createAccountingCommission({
                     agentId: ownerAgentId,
-                    agentSharePercent: ownerDto.agentSharePercent,
-                    grossCommission: g1,
-                    agentGrossShare: a1,
-                    netPayable: n1,
-                    withholdingTaxPercent: dto.withholdingTaxPercent || 0,
-                    vatPercent: dto.vatPercent || 0,
-                    penaltyAmount: dto.penaltyAmount || 0,
                     transactionId: transaction.id,
-                    collaboratorAgentId: collaboratorAgentId,
-                    collaboratorSplitPercent: ownerSplitPercent,
+                    propertyTitle: dto.propertyTitle,
+                    transactionType: dto.transactionType,
+                    date: dto.dueDate,
+                    grossAmount: g1,
+                    agentSharePercent: ownerDto.agentSharePercent,
+                    agentGrossShare: a1,
+                    notes: dto.notes,
+                    createdBy: requestingUserId,
                 });
                 const collaboratorDto = {
                     ...dto,
                     agentSharePercent: (baseSharePercent * collaboratorSplitPercent) / 100,
                 };
-                const { grossCommission: g2, agentGrossShare: a2, netPayable: n2 } = this.calculateAmounts(collaboratorDto);
-                const collaboratorCommission = this.commissionsRepository.create({
-                    ...dto,
+                const { grossCommission: g2, agentGrossShare: a2 } = this.calculateAmounts(collaboratorDto);
+                const collaboratorCommission = await this.createAccountingCommission({
                     agentId: collaboratorAgentId,
-                    agentSharePercent: collaboratorDto.agentSharePercent,
-                    grossCommission: g2,
-                    agentGrossShare: a2,
-                    netPayable: n2,
-                    withholdingTaxPercent: dto.withholdingTaxPercent || 0,
-                    vatPercent: dto.vatPercent || 0,
-                    penaltyAmount: dto.penaltyAmount || 0,
                     transactionId: transaction.id,
-                    collaboratorAgentId: ownerAgentId,
-                    collaboratorSplitPercent: collaboratorSplitPercent,
+                    propertyTitle: dto.propertyTitle,
+                    transactionType: dto.transactionType,
+                    date: dto.dueDate,
+                    grossAmount: g2,
+                    agentSharePercent: collaboratorDto.agentSharePercent,
+                    agentGrossShare: a2,
+                    notes: dto.notes,
+                    createdBy: requestingUserId,
                 });
-                return this.commissionsRepository.save([ownerCommission, collaboratorCommission]);
+                return [ownerCommission, collaboratorCommission];
             }
+            agentId = agentId || transaction.agentId;
         }
         if (!agentId) {
-            throw new common_1.ForbiddenException('Broker bir danışman seçmelidir (agentId zorunlu)');
+            throw new common_1.ForbiddenException('Bir danışman seçilmelidir (agentId zorunlu)');
         }
-        const { grossCommission, agentGrossShare, netPayable } = this.calculateAmounts(dto);
-        const commission = this.commissionsRepository.create({
-            ...dto,
+        const { grossCommission, agentGrossShare } = this.calculateAmounts(dto);
+        const commission = await this.createAccountingCommission({
             agentId,
-            grossCommission,
+            transactionId: dto.transactionId || null,
+            propertyTitle: dto.propertyTitle,
+            transactionType: dto.transactionType,
+            date: dto.dueDate,
+            grossAmount: grossCommission,
+            agentSharePercent: Number(dto.agentSharePercent),
             agentGrossShare,
-            netPayable,
-            withholdingTaxPercent: dto.withholdingTaxPercent || 0,
-            vatPercent: dto.vatPercent || 0,
-            penaltyAmount: dto.penaltyAmount || 0,
+            notes: dto.notes,
+            createdBy: requestingUserId,
         });
-        const saved = await this.commissionsRepository.save(commission);
-        return [saved];
+        return [commission];
+    }
+    async createAccountingCommission(params) {
+        const agent = await this.userRepository.findOne({ where: { id: params.agentId } });
+        if (!agent) {
+            throw new common_1.NotFoundException('Danışman bulunamadı');
+        }
+        if (params.transactionId) {
+            const existing = await this.accountingCommissionRepository.findOne({
+                where: { transactionId: params.transactionId, agentId: params.agentId },
+            });
+            if (existing)
+                return existing;
+        }
+        const officeShare = params.grossAmount - params.agentGrossShare;
+        const commission = this.accountingCommissionRepository.create({
+            agentId: params.agentId,
+            transactionId: params.transactionId,
+            agentNameSnapshot: agent.name,
+            transactionType: params.transactionType,
+            propertyTitle: params.propertyTitle?.trim() || null,
+            date: params.date,
+            grossAmount: params.grossAmount,
+            currency: 'TRY',
+            agentSharePercent: params.agentSharePercent,
+            agentGrossShare: params.agentGrossShare,
+            officeShare,
+            status: accounting_commission_entity_1.AccountingCommissionStatus.PENDING,
+            notes: params.notes?.trim() || null,
+            createdBy: params.createdBy,
+        });
+        return this.accountingCommissionRepository.save(commission);
     }
     async findAll(requestingUserId, requestingUserRole, filters) {
+        if (requestingUserRole === 'agent') {
+            return this.accountingAgentReadService.listCommissions(requestingUserId, {
+                status: filters.status,
+                fromDate: filters.fromDate,
+                toDate: filters.toDate,
+            });
+        }
         const query = this.commissionsRepository.createQueryBuilder('commission');
         if (requestingUserRole === 'agent') {
             query.andWhere('commission.agentId = :agentId', {
@@ -148,6 +192,13 @@ let CommissionsService = class CommissionsService {
         return query.getMany();
     }
     async findOne(id, requestingUserId, requestingUserRole) {
+        if (requestingUserRole === 'agent') {
+            const accountingCommission = await this.accountingAgentReadService.findCommission(requestingUserId, id);
+            if (!accountingCommission) {
+                throw new common_1.NotFoundException('Komisyon kaydı bulunamadı');
+            }
+            return accountingCommission;
+        }
         const commission = await this.commissionsRepository.findOne({
             where: { id },
         });
@@ -161,10 +212,10 @@ let CommissionsService = class CommissionsService {
         return commission;
     }
     async update(id, dto, requestingUserId, requestingUserRole) {
-        const commission = await this.findOne(id, requestingUserId, requestingUserRole);
-        if (requestingUserRole === 'agent' && dto.status) {
-            throw new common_1.ForbiddenException('Durum değişikliğini sadece Broker yapabilir');
+        if (requestingUserRole === 'agent') {
+            throw new common_1.ForbiddenException('Komisyon kayıtları yalnız Broker Muhasebesinden yönetilir');
         }
+        const commission = await this.findOne(id, requestingUserId, requestingUserRole);
         const statusChanging = dto.status !== undefined && dto.status !== commission.status;
         const merged = { ...commission, ...dto };
         const { grossCommission, agentGrossShare, netPayable } = this.calculateAmounts(merged);
@@ -191,6 +242,9 @@ let CommissionsService = class CommissionsService {
         await this.commissionsRepository.remove(commission);
     }
     async summary(requestingUserId, requestingUserRole, filters) {
+        if (requestingUserRole === 'agent') {
+            return this.accountingAgentReadService.summarizeCommissions(requestingUserId, filters);
+        }
         const commissions = await this.findAll(requestingUserId, requestingUserRole, filters);
         const totalGross = commissions.reduce((sum, c) => sum + Number(c.grossCommission), 0);
         const totalNetPayable = commissions.reduce((sum, c) => sum + Number(c.netPayable), 0);
@@ -208,7 +262,13 @@ let CommissionsService = class CommissionsService {
             totalPending,
         };
     }
-    async getPayments(commissionId) {
+    async getPayments(commissionId, requestingUserId, requestingUserRole) {
+        if (requestingUserRole === 'agent' && requestingUserId) {
+            const payments = await this.accountingAgentReadService.listCommissionPayments(requestingUserId, commissionId);
+            if (!payments)
+                throw new common_1.NotFoundException('Komisyon kaydı bulunamadı');
+            return payments;
+        }
         return this.paymentsRepository.find({
             where: { commissionId },
             order: { date: 'DESC', createdAt: 'DESC' },
@@ -310,10 +370,15 @@ exports.CommissionsService = CommissionsService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(bank_transaction_entity_1.BankTransaction)),
     __param(3, (0, typeorm_1.InjectRepository)(transaction_entity_1.Transaction)),
     __param(4, (0, typeorm_1.InjectRepository)(cheque_note_entity_1.ChequeNote)),
+    __param(5, (0, typeorm_1.InjectRepository)(accounting_commission_entity_1.AccountingCommission)),
+    __param(6, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        accounting_agent_read_service_1.AccountingAgentReadService])
 ], CommissionsService);
 //# sourceMappingURL=commissions.service.js.map

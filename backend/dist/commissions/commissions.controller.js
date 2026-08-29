@@ -55,8 +55,8 @@ let CommissionsController = class CommissionsController {
     remove(id, req) {
         return this.commissionsService.remove(id, req.user.role);
     }
-    getPayments(id) {
-        return this.commissionsService.getPayments(id);
+    getPayments(id, req) {
+        return this.commissionsService.getPayments(id, req.user.userId, req.user.role);
     }
     addPayment(id, dto, req) {
         return this.commissionsService.addPayment(id, dto, req.user.role);
@@ -131,8 +131,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':id/payments'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], CommissionsController.prototype, "getPayments", null);
 __decorate([
