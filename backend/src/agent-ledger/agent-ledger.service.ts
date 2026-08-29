@@ -11,6 +11,7 @@ import { AgentDue } from '../agent-dues/agent-due.entity';
 import { User } from '../users/user.entity';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
+import { AccountingAgentReadService } from '../accounting/accounting-agent-read.service';
 
 export interface StatementEntry {
   date: string;
@@ -48,6 +49,7 @@ export class AgentLedgerService {
     @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
     @InjectRepository(AgentDue) private readonly agentDueRepo: Repository<AgentDue>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
+    private readonly accountingAgentReadService: AccountingAgentReadService,
   ) {}
 
   private assertAccess(agentId: string, currentUser: CurrentUserPayload) {
@@ -58,6 +60,9 @@ export class AgentLedgerService {
 
   async getBalance(agentId: string, currentUser: CurrentUserPayload): Promise<number> {
     this.assertAccess(agentId, currentUser);
+    if (currentUser.role === 'agent') {
+      return this.accountingAgentReadService.getBalance(agentId);
+    }
     const commissions = await this.commissionRepo.find({
       where: { agentId, status: In(['approved', 'paid']) as any },
     });
@@ -99,6 +104,9 @@ export class AgentLedgerService {
   // "ekstre" gibi okuyabilecegi bir gorunum.
   async getHistory(agentId: string, currentUser: CurrentUserPayload): Promise<any[]> {
     this.assertAccess(agentId, currentUser);
+    if (currentUser.role === 'agent') {
+      return this.accountingAgentReadService.getHistory(agentId);
+    }
     const commissions = await this.commissionRepo.find({
       where: { agentId, status: In(['approved', 'paid']) as any },
     });
@@ -150,6 +158,9 @@ export class AgentLedgerService {
     toDate?: string,
   ): Promise<{ entries: StatementEntry[]; summary: StatementSummary }> {
     this.assertAccess(agentId, currentUser);
+    if (currentUser.role === 'agent') {
+      return this.accountingAgentReadService.getStatement(agentId, fromDate, toDate);
+    }
 
     const commissions = await this.commissionRepo.find({
       where: { agentId, status: In(['approved', 'paid']) as any },

@@ -7,6 +7,7 @@ import { MarkPaidDto } from './dto/mark-paid.dto';
 import { User, UserRole } from '../users/user.entity';
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
+import { AccountingAgentReadService } from '../accounting/accounting-agent-read.service';
 
 @Injectable()
 export class AgentDuesService {
@@ -14,6 +15,7 @@ export class AgentDuesService {
     @InjectRepository(AgentDue) private readonly dueRepo: Repository<AgentDue>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(BankTransaction) private readonly bankTransactionRepo: Repository<BankTransaction>,
+    private readonly accountingAgentReadService: AccountingAgentReadService,
   ) {}
 
   // Broker: "Bu ayin aidatlarini olustur" -- aylik aidat tutari
@@ -67,9 +69,11 @@ export class AgentDuesService {
   }
 
   // Danisman sadece kendi aidatlarini, Broker tumunu gorur.
-  async findAll(currentUser: CurrentUserPayload): Promise<AgentDue[]> {
-    const where = currentUser.role === 'agent' ? { agentId: currentUser.userId } : {};
-    return this.dueRepo.find({ where, order: { period: 'DESC' } });
+  async findAll(currentUser: CurrentUserPayload): Promise<any[]> {
+    if (currentUser.role === 'agent') {
+      return this.accountingAgentReadService.listRents(currentUser.userId);
+    }
+    return this.dueRepo.find({ order: { period: 'DESC' } });
   }
 
   async markPaid(id: string, dto: MarkPaidDto, currentUser: CurrentUserPayload): Promise<AgentDue> {

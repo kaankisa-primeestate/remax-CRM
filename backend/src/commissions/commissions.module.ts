@@ -8,9 +8,10 @@ import { ChequeNote } from '../cheque-notes/cheque-note.entity';
 import { UsersModule } from '../users/users.module';
 import { CommissionsService } from './commissions.service';
 import { CommissionsController } from './commissions.controller';
+import { AccountingModule } from '../accounting/accounting.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Commission, CommissionPayment, BankTransaction, Transaction, ChequeNote]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Commission, CommissionPayment, BankTransaction, Transaction, ChequeNote]), UsersModule, AccountingModule],
   providers: [CommissionsService],
   controllers: [CommissionsController],
   exports: [CommissionsService],

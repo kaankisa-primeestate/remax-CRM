@@ -26,6 +26,7 @@ import { ChequeNote } from '../cheque-notes/cheque-note.entity';
 import { AccountingController } from './accounting.controller';
 import { AccountingService } from './accounting.service';
 import { AccountingMigrationService } from './accounting-migration.service';
+import { AccountingAgentReadService } from './accounting-agent-read.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([
@@ -54,7 +55,7 @@ import { AccountingMigrationService } from './accounting-migration.service';
     ChequeNote,
   ])],
   controllers: [AccountingController],
-  providers: [AccountingService, AccountingMigrationService],
-  exports: [AccountingService],
+  providers: [AccountingService, AccountingMigrationService, AccountingAgentReadService],
+  exports: [AccountingService, AccountingAgentReadService],
 })
 export class AccountingModule {}

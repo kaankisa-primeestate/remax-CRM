@@ -12,6 +12,7 @@ import { CreateCommissionPaymentDto } from './dto/create-commission-payment.dto'
 import { BankTransaction, BankTransactionType } from '../bank-accounts/bank-transaction.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { ChequeNote, ChequeNoteType, ChequeNoteDirection, ChequeNoteStatus } from '../cheque-notes/cheque-note.entity';
+import { AccountingAgentReadService } from '../accounting/accounting-agent-read.service';
 
 @Injectable()
 export class CommissionsService {
@@ -26,6 +27,7 @@ export class CommissionsService {
     private transactionRepository: Repository<Transaction>,
     @InjectRepository(ChequeNote)
     private chequeNoteRepository: Repository<ChequeNote>,
+    private readonly accountingAgentReadService: AccountingAgentReadService,
   ) {}
 
   private calculateAmounts(dto: {
@@ -56,11 +58,13 @@ export class CommissionsService {
     requestingUserId: string,
     requestingUserRole: string,
   ): Promise<Commission[]> {
-    // Danışman sadece kendi adına kayıt girebilir; Broker istediği danışman adına girebilir
-    let agentId = dto.agentId;
+    // Danışman sayfası artık yeni Muhasebe kayıtlarını salt-okunur gösterir;
+    // eski Commission tablosuna danışman tarafından yeni kayıt yazılamaz.
     if (requestingUserRole === 'agent') {
-      agentId = requestingUserId;
-    } else if (!agentId && !dto.transactionId) {
+      throw new ForbiddenException('Komisyon kayıtları yalnız Broker Muhasebesinden yönetilir');
+    }
+    let agentId = dto.agentId;
+    if (!agentId && !dto.transactionId) {
       throw new ForbiddenException(
         'Broker bir danışman seçmelidir (agentId zorunlu)',
       );
@@ -169,6 +173,14 @@ export class CommissionsService {
       toDate?: string;
     },
   ) {
+    if (requestingUserRole === 'agent') {
+      return this.accountingAgentReadService.listCommissions(requestingUserId, {
+        status: filters.status,
+        fromDate: filters.fromDate,
+        toDate: filters.toDate,
+      });
+    }
+
     const query = this.commissionsRepository.createQueryBuilder('commission');
 
     if (requestingUserRole === 'agent') {
@@ -209,6 +221,14 @@ export class CommissionsService {
     requestingUserId: string,
     requestingUserRole: string,
   ) {
+    if (requestingUserRole === 'agent') {
+      const accountingCommission = await this.accountingAgentReadService.findCommission(requestingUserId, id);
+      if (!accountingCommission) {
+        throw new NotFoundException('Komisyon kaydı bulunamadı');
+      }
+      return accountingCommission;
+    }
+
     const commission = await this.commissionsRepository.findOne({
       where: { id },
     });
@@ -230,18 +250,15 @@ export class CommissionsService {
     requestingUserId: string,
     requestingUserRole: string,
   ) {
+    if (requestingUserRole === 'agent') {
+      throw new ForbiddenException('Komisyon kayıtları yalnız Broker Muhasebesinden yönetilir');
+    }
     const commission = await this.findOne(
       id,
       requestingUserId,
       requestingUserRole,
-    );
+    ) as Commission;
 
-    // Danışman sadece durumunu değiştiremez, sadece Broker onaylayıp ödeyebilir
-    if (requestingUserRole === 'agent' && dto.status) {
-      throw new ForbiddenException(
-        'Durum değişikliğini sadece Broker yapabilir',
-      );
-    }
 
     const statusChanging = dto.status !== undefined && dto.status !== commission.status;
 
@@ -278,7 +295,12 @@ export class CommissionsService {
     requestingUserId: string,
     requestingUserRole: string,
     filters: { agentId?: string; fromDate?: string; toDate?: string },
-  ) {    const commissions = await this.findAll(
+  ) {
+    if (requestingUserRole === 'agent') {
+      return this.accountingAgentReadService.summarizeCommissions(requestingUserId, filters);
+    }
+
+    const commissions = await this.findAll(
       requestingUserId,
       requestingUserRole,
       filters,
@@ -313,7 +335,19 @@ export class CommissionsService {
   // odeme eklenebilir. Kalan bakiye = netPayable - tum odemelerin
   // toplami. Kalan 0'a inince komisyon otomatik "Odendi" olur.
 
-  async getPayments(commissionId: string): Promise<CommissionPayment[]> {
+  async getPayments(
+    commissionId: string,
+    requestingUserId?: string,
+    requestingUserRole?: string,
+  ): Promise<any[]> {
+    if (requestingUserRole === 'agent' && requestingUserId) {
+      const payments = await this.accountingAgentReadService.listCommissionPayments(
+        requestingUserId,
+        commissionId,
+      );
+      if (!payments) throw new NotFoundException('Komisyon kaydı bulunamadı');
+      return payments;
+    }
     return this.paymentsRepository.find({
       where: { commissionId },
       order: { date: 'DESC', createdAt: 'DESC' },

@@ -102,8 +102,8 @@ export class CommissionsController {
 
   // GET /api/commissions/:id/payments -- bir komisyonun kismi odeme gecmisi
   @Get(':id/payments')
-  getPayments(@Param('id') id: string) {
-    return this.commissionsService.getPayments(id);
+  getPayments(@Param('id') id: string, @Request() req) {
+    return this.commissionsService.getPayments(id, req.user.userId, req.user.role);
   }
 
   // POST /api/commissions/:id/payments -- Broker kismi odeme ekler

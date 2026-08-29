@@ -9,11 +9,13 @@ import { User } from '../users/user.entity';
 import { AgentLedgerService } from './agent-ledger.service';
 import { AgentLedgerController } from './agent-ledger.controller';
 import { UsersModule } from '../users/users.module';
+import { AccountingModule } from '../accounting/accounting.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Commission, CommissionPayment, AgentLedgerAdjustment, BankTransaction, AgentDue, User]),
     UsersModule,
+    AccountingModule,
   ],
   providers: [AgentLedgerService],
   controllers: [AgentLedgerController],
