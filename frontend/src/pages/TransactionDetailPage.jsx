@@ -57,9 +57,17 @@ export default function TransactionDetailPage() {
   const [officeCommission, setOfficeCommission] = useState('');
   const [saleAmount, setSaleAmount] = useState('');
   const [savingCommission, setSavingCommission] = useState(false);
+  // Danismanin KAYITLI komisyon orani (kayit ekraninda tanimlanan) --
+  // "Toplam Komisyon" girildiginde Danisman Payi'ni OTOMATIK hesaplamak
+  // icin kullanilir. Kullanici hala elle DEGISTIREBILIR (zorunlu degil).
+  const [agentSharePercent, setAgentSharePercent] = useState(null);
+  const [agentShareTouched, setAgentShareTouched] = useState(false);
 
   const [splitDraft, setSplitDraft] = useState('50');
   const [splitSaving, setSplitSaving] = useState(false);
+  const [rejectNote, setRejectNote] = useState('');
+  const [showRejectBox, setShowRejectBox] = useState(false);
+  const [approvalSaving, setApprovalSaving] = useState(false);
 
   function agentNameFor(agentId) {
     return agentRoster.find((a) => a.id === agentId)?.name || 'Bilinmeyen';
@@ -81,6 +89,10 @@ export default function TransactionDetailPage() {
       setTotalCommission(t.totalCommissionAmount != null ? String(t.totalCommissionAmount) : '');
       setAgentCommission(t.agentCommissionAmount != null ? String(t.agentCommissionAmount) : '');
       setOfficeCommission(t.officeCommissionAmount != null ? String(t.officeCommissionAmount) : '');
+      // Eger bu islemde ZATEN kayitli bir danisman payi varsa (daha once
+      // girilmis/kaydedilmis), otomatik hesaplama bunun UZERINE YAZMASIN
+      // -- kullanicinin onceki girisi/duzenlemesi korunur.
+      setAgentShareTouched(t.agentCommissionAmount != null);
       setSaleAmount(t.offerAmount != null ? String(t.offerAmount) : '');
       setSplitDraft(t.commissionSplitPercentage != null ? String(t.commissionSplitPercentage) : '50');
 
@@ -92,6 +104,23 @@ export default function TransactionDetailPage() {
       setNotes(notesList);
       setDocuments(docsList);
       setAgentRoster(roster);
+
+      // Danismanin KAYITLI komisyon oranini cek -- Broker ise TUM
+      // danisman listesinden (zengin veri, sadece Broker'a acik) ilgili
+      // danismani bulur; Danisman ise SADECE kendi profilini cekebilir
+      // (yetki kisitlamasi nedeniyle), zaten kendi islemi oldugu icin yeterli.
+      try {
+        if (isBroker) {
+          const allAgents = await usersApi.listAgents();
+          const owner = allAgents.find((a) => a.id === t.agentId);
+          setAgentSharePercent(owner?.commissionSharePercentage ?? null);
+        } else {
+          const me = await usersApi.getMe();
+          setAgentSharePercent(me?.commissionSharePercentage ?? null);
+        }
+      } catch {
+        setAgentSharePercent(null);
+      }
 
       if (t.customerId) customersApi.getOne(t.customerId).then(setCustomer).catch(() => setCustomer(null));
       if (t.propertyId) propertiesApi.getOne(t.propertyId).then(setProperty).catch(() => setProperty(null));
@@ -105,6 +134,29 @@ export default function TransactionDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // "Toplam Komisyon" girildiginde, eger kullanici HENUZ "Danisman Payi"na
+  // elle dokunmadiysa (agentShareTouched=false), danismanin KAYITLI
+  // oranina gore OTOMATIK hesapla -- ama kullanici isterse ustune yazip
+  // DEGISTIREBILIR (bkz. handleAgentCommissionChange).
+  useEffect(() => {
+    if (agentShareTouched) return;
+    if (agentSharePercent == null) return;
+    const total = Number(totalCommission);
+    if (!total) return;
+    const computed = Math.round(((total * agentSharePercent) / 100) * 100) / 100;
+    setAgentCommission(String(computed));
+    setOfficeCommission(String(Math.round((total - computed) * 100) / 100));
+  }, [totalCommission, agentSharePercent, agentShareTouched]);
+
+  function handleAgentCommissionChange(value) {
+    setAgentShareTouched(true);
+    setAgentCommission(value);
+    const total = Number(totalCommission);
+    if (total) {
+      setOfficeCommission(String(Math.round((total - Number(value || 0)) * 100) / 100));
+    }
+  }
 
   async function handleSaveShowing() {
     setSavingShowing(true);
@@ -210,6 +262,43 @@ export default function TransactionDetailPage() {
       alert('Komisyon kaydedilemedi.');
     } finally {
       setSavingCommission(false);
+    }
+  }
+
+  // Broker icin: satis/kapanis OZETINI gorup, TEK adimda onayla ya da
+  // itiraz notu yazip Danismana geri gonder. Eskiden Broker "Onayla"
+  // butonuna (Islemler listesinde) tikladiginda HICBIR OZET GORMEDEN,
+  // dogrudan onaylaniyordu -- kullanicinin "ne onayladigimi bilmiyorum"
+  // sikayeti buradan geliyordu.
+  async function handleApproveDeal() {
+    setApprovalSaving(true);
+    try {
+      const updated = await transactionsApi.update(id, { dealApproved: true });
+      setTx(updated);
+      const fresh = await transactionsApi.getNotes(id);
+      setNotes(fresh);
+    } catch (err) {
+      const message = err?.response?.data?.message ?? 'Onaylanamadı.';
+      alert(Array.isArray(message) ? message.join(', ') : message);
+    } finally {
+      setApprovalSaving(false);
+    }
+  }
+
+  async function handleSendRejectNote() {
+    if (!rejectNote.trim()) return;
+    setApprovalSaving(true);
+    try {
+      await transactionsApi.addNote(id, `⚠️ Broker itirazı: ${rejectNote.trim()}`);
+      const fresh = await transactionsApi.getNotes(id);
+      setNotes(fresh);
+      setRejectNote('');
+      setShowRejectBox(false);
+      alert('İtiraz notu danışmana iletildi.');
+    } catch {
+      alert('Not gönderilemedi, tekrar deneyin.');
+    } finally {
+      setApprovalSaving(false);
     }
   }
 
@@ -545,6 +634,38 @@ export default function TransactionDetailPage() {
             {activeTab === 'financial' && (
               <div>
                 <h4 style={{ marginTop: 0 }}>💰 Kapanış & Komisyon Dökümü</h4>
+                {isBroker && tx.stage === 'closed' && !tx.dealApproved && (
+                  <div style={{ background: '#fdf3e0', border: '1px solid #e8d5a8', borderRadius: 6, padding: '14px', marginBottom: 16 }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600 }}>
+                      ⏳ Bu işlem onayınızı bekliyor — aşağıdaki kapanış dökümünü inceleyip onaylayın ya da itiraz notu yazın.
+                    </p>
+                    {!showRejectBox ? (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="button" className="btn btn-primary" onClick={handleApproveDeal} disabled={approvalSaving}>
+                          {approvalSaving ? 'Onaylanıyor…' : '✓ Onayla'}
+                        </button>
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowRejectBox(true)} disabled={approvalSaving}>
+                          ✗ İtiraz Notu Yaz
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <input
+                          value={rejectNote}
+                          onChange={(e) => setRejectNote(e.target.value)}
+                          placeholder="İtiraz sebebinizi yazın…"
+                          style={{ flex: 1, minWidth: 200 }}
+                        />
+                        <button type="button" className="btn btn-primary" onClick={handleSendRejectNote} disabled={approvalSaving || !rejectNote.trim()}>
+                          Gönder
+                        </button>
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowRejectBox(false)} disabled={approvalSaving}>
+                          İptal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {tx.collaboratorAgentId && (
                   <div style={{ background: tx.splitFinalizedAt ? '#e6f4ea' : '#fdf3e0', borderRadius: 6, padding: '10px 12px', marginBottom: 14, fontSize: 12.5 }}>
                     🤝 Bu işlem <strong>işbirlikli</strong> — komisyon otomatik olarak{' '}
@@ -563,8 +684,13 @@ export default function TransactionDetailPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                   <div className="form-field">
-                    <label>Danışman Payı (TL)</label>
-                    <input type="number" value={agentCommission} onChange={(e) => setAgentCommission(e.target.value)} placeholder="0.00" />
+                    <label>
+                      Danışman Payı (TL)
+                      {!agentShareTouched && agentSharePercent != null && (
+                        <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 10.5 }}> · %{agentSharePercent} oranından otomatik</span>
+                      )}
+                    </label>
+                    <input type="number" value={agentCommission} onChange={(e) => handleAgentCommissionChange(e.target.value)} placeholder="0.00" />
                   </div>
                   <div className="form-field">
                     <label>Ofis Payı (TL)</label>

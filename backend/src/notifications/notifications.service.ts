@@ -45,6 +45,7 @@ export interface NotificationItem {
   occurredAt: Date;
   read: boolean;
   propertyId?: string;
+  transactionId?: string; // 'commission_added' turunde, ilgili Islem'e dogrudan gitmek icin
   announcementId?: string; // 'announcement' turunde, okundu/kapatma islemleri icin gercek duyuru id'si
 }
 
@@ -183,8 +184,10 @@ export class NotificationsService {
         id: `commission-new-${cm.id}`,
         type: 'commission_added' as const,
         title: `Komisyon eklendi: ${cm.propertyTitle || cm.transactionType}`,
+        message: `${nameFor(cm.agentId)} bir işlemi kapattı, onayınızı bekliyor.\n\nBrüt komisyon: ${Number(cm.grossAmount).toLocaleString('tr-TR')} ₺\nDanışman payı: ${Number(cm.agentGrossShare).toLocaleString('tr-TR')} ₺\nOfis payı: ${Number(cm.officeShare).toLocaleString('tr-TR')} ₺`,
         agentName: nameFor(cm.agentId),
         occurredAt: cm.createdAt,
+        transactionId: cm.transactionId || undefined,
         read: false,
       })),
       ...approvedCommissions.map((cm) => ({

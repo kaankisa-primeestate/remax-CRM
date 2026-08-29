@@ -345,6 +345,19 @@ export default function NotificationBell() {
             ) : (
               <p style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>Bu bildirim için ek içerik yok.</p>
             )}
+            {detailItem.type === 'commission_added' && detailItem.transactionId && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: 4 }}
+                onClick={() => {
+                  navigate(`/islemler/${detailItem.transactionId}`);
+                  setDetailItem(null);
+                }}
+              >
+                📂 İşlem Dosyasını Aç ve Onayla
+              </button>
+            )}
             <div className="modal-actions" style={{ marginTop: 16, justifyContent: detailItem.type === 'announcement' && !detailItem.fromArchive ? 'space-between' : 'flex-end' }}>
               {detailItem.type === 'announcement' && !detailItem.fromArchive && (
                 <button type="button" className="btn btn-secondary" style={{ color: 'var(--danger)' }} disabled={dismissing} onClick={handleDismissAnnouncement}>

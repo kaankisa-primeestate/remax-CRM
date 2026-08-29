@@ -130,30 +130,11 @@ export default function TransactionsPage() {
     try { await transactionsApi.remove(txId); } catch { load(); }
   }
 
-  async function handleApproveDeal(t) {
-    try {
-      await transactionsApi.update(t.id, { dealApproved: true });
-      const customer = customers.find((c) => c.id === t.customerId);
-      const property = properties.find((p) => p.id === t.propertyId);
-      navigate('/komisyonlar', {
-        state: {
-          prefillCommission: {
-            agentId: t.agentId,
-            propertyId: t.propertyId,
-            customerId: t.customerId,
-            propertyTitle: property?.title || t.externalPropertyLabel || '',
-            transactionType: property?.listingType === 'rent' ? 'rent' : 'sale',
-            transactionAmount: t.offerAmount || '',
-            dueDate: new Date().toISOString().slice(0, 10),
-          },
-        },
-      });
-    } catch (err) {
-      const message = err?.response?.data?.message ?? 'Onaylanamadı.';
-      alert(Array.isArray(message) ? message.join(', ') : message);
-    }
-  }
-
+  // ONCEDEN: bu buton HICBIR OZET GOSTERMEDEN dogrudan onayliyor, sonra
+  // artik erisilemez olan '/komisyonlar' sayfasina yonlendirmeye
+  // calisiyordu (kirik akis). Artik SADECE Islem Dosyasi'na goturuyor --
+  // orada TAM kapanis dokumunu goren Broker, "Onayla" ya da "Itiraz Notu
+  // Yaz" secebiliyor (bkz. TransactionDetailPage.jsx).
   return (
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>İşlemler (Uçtan Uca Takip)</h2>
@@ -272,8 +253,8 @@ export default function TransactionsPage() {
                             </div>
                           )}
                           {t.stage === 'closed' && !t.dealApproved && isBroker && (
-                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }} onClick={() => handleApproveDeal(t)}>
-                              ✓ Onayla ve Komisyon Aç
+                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }} onClick={() => navigate(`/islemler/${t.id}`)}>
+                              📂 İncele ve Onayla
                             </button>
                           )}
                           <div className="transaction-card__actions">
