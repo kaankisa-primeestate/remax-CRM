@@ -25,6 +25,7 @@ const notifications_module_1 = require("./notifications/notifications.module");
 const tasks_module_1 = require("./tasks/tasks.module");
 const appointments_module_1 = require("./appointments/appointments.module");
 const public_disclosure_module_1 = require("./public-disclosure/public-disclosure.module");
+const digital_documents_module_1 = require("./digital-documents/digital-documents.module");
 const property_comments_module_1 = require("./property-comments/property-comments.module");
 const announcements_module_1 = require("./announcements/announcements.module");
 const transactions_module_1 = require("./transactions/transactions.module");
@@ -88,6 +89,7 @@ exports.AppModule = AppModule = __decorate([
             tasks_module_1.TasksModule,
             appointments_module_1.AppointmentsModule,
             public_disclosure_module_1.PublicDisclosureModule,
+            digital_documents_module_1.DigitalDocumentsModule,
             property_comments_module_1.PropertyCommentsModule,
             announcements_module_1.AnnouncementsModule,
             transactions_module_1.TransactionsModule,

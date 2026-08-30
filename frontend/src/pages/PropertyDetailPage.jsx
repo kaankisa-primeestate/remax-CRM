@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
+import { apiClient } from '../api/client.js';
+import { buildWhatsappUrl } from '../utils/contact.js';
 import { CATEGORY_FIELDS } from '../data/categoryFields';
 import { ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
 import PropertyFormModal from '../components/PropertyFormModal.jsx';
@@ -18,6 +20,7 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [sendingAuth, setSendingAuth] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [matches, setMatches] = useState([]);
 
@@ -50,6 +53,26 @@ export default function PropertyDetailPage() {
     if (!confirm('Bu portföy kalıcı olarak silinecek. Emin misiniz?')) return;
     await propertiesApi.remove(id);
     navigate('/portfoyler');
+  }
+
+  // Mulk sahibine, portfoyun GUNCEL verisinden otomatik doldurulmus
+  // Yetkilendirme Sozlesmesi'ni WhatsApp uzerinden dijital imzaya gonderir.
+  async function handleSendAuthorization() {
+    setSendingAuth(true);
+    try {
+      const { data } = await apiClient.post(`/digital-documents/authorization/${id}`);
+      const link = `${window.location.origin}/belge/${data.token}`;
+      const message =
+        `Sayın ${property.ownerName},\n\n` +
+        `"${property.title}" mülkünüz için Satılık Portföy Yetkilendirme Sözleşmesi'ni hazırladık. ` +
+        `Lütfen aşağıdaki linke tıklayıp inceleyip onaylar mısınız:\n\n${link}\n\n` +
+        `RE/MAX Prime`;
+      window.open(buildWhatsappUrl(property.ownerPhone, message), '_blank');
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Link oluşturulamadı, tekrar deneyin.');
+    } finally {
+      setSendingAuth(false);
+    }
   }
 
   async function handleStatusChange(newStatus) {
@@ -127,6 +150,11 @@ export default function PropertyDetailPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => setShowShare(true)}>Paylaş</button>
+            {canEdit && property.ownerPhone && (
+              <button className="btn btn-secondary" onClick={handleSendAuthorization} disabled={sendingAuth}>
+                {sendingAuth ? 'Hazırlanıyor…' : '📄 Yetkilendirme Sözleşmesi Gönder'}
+              </button>
+            )}
             {canEdit && (
               <>
                 <button className="btn btn-secondary" onClick={() => setShowEdit(true)}>Düzenle</button>

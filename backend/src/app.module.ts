@@ -16,6 +16,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { PublicDisclosureModule } from './public-disclosure/public-disclosure.module';
+import { DigitalDocumentsModule } from './digital-documents/digital-documents.module';
 import { PropertyCommentsModule } from './property-comments/property-comments.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { TransactionsModule } from './transactions/transactions.module';
@@ -97,6 +98,7 @@ import { AccountingModule } from './accounting/accounting.module';
     TasksModule,
     AppointmentsModule,
     PublicDisclosureModule,
+    DigitalDocumentsModule,
     PropertyCommentsModule,
     AnnouncementsModule,
     TransactionsModule,
