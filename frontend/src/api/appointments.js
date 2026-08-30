@@ -5,6 +5,7 @@ export const appointmentsApi = {
   create: (payload) => apiClient.post('/appointments', payload).then((r) => r.data),
   update: (id, payload) => apiClient.patch(`/appointments/${id}`, payload).then((r) => r.data),
   remove: (id) => apiClient.delete(`/appointments/${id}`),
+  getDisclosureLink: (id) => apiClient.post(`/appointments/${id}/disclosure-link`).then((r) => r.data),
 };
 
 export const APPOINTMENT_TYPES = [

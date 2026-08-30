@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { Appointment } from './appointment.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -21,6 +22,24 @@ export class AppointmentsService {
       disclosureAcceptedAt: dto.disclosureAccepted ? new Date() : null,
     });
     return this.appointmentRepo.save(appointment);
+  }
+
+  // Yer Gosterme icin musteriye gonderilecek imzalama linkini uretir --
+  // eger bu randevunun zaten bir token'i varsa AYNISINI dondurur
+  // (idempotent, her tiklamada yeni link uretilmez).
+  async getOrCreateDisclosureLink(id: string, currentUser: CurrentUserPayload): Promise<string> {
+    const appointment = await this.appointmentRepo.findOne({ where: { id } });
+    if (!appointment) {
+      throw new NotFoundException('Randevu bulunamadı');
+    }
+    if (currentUser.role === 'agent' && appointment.agentId !== currentUser.userId) {
+      throw new ForbiddenException('Bu randevuya erişim yetkiniz yok');
+    }
+    if (!appointment.disclosureToken) {
+      appointment.disclosureToken = randomUUID();
+      await this.appointmentRepo.save(appointment);
+    }
+    return appointment.disclosureToken;
   }
 
   async findAll(currentUser: CurrentUserPayload): Promise<Appointment[]> {

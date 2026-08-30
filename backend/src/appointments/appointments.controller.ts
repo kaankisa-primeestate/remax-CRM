@@ -45,4 +45,12 @@ export class AppointmentsController {
     await this.appointmentsService.remove(id, user);
     return { success: true };
   }
+
+  // POST /api/appointments/:id/disclosure-link -- musteriye WhatsApp ile
+  // gonderilecek imzalama linkinin token'ini uretir/dondurur.
+  @Post(':id/disclosure-link')
+  async getDisclosureLink(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    const token = await this.appointmentsService.getOrCreateDisclosureLink(id, user);
+    return { token };
+  }
 }

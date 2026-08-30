@@ -64,6 +64,30 @@ export class Appointment {
   @Column({ type: 'timestamp', nullable: true })
   disclosureAcceptedAt: Date | null;
 
+  // --- DIJITAL IMZA (musterinin KENDI cihazindan imzaladigi link) ---
+  // Tahmin edilemez, tek kullanimlik public link anahtari. Bu alan
+  // dolduysa musteriye WhatsApp'tan bir imzalama linki gonderilmis
+  // demektir; NULL ise henuz hic link uretilmemis.
+  @Index({ unique: true, where: '"disclosureToken" IS NOT NULL' })
+  @Column({ type: 'uuid', nullable: true })
+  disclosureToken: string | null;
+
+  // Musterinin cizdigi imza -- base64 PNG (data:image/png;base64,...).
+  @Column({ type: 'text', nullable: true })
+  disclosureSignatureImage: string | null;
+
+  // Musteri "adini yazarak" imzaladiysa, yazdigi isim (cizim yerine).
+  @Column({ type: 'varchar', nullable: true })
+  disclosureSignedName: string | null;
+
+  // 'draw' (cizerek) veya 'type' (yazarak) -- hangi yontemi kullandi.
+  @Column({ type: 'varchar', nullable: true })
+  disclosureSignatureMethod: 'draw' | 'type' | null;
+
+  // Imzalayanin IP adresi -- ileride bir itiraz olursa ek kanit.
+  @Column({ type: 'varchar', nullable: true })
+  disclosureSignedIp: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

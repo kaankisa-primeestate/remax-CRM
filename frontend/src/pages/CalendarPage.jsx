@@ -43,14 +43,15 @@ function formatDateLabel(dateStr) {
 }
 
 // Yer Gosterme beyan metni -- WhatsApp uzerinden musteriye gonderilir,
-// e-imza yerine gecen pratik bir kanit/kayit olusturur.
-function buildDisclosureMessage({ customerName, propertyTitle, date, time }) {
+// icindeki LINK musterinin kendi telefonundan gercek bir dijital imza
+// atmasini saglar (checkbox yerine).
+function buildDisclosureMessage({ customerName, propertyTitle, date, time, link }) {
   const dateLabel = new Date(date).toLocaleDateString('tr-TR');
   return (
     `Sayın ${customerName},\n\n` +
     `${dateLabel}${time ? ` saat ${time}` : ''} tarihinde "${propertyTitle}" mülkünü ` +
-    `tarafınıza gösterdiğimi/tanıttığımı beyan ederim. Bu mesaj, PrimeCRM üzerinden ` +
-    `kaydedilen yer gösterme kaydının onayı niteliğindedir.\n\n` +
+    `tarafınıza gösterdiğimi/tanıttığımı beyan ederim. Lütfen aşağıdaki linke tıklayıp ` +
+    `beyanı onaylar mısınız:\n\n${link}\n\n` +
     `Danışmanınız`
   );
 }
@@ -85,11 +86,10 @@ export default function CalendarPage() {
   const [type, setType] = useState('meeting');
   const [customerId, setCustomerId] = useState('');
   const [propertyId, setPropertyId] = useState('');
-  const [disclosureAccepted, setDisclosureAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
-    title: '', date: '', time: '', type: 'meeting', customerId: '', propertyId: '', disclosureAccepted: false, notes: '',
+    title: '', date: '', time: '', type: 'meeting', customerId: '', propertyId: '', notes: '',
   });
   const [editSaving, setEditSaving] = useState(false);
 
@@ -194,7 +194,6 @@ export default function CalendarPage() {
     setTime('');
     setCustomerId('');
     setPropertyId('');
-    setDisclosureAccepted(false);
   }
 
   function handleNewEntryChoice(choice) {
@@ -223,7 +222,6 @@ export default function CalendarPage() {
         type,
         customerId: customerId || undefined,
         propertyId: propertyId || undefined,
-        disclosureAccepted: type === 'showing' ? disclosureAccepted : undefined,
       });
       resetForm();
       // Yeni eklenen kayit GECMIS bir tarihliyse, "showPast" kapaliyken
@@ -287,7 +285,6 @@ export default function CalendarPage() {
       type: appt.type,
       customerId: appt.customerId || '',
       propertyId: appt.propertyId || '',
-      disclosureAccepted: !!appt.disclosureAccepted,
       notes: appt.notes || '',
     });
   }
@@ -307,7 +304,6 @@ export default function CalendarPage() {
         type: editForm.type,
         customerId: editForm.customerId || undefined,
         propertyId: editForm.propertyId || undefined,
-        disclosureAccepted: editForm.type === 'showing' ? editForm.disclosureAccepted : undefined,
         notes: editForm.notes || undefined,
       });
       setEditingId(null);
@@ -320,18 +316,28 @@ export default function CalendarPage() {
     }
   }
 
-  function handleShareDisclosure(appt) {
+  async function handleShareDisclosure(appt) {
     const customer = customers.find((c) => c.id === appt.customerId);
     const property = properties.find((p) => p.id === appt.propertyId);
     if (!customer || !customer.phone) {
       alert('Bu randevuya bağlı bir müşteri veya telefon numarası bulunamadı.');
       return;
     }
+    let token;
+    try {
+      const result = await appointmentsApi.getDisclosureLink(appt.id);
+      token = result.token;
+    } catch {
+      alert('İmzalama linki oluşturulamadı, tekrar deneyin.');
+      return;
+    }
+    const link = `${window.location.origin}/onay/${token}`;
     const message = buildDisclosureMessage({
       customerName: `${customer.firstName} ${customer.lastName}`,
       propertyTitle: property?.title || appt.title,
       date: appt.date,
       time: appt.time,
+      link,
     });
     window.open(buildWhatsappUrl(customer.phone, message), '_blank');
   }
@@ -666,20 +672,6 @@ export default function CalendarPage() {
               <button type="submit" className="btn btn-primary" disabled={saving || !title.trim()}>
                 {saving ? 'Ekleniyor…' : '+ Ekle'}
               </button>
-
-              {type === 'showing' && (
-                <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
-                  <input
-                    type="checkbox"
-                    checked={disclosureAccepted}
-                    onChange={(e) => setDisclosureAccepted(e.target.checked)}
-                    style={{ width: 'auto' }}
-                  />
-                  <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>
-                    Yer gösterme beyanı müşteriye iletildi / onaylandı
-                  </label>
-                </div>
-              )}
             </form>
           </div>
 
@@ -748,17 +740,6 @@ export default function CalendarPage() {
                                     ))}
                                   </select>
                                 </div>
-                                <div className="form-field full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, margin: 0 }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={editForm.disclosureAccepted}
-                                    onChange={(e) => setEditForm((f) => ({ ...f, disclosureAccepted: e.target.checked }))}
-                                    style={{ width: 'auto' }}
-                                  />
-                                  <label style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontSize: 13 }}>
-                                    Yer gösterme beyanı alındı
-                                  </label>
-                                </div>
                               </>
                             )}
                             <div className="form-field full" style={{ margin: 0 }}>
@@ -787,7 +768,7 @@ export default function CalendarPage() {
                                 {isShowing && property && ` · ${property.title}`}
                                 {isShowing && (
                                   <span className={appt.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'}>
-                                    {appt.disclosureAccepted ? '✓ Beyan alındı' : '⚠️ Beyan bekleniyor'}
+                                    {appt.disclosureAccepted ? '✓ İmzalandı' : '⏳ İmza bekleniyor'}
                                   </span>
                                 )}
                               </div>
@@ -799,7 +780,7 @@ export default function CalendarPage() {
                                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                                   onClick={() => handleShareDisclosure(appt)}
                                 >
-                                  📲 WhatsApp ile Yer Gösterme Kaydını Gönder
+                                  📲 WhatsApp ile İmzalama Linki Gönder
                                 </button>
                               )}
                             </div>

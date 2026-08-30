@@ -13,6 +13,7 @@ import AgentsPage from './pages/AgentsPage.jsx';
 import CommissionsPage from './pages/CommissionsPage.jsx';
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx';
 import PublicPropertyPage from './pages/PublicPropertyPage.jsx';
+import PublicDisclosurePage from './pages/PublicDisclosurePage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import AgentDashboardPage from './pages/AgentDashboardPage.jsx';
 import RequestsPage from './pages/RequestsPage.jsx';
@@ -175,7 +176,7 @@ function TopBar({ onToggleSidebar }) {
 export default function App() {
   const location = useLocation();
   const { user } = useAuth();
-  const isPublicPage = location.pathname.startsWith('/ilan/');
+  const isPublicPage = location.pathname.startsWith('/ilan/') || location.pathname.startsWith('/onay/');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (isPublicPage) {
@@ -183,6 +184,7 @@ export default function App() {
       <main className="app-body">
         <Routes>
           <Route path="/ilan/:id" element={<PublicPropertyPage />} />
+          <Route path="/onay/:token" element={<PublicDisclosurePage />} />
         </Routes>
       </main>
     );
