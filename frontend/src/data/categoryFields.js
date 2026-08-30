@@ -35,6 +35,23 @@ export const CATEGORY_FIELDS = {
     // --- Hukuki Bilgiler ---
     { key: 'takas', label: 'Takas', type: 'boolean', extra: true },
     { key: 'serhIpotek', label: 'Şerh / İpotek Var', type: 'boolean', extra: true },
+    // --- Tapu ve Sözleşme Icin Ek Bilgiler (Yetkilendirme Sozlesmesi'nde kullanilir) ---
+    { key: 'ada', label: 'Ada No', type: 'text', extra: true },
+    { key: 'parsel', label: 'Parsel No', type: 'text', extra: true },
+    { key: 'bagimsizBolumNo', label: 'Bağımsız Bölüm No', type: 'text', extra: true },
+    { key: 'sahiplikOrani', label: 'Sahiplik Oranı', type: 'text', placeholder: 'Örn: Tam Mülkiyet, ya da 1/2 Hisse', extra: true },
+    { key: 'ipotekDetay', label: 'İpotek Detayı', type: 'text', placeholder: 'Varsa tutar/banka bilgisi, yoksa boş bırakın', extra: true },
+    { key: 'hacizDetay', label: 'Haciz Bilgisi', type: 'text', placeholder: 'Varsa detay, yoksa boş bırakın', extra: true },
+    { key: 'imarIskanDurumu', label: 'İmar / İskan Durumu', type: 'text', extra: true },
+    { key: 'jenerator', label: 'Jeneratör', type: 'boolean', extra: true },
+    { key: 'sogutma', label: 'Soğutma / Klima Sistemi', type: 'boolean', extra: true },
+    { key: 'topluTasima', label: 'Toplu Taşımaya Yakın', type: 'boolean', extra: true },
+    // --- Oda Bazinda Alan Dokumu (m²) ---
+    { key: 'salonM2', label: 'Salon (m²)', type: 'number', extra: true },
+    { key: 'mutfakM2', label: 'Mutfak (m²)', type: 'number', extra: true },
+    { key: 'antreM2', label: 'Antre (m²)', type: 'number', extra: true },
+    { key: 'balkonM2', label: 'Balkon (m²)', type: 'number', extra: true },
+    { key: 'tuvaletM2', label: 'Tuvalet (m²)', type: 'number', extra: true },
   ],
 
   land: [
