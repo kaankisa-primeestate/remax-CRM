@@ -1,9 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { customersApi } from '../api/customers';
-
-const MATCHABLE_TYPES = ['buyer', 'tenant', 'investor'];
-const MAX_CUSTOMERS_TO_SCAN = 50; // performans icin ust sinir
+import { useAuth } from '../context/AuthContext.jsx';
 
 const money = (n) =>
   n ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : '—';
@@ -14,36 +12,31 @@ function scoreColor(score) {
   return { bg: '#eef3f9', fg: 'var(--ink-navy)' };
 }
 
-// Sicak Firsatlar: eskiden "Talepler" (musteri listesi) ve Panelim'deki
-// "Akilli Eslestirmeler" widget'i AYRI AYRI, kismen ortusen iki farkli
-// gorunum sunuyordu -- kafa karistiriyordu. Artik TEK bir ekran: musteri
-// ile portfoy arasindaki HER eslesmeyi (ayni eslestirme motorundan,
-// matching.service.ts), en yuksek skordan en dusuge dogru TEK bir liste
-// halinde gosterir. Bir satira tiklamak ilgili portfoye goturur,
-// musteri adina tiklamak musteri kartina goturur.
+// Sicak Firsatlar: TEK bir sunucu tarafi endpoint'ten (hot-matches) ofis
+// genelindeki (Broker) ya da kendisiyle ilgili (Danisman) TUM eslesmeleri
+// tek seferde ceker -- eskiden her musteri icin AYRI bir istek atilip,
+// hata SESSIZCE yutuluyordu (try/catch { return [] }), bu yuzden gercek
+// bir hata ile "eslesme yok" ayirt edilemiyordu. Artik TEK istek, hata
+// varsa ACIKCA gosteriliyor.
 export default function RequestsPage() {
+  const { isBroker } = useAuth();
   const [pairs, setPairs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
-    const all = await customersApi.list({});
-    const candidates = all.filter((c) => MATCHABLE_TYPES.includes(c.type)).slice(0, MAX_CUSTOMERS_TO_SCAN);
-
-    const results = await Promise.all(
-      candidates.map(async (c) => {
-        try {
-          const matches = await customersApi.matchingProperties(c.id);
-          return matches.map((m) => ({ customer: c, property: m.property, score: m.score }));
-        } catch {
-          return [];
-        }
-      }),
-    );
-    const flattened = results.flat().sort((a, b) => b.score - a.score);
-    setPairs(flattened);
-    setLoading(false);
+    setError('');
+    try {
+      const results = await customersApi.hotMatches();
+      setPairs(results);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Eşleşmeler yüklenemedi, tekrar deneyin.');
+      setPairs([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -72,12 +65,21 @@ export default function RequestsPage() {
         />
       </div>
       <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: -10, marginBottom: 20 }}>
-        Müşterilerinizin aradığı özelliklerle portföylerin otomatik karşılaştırılmasından doğan tüm eşleşmeler, en yüksek orandan en düşüğe sıralı. Bir satıra tıklayınca ilgili portföye gidersiniz.
+        {isBroker
+          ? 'Ofis genelindeki tüm danışmanların müşteri ve portföyleri arasındaki eşleşmeler, en yüksek orandan en düşüğe sıralı.'
+          : 'Sizinle ilgili (kendi müşteriniz ya da kendi portföyünüz olan) tüm eşleşmeler, en yüksek orandan en düşüğe sıralı.'}
+        {' '}Bir satıra tıklayınca ilgili portföye gidersiniz.
       </p>
+
+      {error && (
+        <div className="empty-state" style={{ color: 'var(--danger)' }}>
+          ⚠️ {error} <button type="button" className="btn btn-secondary" style={{ marginLeft: 8 }} onClick={load}>Tekrar dene</button>
+        </div>
+      )}
 
       {loading ? (
         <div className="empty-state">Eşleşmeler taranıyor…</div>
-      ) : filtered.length === 0 ? (
+      ) : error ? null : filtered.length === 0 ? (
         <div className="empty-state">
           {search.trim() ? 'Aramanızla eşleşen bir sonuç yok.' : 'Şu an güçlü bir eşleşme bulunamadı — müşteri ve portföy bilgileri ne kadar dolu olursa eşleştirme o kadar isabetli olur.'}
         </div>
@@ -94,6 +96,7 @@ export default function RequestsPage() {
                   gap: 14,
                   padding: '12px 16px',
                   borderTop: i > 0 ? '1px solid var(--paper-line)' : 'none',
+                  flexWrap: 'wrap',
                 }}
               >
                 <span
@@ -112,12 +115,13 @@ export default function RequestsPage() {
                 >
                   %{p.score}
                 </span>
-                <Link to={`/portfoyler/${p.property.id}`} style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
+                <Link to={`/portfoyler/${p.property.id}`} style={{ flex: 1, minWidth: 160, textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {p.property.title}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                     {p.property.district} · {money(p.property.price)}
+                    {isBroker && p.propertyAgentName && ` · ${p.propertyAgentName}`}
                   </div>
                 </Link>
                 <Link
@@ -125,6 +129,9 @@ export default function RequestsPage() {
                   style={{ fontSize: 12, color: 'var(--ink-navy)', textAlign: 'right', flexShrink: 0, textDecoration: 'none' }}
                 >
                   👤 {p.customer.firstName} {p.customer.lastName}
+                  {isBroker && p.customerAgentName && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.customerAgentName}</div>
+                  )}
                 </Link>
               </div>
             );

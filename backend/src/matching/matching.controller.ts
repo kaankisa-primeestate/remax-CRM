@@ -19,4 +19,11 @@ export class MatchingController {
   matchingCustomers(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.matchingService.findMatchingCustomersForProperty(id, user);
   }
+
+  // GET /api/hot-matches -- Sicak Firsatlar sayfasi icin, ofis genelinde
+  // (Broker) ya da kendisiyle ilgili (Danisman) tum eslesmelerin listesi.
+  @Get('hot-matches')
+  hotMatches(@CurrentUser() user: CurrentUserPayload) {
+    return this.matchingService.findAllHotMatches(user);
+  }
 }

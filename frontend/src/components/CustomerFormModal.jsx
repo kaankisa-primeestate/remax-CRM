@@ -188,11 +188,13 @@ export default function CustomerFormModal({ initialValues, onSubmit, onClose }) 
                 value={form.requirements}
                 onChange={handleChange}
                 placeholder="Örn: 3+1, Kadıköy, deniz manzaralı, krediye uygun"
+                spellCheck="true"
+                lang="tr"
               />
             </div>
             <div className="form-field full">
               <label>Notlar</label>
-              <textarea name="notes" value={form.notes} onChange={handleChange} />
+              <textarea name="notes" value={form.notes} onChange={handleChange} spellCheck="true" lang="tr" />
             </div>
           </div>
 

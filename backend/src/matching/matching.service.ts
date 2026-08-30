@@ -8,7 +8,29 @@ import { CustomersService } from '../customers/customers.service';
 import { PortfoliosService } from '../portfolios/portfolios.service';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 
-// Anlamsiz/cok genel kelimeleri elemek icin -- eslestirme kalitesini artirir
+// ============================================================================
+// SICAK FIRSATLAR ESLESTIRME MOTORU -- 2. NESIL (tamamen yeniden tasarlandi)
+//
+// ONCEKI TASARIMIN SORUNU: sadece musterinin serbest metin (Notlar/
+// Gereksinimler) alanindan cikan kelimeleri, mulkun metniyle TAM ESITLIK
+// (substring) ile karsilastiriyordu. Turkce'nin zengin ek yapisi yuzunden
+// ("manzarali" ile "manzarasi" gibi) DOGRU yazilmis ama farkli EKLI ayni
+// kelimeler dahi eslesmiyordu. Ayrica musterinin butce/ilce/oda-sayisi gibi
+// YAPISAL alanlari eslestirmeye HIC KATILMIYORDU, sadece "profil doluluk"
+// yuzdesi icin kullaniliyordu.
+//
+// YENI TASARIM (kullanicinin talimati): "kriter ile kriter degil, TUM
+// bilgiler arasinda ortusme aranacak". Yani yapisal alanlar (ilce, oda
+// sayisi, deniz manzarasi istegi vb.) da SERBEST METIN gibi birer "kelime"
+// haline getirilip, HEM musterinin HEM mulkun TUM bilgisi birer metin
+// havuzuna donusturuluyor, ve bu IKI HAVUZ, Turkce ek/kok farkina
+// TOLERANSLI tek bir kelime eslestirme mekanizmasiyla karsilastiriliyor.
+// Yuzde = ortusen kelime sayisi / musterinin toplam kelime sayisi.
+//
+// Butce/fiyat SAYISAL bir deger oldugu icin kelime eslestirmesine DAHIL
+// EDILMEZ, ayri bir "uygunluk" (affordability) on-filtresi olarak kalir.
+// ============================================================================
+
 const STOPWORDS = new Set([
   've', 'veya', 'ile', 'bir', 'bu', 'su', 'sunu', 'cok', 'daha', 'gibi', 'olan', 'olsun',
   'istiyorum', 'istemiyor', 'istemiyorum', 'istiyoruz', 'yok', 'var', 'de', 'da', 'mi', 'mu',
@@ -17,7 +39,7 @@ const STOPWORDS = new Set([
   'bin', 'milyon', 'adet', 'tane', 'not', 'notlar',
 ]);
 
-const MIN_SCORE = 40; // yuzde 40 ve uzeri kelime eslesmesi olan sonuclar gosterilir
+const MIN_SCORE = 40; // yuzde 40 ve uzeri sonuclar gosterilir
 
 function normalize(text: string): string {
   return (text || '')
@@ -38,13 +60,56 @@ function extractKeywords(text: string): string[] {
   return unique.filter((w) => w.length >= 3 && !STOPWORDS.has(w));
 }
 
+// Turkce ek/kok toleransli kelime karsilastirmasi -- "manzarali" ile
+// "manzarasi", "asansorlu" ile "asansor" gibi AYNI KOKTEN gelen ama
+// farkli ekli kelimeleri de eslestirir. Kisa kelimelerde (4 harften az)
+// TAM esitlik aranir, cunku kisa oneklerde yanlis-pozitif riski yuksektir
+// (orn. "ev" ile "evet").
+function wordsMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (a.length < 4 || b.length < 4) return false;
+  const prefixLen = Math.min(5, Math.min(a.length, b.length) - 1);
+  if (prefixLen < 5) return false;
+  return a.slice(0, prefixLen) === b.slice(0, prefixLen);
+}
+
+function anyMatch(keyword: string, targetKeywords: string[]): boolean {
+  return targetKeywords.some((t) => wordsMatch(keyword, t));
+}
+
+// Musterinin TUM bilgisini (yapisal alanlar DAHIL) tek bir metin havuzuna
+// donusturur. Butce buraya DAHIL EDILMEZ (sayisal deger, ayri filtrelenir).
+function buildCustomerSearchText(customer: Customer): string {
+  const districts = customer.preferredDistricts?.join(' ') || customer.preferredDistrict || '';
+  const rooms = customer.preferredRooms?.join(' ') || '';
+  const extras = [
+    customer.wantsSeaView && 'deniz manzara manzarali',
+    customer.wantsNearMetro && 'metro yakin ulasim',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const raw = [
+    customer.requirements,
+    customer.notes,
+    districts,
+    rooms,
+    customer.propertyInterest,
+    extras,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return raw;
+}
+
+// Mulkun TUM bilgisini (yapisal alanlar DAHIL) tek bir metin havuzuna
+// donusturur. Fiyat buraya DAHIL EDILMEZ (sayisal deger, ayri filtrelenir).
 function buildPropertySearchText(property: Property): string {
   const extras = [
     property.hasPool && 'havuz',
     property.hasGym && 'spor salonu',
     property.hasSecurity && 'guvenlik',
     property.hasParking && 'otopark',
-    property.nearMetro && 'metro',
+    property.nearMetro && 'metro yakin ulasim',
   ]
     .filter(Boolean)
     .join(' ');
@@ -62,7 +127,7 @@ function buildPropertySearchText(property: Property): string {
   ]
     .filter(Boolean)
     .join(' ');
-  return normalize(raw);
+  return raw;
 }
 
 interface MatchResult {
@@ -72,12 +137,22 @@ interface MatchResult {
   matchedKeywords: string[];
 }
 
+// TUM bilgiler (yapisal + serbest metin) TEK bir kelime havuzunda
+// karsilastirilir -- "kriter ile kriter degil, tum bilgiler arasinda
+// ortusme" mantigi. Yuzde = ortusen kelime sayisi / musterinin toplam
+// kelime sayisi.
+function scoreMatch(customer: Customer, property: Property): MatchResult {
+  const customerKeywords = extractKeywords(buildCustomerSearchText(customer));
+  if (customerKeywords.length === 0) {
+    return { score: 0, matchedCount: 0, totalCount: 0, matchedKeywords: [] };
+  }
+  const propertyKeywords = extractKeywords(buildPropertySearchText(property));
+  const matched = customerKeywords.filter((k) => anyMatch(k, propertyKeywords));
+  const score = Math.round((matched.length / customerKeywords.length) * 100);
+  return { score, matchedCount: matched.length, totalCount: customerKeywords.length, matchedKeywords: matched };
+}
+
 // --- Bilgi Tamlığı / Eşleşme Güveni ---
-// Anahtar kelime skoru tek başına yanıltıcı olabilir: bos/eksik bir profilde
-// bile şans eseri 1 kelime tutarsa yüksek skor çıkabilir. Bu yüzden, profilin
-// (müşteri VE portföy) ne kadar dolu olduğunu da hesaba katan ayrı bir "güven"
-// göstergesi hesaplıyoruz. Musteri tarafı, CustomerDetailPage.jsx'teki
-// COMPLETION_CHECKLIST deseniyle birebir aynı 8 alanı kullanır (tutarlılık için).
 function customerCompleteness(customer: Customer): number {
   const checklist = [
     !!customer.budget,
@@ -93,9 +168,6 @@ function customerCompleteness(customer: Customer): number {
   return Math.round((filled / checklist.length) * 100);
 }
 
-// Portfoy tarafi icin, eslestirme metnine katki saglayan 8 opsiyonel alan
-// (zorunlu alanlar -- baslik, il, ilce, m2, fiyat, tapu durumu -- zaten her
-// zaman dolu oldugu icin tamlik olcumune dahil edilmiyor, ayirt edici degiller).
 function propertyCompleteness(property: Property): number {
   const checklist = [
     !!property.rooms,
@@ -120,10 +192,6 @@ interface ConfidenceResult {
   confidenceLevel: ConfidenceLevel;
 }
 
-// Guven skoru = (musteri tamlik + portfoy tamlik ortalamasi) * eslesme gucu.
-// Eslesme gucu: sadece 1 kelime tuttuysa (kirilgan bir eslesme), tamlik ne
-// kadar yuksek olursa olsun guveni asagi cekiyoruz -- 3+ kelime eslesmesinde
-// tam guc.
 function computeConfidence(customer: Customer, property: Property, matchedCount: number): ConfidenceResult {
   const custPct = customerCompleteness(customer);
   const propPct = propertyCompleteness(property);
@@ -131,18 +199,6 @@ function computeConfidence(customer: Customer, property: Property, matchedCount:
   const confidenceScore = Math.round(((custPct + propPct) / 2) * matchStrengthFactor);
   const confidenceLevel: ConfidenceLevel = confidenceScore >= 70 ? 'high' : confidenceScore >= 40 ? 'medium' : 'low';
   return { customerCompleteness: custPct, propertyCompleteness: propPct, confidenceScore, confidenceLevel };
-}
-
-function scoreMatch(customer: Customer, property: Property): MatchResult {
-  const customerText = [customer.requirements, customer.notes].filter(Boolean).join(' ');
-  const keywords = extractKeywords(customerText);
-  if (keywords.length === 0) {
-    return { score: 0, matchedCount: 0, totalCount: 0, matchedKeywords: [] };
-  }
-  const propertyText = buildPropertySearchText(property);
-  const matched = keywords.filter((k) => propertyText.includes(k));
-  const score = Math.round((matched.length / keywords.length) * 100);
-  return { score, matchedCount: matched.length, totalCount: keywords.length, matchedKeywords: matched };
 }
 
 function isAffordable(customer: Customer, property: Property): boolean {
@@ -160,10 +216,7 @@ export class MatchingService {
     private readonly portfoliosService: PortfoliosService,
   ) {}
 
-  private async agentNameMap(currentUser: CurrentUserPayload): Promise<Map<string, string>> {
-    if (currentUser.role !== 'broker') {
-      return new Map();
-    }
+  private async agentNameMap(): Promise<Map<string, string>> {
     const agents = await this.userRepo.find();
     return new Map(agents.map((a) => [a.id, a.name]));
   }
@@ -173,6 +226,9 @@ export class MatchingService {
     return agentNameById.get(agentId) || 'Bilinmeyen';
   }
 
+  // KRITIK DEGISIKLIK: agentId filtresi KALDIRILDI -- musterinin bagli
+  // oldugu danisman ile mulkun bagli oldugu danisman FARKLI OLABILIR,
+  // eslestirme TUM OFIS capinda (mahremiyetsiz) yapilir.
   async findMatchingPropertiesForCustomer(customerId: string, currentUser: CurrentUserPayload) {
     const customer = await this.customersService.findOne(customerId, currentUser);
 
@@ -182,14 +238,8 @@ export class MatchingService {
     }
     const listingType = isBuyerSide ? ListingType.SALE : ListingType.RENT;
 
-    const qb = this.propertyRepo
-      .createQueryBuilder('property')
-      .where('property.listingType = :listingType', { listingType });
-    if (currentUser.role === 'agent') {
-      qb.andWhere('property.agentId = :agentId', { agentId: currentUser.userId });
-    }
-    const properties = await qb.getMany();
-    const agentNameById = await this.agentNameMap(currentUser);
+    const properties = await this.propertyRepo.find({ where: { listingType } });
+    const agentNameById = await this.agentNameMap();
 
     return properties
       .filter((property) => isAffordable(customer, property))
@@ -200,7 +250,7 @@ export class MatchingService {
           property,
           ...match,
           ...confidence,
-          agentName: currentUser.role === 'broker' ? this.nameFor(property.agentId, agentNameById) : undefined,
+          agentName: this.nameFor(property.agentId, agentNameById),
         };
       })
       .filter((r) => r.matchedCount >= 1 && r.score >= MIN_SCORE)
@@ -215,14 +265,8 @@ export class MatchingService {
         ? [CustomerType.BUYER, CustomerType.INVESTOR]
         : [CustomerType.TENANT];
 
-    const qb = this.customerRepo
-      .createQueryBuilder('customer')
-      .where('customer.type IN (:...wantedTypes)', { wantedTypes });
-    if (currentUser.role === 'agent') {
-      qb.andWhere('customer.agentId = :agentId', { agentId: currentUser.userId });
-    }
-    const customers = await qb.getMany();
-    const agentNameById = await this.agentNameMap(currentUser);
+    const customers = await this.customerRepo.find({ where: { type: wantedTypes as any } });
+    const agentNameById = await this.agentNameMap();
 
     return customers
       .filter((customer) => isAffordable(customer, property))
@@ -233,10 +277,56 @@ export class MatchingService {
           customer,
           ...match,
           ...confidence,
-          agentName: currentUser.role === 'broker' ? this.nameFor(customer.agentId, agentNameById) : undefined,
+          agentName: this.nameFor(customer.agentId, agentNameById),
         };
       })
       .filter((r) => r.matchedCount >= 1 && r.score >= MIN_SCORE)
       .sort((a, b) => b.score - a.score);
+  }
+
+  // YENI: Ofis genelinde TUM eslesmeleri tarar -- "Sicak Firsatlar"
+  // sayfasinin Broker gorunumu (tum ofis) ve Danisman gorunumu (kendi
+  // musterisi/portfoyu ile ilgili olanlar) icin ORTAK kaynak.
+  async findAllHotMatches(currentUser: CurrentUserPayload) {
+    const [buyerTenantCustomers, agentNameById] = await Promise.all([
+      this.customerRepo.find({
+        where: [{ type: CustomerType.BUYER }, { type: CustomerType.INVESTOR }, { type: CustomerType.TENANT }],
+      }),
+      this.agentNameMap(),
+    ]);
+    const properties = await this.propertyRepo.find();
+    const propertiesByListingType = {
+      [ListingType.SALE]: properties.filter((p) => p.listingType === ListingType.SALE),
+      [ListingType.RENT]: properties.filter((p) => p.listingType === ListingType.RENT),
+    };
+
+    const results: any[] = [];
+    for (const customer of buyerTenantCustomers) {
+      const isBuyerSide = customer.type === CustomerType.BUYER || customer.type === CustomerType.INVESTOR;
+      const candidateProperties = propertiesByListingType[isBuyerSide ? ListingType.SALE : ListingType.RENT];
+      for (const property of candidateProperties) {
+        if (!isAffordable(customer, property)) continue;
+        const match = scoreMatch(customer, property);
+        if (match.matchedCount < 1 || match.score < MIN_SCORE) continue;
+        const confidence = computeConfidence(customer, property, match.matchedCount);
+        results.push({
+          customer,
+          property,
+          ...match,
+          ...confidence,
+          customerAgentName: this.nameFor(customer.agentId, agentNameById),
+          propertyAgentName: this.nameFor(property.agentId, agentNameById),
+        });
+      }
+    }
+
+    results.sort((a, b) => b.score - a.score);
+
+    if (currentUser.role === 'agent') {
+      return results.filter(
+        (r) => r.customer.agentId === currentUser.userId || r.property.agentId === currentUser.userId,
+      );
+    }
+    return results;
   }
 }

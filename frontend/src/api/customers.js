@@ -18,6 +18,7 @@ export const customersApi = {
       .then((r) => r.data),
   matchingProperties: (customerId) =>
     apiClient.get(`/customers/${customerId}/matching-properties`).then((r) => r.data),
+  hotMatches: () => apiClient.get('/hot-matches').then((r) => r.data),
 };
 
 // Backend enum'larıyla birebir eşleşir (customer.entity.ts)
