@@ -25,7 +25,7 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    const frontendBaseUrl = process.env.FRONTEND_URL || 'https://remaxbostanci.com';
+    const frontendBaseUrl = process.env.FRONTEND_URL || 'https://bu-crm.site';
     const result = await this.authService.forgotPassword(dto.email, frontendBaseUrl);
     return {
       message: 'Eğer bu e-posta adresi sistemde kayıtlıysa, şifre sıfırlama bağlantısı gönderildi.',

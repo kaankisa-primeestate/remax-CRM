@@ -27,7 +27,7 @@ let AuthController = class AuthController {
         return this.authService.login(dto);
     }
     async forgotPassword(dto) {
-        const frontendBaseUrl = process.env.FRONTEND_URL || 'https://remaxbostanci.com';
+        const frontendBaseUrl = process.env.FRONTEND_URL || 'https://bu-crm.site';
         const result = await this.authService.forgotPassword(dto.email, frontendBaseUrl);
         return {
             message: 'Eğer bu e-posta adresi sistemde kayıtlıysa, şifre sıfırlama bağlantısı gönderildi.',

@@ -8,8 +8,8 @@ import { AppModule } from './app.module';
 // uygulama (React Native) ve curl gibi araclar CORS'a tabi degildir,
 // bu yuzden mobil uygulama bu listeden etkilenmez.
 const ALLOWED_ORIGINS = [
-  'https://remaxbostanci.com',
-  'https://www.remaxbostanci.com',
+  'https://bu-crm.site',
+  'https://www.bu-crm.site',
   'https://remax-crm.netlify.app', // Netlify varsayilan alan adi (yedek)
   'http://localhost:5173', // yerel gelistirme (vite dev server)
 ];

@@ -5,8 +5,8 @@ const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const app_module_1 = require("./app.module");
 const ALLOWED_ORIGINS = [
-    'https://remaxbostanci.com',
-    'https://www.remaxbostanci.com',
+    'https://bu-crm.site',
+    'https://www.bu-crm.site',
     'https://remax-crm.netlify.app',
     'http://localhost:5173',
 ];
