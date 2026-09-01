@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authApi } from '../api/auth';
+import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import PasswordInput from '../components/PasswordInput.jsx';
 
@@ -45,7 +45,7 @@ export default function ChangePasswordPage() {
 
     setSaving(true);
     try {
-      await authApi.changePassword({ currentPassword, newPassword });
+      await usersApi.changePassword({ currentPassword, newPassword });
       setSuccess(true);
       // Dunya standardi guvenlik kurali: sifre degisince mevcut oturum
       // (token) da teknik olarak gecersiz hale gelir (backend, JwtStrategy
@@ -72,7 +72,7 @@ export default function ChangePasswordPage() {
     setEmailSuccess(false);
     setSavingEmail(true);
     try {
-      await authApi.changeEmail({ currentPassword: emailPassword, newEmail });
+      await usersApi.changeEmail({ currentPassword: emailPassword, newEmail });
       setEmailSuccess(true);
       setTimeout(() => {
         logout();
@@ -93,7 +93,7 @@ export default function ChangePasswordPage() {
     setBrokerSuccess(false);
     setSavingBroker(true);
     try {
-      await authApi.createBroker({ name: brokerName, email: brokerEmail, password: brokerPassword });
+      await usersApi.createBroker({ name: brokerName, email: brokerEmail, password: brokerPassword });
       setBrokerSuccess(true);
       setBrokerName('');
       setBrokerEmail('');
