@@ -17,6 +17,8 @@ export declare class UsersService implements OnModuleInit {
     findByEmail(email: string): Promise<User | null>;
     findById(id: string): Promise<User | null>;
     changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void>;
+    updateOwnEmail(userId: string, requestingUserRole: string, currentPassword: string, newEmail: string): Promise<void>;
+    createBroker(requestingUserRole: string, name: string, email: string, password: string): Promise<Omit<User, 'passwordHash'>>;
     setResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void>;
     setPasswordAndClearResetToken(userId: string, newPassword: string): Promise<void>;
     brokerResetPassword(agentId: string): Promise<string>;

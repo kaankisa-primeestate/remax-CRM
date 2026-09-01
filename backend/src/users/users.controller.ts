@@ -3,6 +3,8 @@ import { UsersService } from './users.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
+import { ChangeEmailDto } from '../auth/dto/change-email.dto';
+import { CreateBrokerDto } from '../auth/dto/create-broker.dto';
 import { CurrentUser, CurrentUserPayload } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -113,5 +115,38 @@ export class UsersController {
       dto.newPassword,
     );
     return { success: true };
+  }
+
+  // PATCH /api/users/change-email — SADECE Broker kendi giris e-postasini
+  // degistirebilir (Danismanlarin e-postasi Broker tarafindan Danisman
+  // Yonetimi sayfasindan zaten yonetiliyor).
+  @Patch('change-email')
+  async changeEmail(
+    @Body() dto: ChangeEmailDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    await this.usersService.updateOwnEmail(
+      user.userId,
+      user.role,
+      dto.currentPassword,
+      dto.newEmail,
+    );
+    return { success: true };
+  }
+
+  // POST /api/users/brokers — SADECE mevcut bir Broker, YENI bir Yonetici
+  // (is ortagi icin) hesabi olusturabilir.
+  @Post('brokers')
+  async createBroker(
+    @Body() dto: CreateBrokerDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const broker = await this.usersService.createBroker(
+      user.role,
+      dto.name,
+      dto.email,
+      dto.password,
+    );
+    return broker;
   }
 }

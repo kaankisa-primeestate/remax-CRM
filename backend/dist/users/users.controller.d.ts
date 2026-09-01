@@ -2,6 +2,8 @@ import { UsersService } from './users.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
+import { ChangeEmailDto } from '../auth/dto/change-email.dto';
+import { CreateBrokerDto } from '../auth/dto/create-broker.dto';
 import { CurrentUserPayload } from '../auth/current-user.decorator';
 import { UserRole } from './user.entity';
 export declare class UsersController {
@@ -64,4 +66,8 @@ export declare class UsersController {
     changePassword(dto: ChangePasswordDto, user: CurrentUserPayload): Promise<{
         success: boolean;
     }>;
+    changeEmail(dto: ChangeEmailDto, user: CurrentUserPayload): Promise<{
+        success: boolean;
+    }>;
+    createBroker(dto: CreateBrokerDto, user: CurrentUserPayload): Promise<Omit<import("./user.entity").User, "passwordHash">>;
 }

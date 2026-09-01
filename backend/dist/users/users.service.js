@@ -66,6 +66,45 @@ let UsersService = UsersService_1 = class UsersService {
         user.passwordChangedAt = new Date();
         await this.userRepo.save(user);
     }
+    async updateOwnEmail(userId, requestingUserRole, currentPassword, newEmail) {
+        if (requestingUserRole !== 'broker') {
+            throw new common_1.ForbiddenException('E-posta değişikliği sadece yönetici hesabı için yapılabilir');
+        }
+        const user = await this.userRepo.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new common_1.NotFoundException('Kullanici bulunamadi');
+        }
+        const matches = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!matches) {
+            throw new common_1.BadRequestException('Mevcut şifre hatalı');
+        }
+        const normalizedEmail = newEmail.trim().toLowerCase();
+        const existing = await this.userRepo.findOne({ where: { email: normalizedEmail } });
+        if (existing && existing.id !== userId) {
+            throw new common_1.ConflictException('Bu e-posta adresi zaten kullanılıyor');
+        }
+        user.email = normalizedEmail;
+        await this.userRepo.save(user);
+    }
+    async createBroker(requestingUserRole, name, email, password) {
+        if (requestingUserRole !== 'broker') {
+            throw new common_1.ForbiddenException('Yeni yönetici sadece mevcut bir yönetici tarafından eklenebilir');
+        }
+        const normalizedEmail = email.trim().toLowerCase();
+        const existing = await this.findByEmail(normalizedEmail);
+        if (existing) {
+            throw new common_1.ConflictException('Bu e-posta ile kayıtlı bir kullanıcı zaten var');
+        }
+        const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+        const saved = await this.userRepo.save(this.userRepo.create({
+            name: name.trim(),
+            email: normalizedEmail,
+            passwordHash,
+            role: user_entity_1.UserRole.BROKER,
+        }));
+        const { passwordHash: _omit, ...rest } = saved;
+        return rest;
+    }
     async setResetToken(userId, tokenHash, expiresAt) {
         await this.userRepo.update(userId, { resetTokenHash: tokenHash, resetTokenExpiresAt: expiresAt });
     }

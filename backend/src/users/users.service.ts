@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -92,6 +93,69 @@ export class UsersService implements OnModuleInit {
     user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
     user.passwordChangedAt = new Date();
     await this.userRepo.save(user);
+  }
+
+  // Kendi giris e-postasini degistirme -- SADECE Broker (yonetici) icin.
+  // Danismanlarin e-postasini zaten Broker, Danisman Yonetimi sayfasindan
+  // degistirebiliyor -- danismanin KENDI KENDINE bunu yapmasina GEREK YOK
+  // (ve YETKI de VERILMIYOR, sadece Broker kendi hesabini yonetir).
+  async updateOwnEmail(
+    userId: string,
+    requestingUserRole: string,
+    currentPassword: string,
+    newEmail: string,
+  ): Promise<void> {
+    if (requestingUserRole !== 'broker') {
+      throw new ForbiddenException('E-posta değişikliği sadece yönetici hesabı için yapılabilir');
+    }
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Kullanici bulunamadi');
+    }
+    const matches = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!matches) {
+      throw new BadRequestException('Mevcut şifre hatalı');
+    }
+    const normalizedEmail = newEmail.trim().toLowerCase();
+    const existing = await this.userRepo.findOne({ where: { email: normalizedEmail } });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Bu e-posta adresi zaten kullanılıyor');
+    }
+    user.email = normalizedEmail;
+    await this.userRepo.save(user);
+  }
+
+  // Yeni bir Yonetici (Broker) hesabi olusturma -- SADECE mevcut bir Broker
+  // tarafindan yapilabilir (orn. bir is ortagina AYRI, kendi mail/sifresiyle
+  // giris yapabilecegi bir yonetici hesabi acmak icin). Danisman EKLEME
+  // akisindan (createAgent) FARKLI ve daha BASIT -- sadece isim/mail/sifre
+  // yeterli, Danisman'a ozgu ticari/lisans bilgileri (MYK, vergi vb.) BURADA
+  // GEREKMEZ.
+  async createBroker(
+    requestingUserRole: string,
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<Omit<User, 'passwordHash'>> {
+    if (requestingUserRole !== 'broker') {
+      throw new ForbiddenException('Yeni yönetici sadece mevcut bir yönetici tarafından eklenebilir');
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await this.findByEmail(normalizedEmail);
+    if (existing) {
+      throw new ConflictException('Bu e-posta ile kayıtlı bir kullanıcı zaten var');
+    }
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const saved = await this.userRepo.save(
+      this.userRepo.create({
+        name: name.trim(),
+        email: normalizedEmail,
+        passwordHash,
+        role: UserRole.BROKER,
+      }),
+    );
+    const { passwordHash: _omit, ...rest } = saved;
+    return rest;
   }
 
   async setResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {

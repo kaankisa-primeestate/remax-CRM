@@ -18,6 +18,8 @@ const users_service_1 = require("./users.service");
 const create_agent_dto_1 = require("./dto/create-agent.dto");
 const update_agent_profile_dto_1 = require("./dto/update-agent-profile.dto");
 const change_password_dto_1 = require("../auth/dto/change-password.dto");
+const change_email_dto_1 = require("../auth/dto/change-email.dto");
+const create_broker_dto_1 = require("../auth/dto/create-broker.dto");
 const current_user_decorator_1 = require("../auth/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
@@ -66,6 +68,14 @@ let UsersController = class UsersController {
     async changePassword(dto, user) {
         await this.usersService.changePassword(user.userId, dto.currentPassword, dto.newPassword);
         return { success: true };
+    }
+    async changeEmail(dto, user) {
+        await this.usersService.updateOwnEmail(user.userId, user.role, dto.currentPassword, dto.newEmail);
+        return { success: true };
+    }
+    async createBroker(dto, user) {
+        const broker = await this.usersService.createBroker(user.role, dto.name, dto.email, dto.password);
+        return broker;
     }
 };
 exports.UsersController = UsersController;
@@ -158,6 +168,22 @@ __decorate([
     __metadata("design:paramtypes", [change_password_dto_1.ChangePasswordDto, Object]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "changePassword", null);
+__decorate([
+    (0, common_1.Patch)('change-email'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [change_email_dto_1.ChangeEmailDto, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "changeEmail", null);
+__decorate([
+    (0, common_1.Post)('brokers'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [create_broker_dto_1.CreateBrokerDto, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "createBroker", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
