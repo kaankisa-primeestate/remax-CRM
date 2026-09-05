@@ -136,6 +136,13 @@ function formatDate(date) {
   return new Intl.DateTimeFormat('tr-TR').format(new Date(`${date}T00:00:00`));
 }
 
+// "2026-08" gibi bir ay anahtarini "Ağustos 2026" olarak okunabilir hale getirir.
+function formatMonthLabel(monthKey) {
+  if (!monthKey) return '—';
+  const [year, month] = monthKey.split('-');
+  return new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date(Number(year), Number(month) - 1, 1));
+}
+
 function toIsoDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -363,6 +370,9 @@ export default function AccountingPage() {
   const [reportFromDate, setReportFromDate] = useState(DEFAULT_REPORT_RANGE.from);
   const [reportToDate, setReportToDate] = useState(DEFAULT_REPORT_RANGE.to);
   const [reportPreset, setReportPreset] = useState('this_month');
+  const [reportViewMode, setReportViewMode] = useState('category_summary'); // category_summary | category_trend | movements | accounts | daily_cash
+  const [reportCategoryDirection, setReportCategoryDirection] = useState('expense'); // Kategori özetinde gelir/gider secimi
+  const [reportTrendCategory, setReportTrendCategory] = useState('');
   const [reportMovementFilter, setReportMovementFilter] = useState('all');
   const [reportAccountFilter, setReportAccountFilter] = useState('all');
   const [reportCategoryFilter, setReportCategoryFilter] = useState('all');
@@ -520,6 +530,7 @@ export default function AccountingPage() {
   }
 
   function handleReportDrilldown(filter, category = 'all') {
+    setReportViewMode('movements');
     setReportMovementFilter(filter);
     setReportCategoryFilter(category);
     setReportSearch('');
@@ -642,6 +653,28 @@ export default function AccountingPage() {
       .sort((left, right) => left.localeCompare(right, 'tr-TR', { sensitivity: 'base' })),
     [reportMovements],
   );
+  // Tek Kategori Trendi: secilen kategoriye ait hareketleri AY bazinda gruplar.
+  // Backend'den ayrica bir endpoint gerekmiyor -- zaten gelen ham hareket
+  // (movements) listesi burada JS ile ay ay toplanir.
+  const reportTrendData = useMemo(() => {
+    if (!reportTrendCategory) return { rows: [], total: 0 };
+    const monthMap = new Map();
+    let total = 0;
+    for (const entry of reportMovements) {
+      const classification = entry.classification || entry.type;
+      if (classification !== 'income' && classification !== 'expense') continue;
+      const category = entry.category || 'Kategorisiz';
+      if (category !== reportTrendCategory) continue;
+      const monthKey = (entry.date || '').slice(0, 7); // "2026-08"
+      const amount = Number(entry.amount || 0);
+      monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + amount);
+      total += amount;
+    }
+    const rows = Array.from(monthMap.entries())
+      .sort((left, right) => left[0].localeCompare(right[0]))
+      .map(([month, amount]) => ({ month, amount }));
+    return { rows, total };
+  }, [reportMovements, reportTrendCategory]);
   const filteredReportMovements = useMemo(() => {
     const query = reportSearch.trim().toLocaleLowerCase('tr-TR');
     return reportMovements.filter((entry) => {
@@ -2278,6 +2311,90 @@ export default function AccountingPage() {
                 </button>
               </div>
 
+              <div style={{ marginTop: 20, marginBottom: 20 }}>
+                <FormField label="Rapor türü">
+                  <select value={reportViewMode} onChange={(event) => setReportViewMode(event.target.value)}>
+                    <option value="category_summary">Kategori özeti — dönemdeki tüm masraf kalemleri</option>
+                    <option value="category_trend">Tek kategori trendi — bir kalemin zaman içindeki seyri</option>
+                    <option value="movements">Giriş / çıkış detayı — tüm hareketlerin listesi</option>
+                    <option value="accounts">Hesap özeti — hesap bazında dönem bakiyesi</option>
+                    <option value="daily_cash">Günlük nakit akışı — gün gün giriş çıkış</option>
+                  </select>
+                </FormField>
+              </div>
+
+              {reportViewMode === 'category_summary' && (
+                <div className="folder-panel">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div>
+                      <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Kategori özeti</h3>
+                      <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Seçilen dönemde, tüm kalemler ana başlıklar altında toplanmış olarak.</p>
+                    </div>
+                    <div className="accounting-report-presets" style={{ margin: 0 }}>
+                      <button type="button" className={`btn btn-secondary${reportCategoryDirection === 'expense' ? ' active' : ''}`} onClick={() => setReportCategoryDirection('expense')}>Giderler</button>
+                      <button type="button" className={`btn btn-secondary${reportCategoryDirection === 'income' ? ' active' : ''}`} onClick={() => setReportCategoryDirection('income')}>Gelirler</button>
+                    </div>
+                  </div>
+                  {(() => {
+                    const rows = (reportCategoryDirection === 'income' ? managementReport.incomeByCategory : managementReport.expenseByCategory) || [];
+                    const total = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+                    if (rows.length === 0) {
+                      return <div className="empty-state">{reportCategoryDirection === 'income' ? 'Gelir hareketi yok.' : 'Gider hareketi yok.'}</div>;
+                    }
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {rows.map((row) => (
+                          <div key={row.category} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--paper)', borderRadius: 6 }}>
+                            <span>{row.category}</span>
+                            <strong style={{ fontFamily: 'var(--font-mono)', color: reportCategoryDirection === 'income' ? 'var(--success)' : 'var(--danger)' }}>{formatAccountingMoney(row.amount, currency)}</strong>
+                          </div>
+                        ))}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 12px 0', marginTop: 6, borderTop: '1px solid var(--paper-line)' }}>
+                          <strong>Toplam {reportCategoryDirection === 'income' ? 'gelir' : 'gider'}</strong>
+                          <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 15 }}>{formatAccountingMoney(total, currency)}</strong>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {reportViewMode === 'category_trend' && (
+                <div className="folder-panel">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div>
+                      <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>Tek kategori trendi</h3>
+                      <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>Bir masraf/gelir kaleminin, seçilen dönem içindeki aylık seyri.</p>
+                    </div>
+                  </div>
+                  <FormField label="Masraf kalemi" style={{ maxWidth: 280, marginBottom: 14 }}>
+                    <select value={reportTrendCategory} onChange={(event) => setReportTrendCategory(event.target.value)}>
+                      <option value="">Kalem seçin</option>
+                      {reportCategoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </FormField>
+                  {!reportTrendCategory ? (
+                    <div className="empty-state">Görmek istediğiniz kalemi yukarıdan seçin.</div>
+                  ) : reportTrendData.rows.length === 0 ? (
+                    <div className="empty-state">Seçilen dönemde bu kalem için hareket bulunamadı.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {reportTrendData.rows.map((row) => (
+                        <div key={row.month} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--paper)', borderRadius: 6 }}>
+                          <span>{formatMonthLabel(row.month)}</span>
+                          <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatAccountingMoney(row.amount, currency)}</strong>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 12px 0', marginTop: 6, borderTop: '1px solid var(--paper-line)' }}>
+                        <strong>Toplam</strong>
+                        <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 15 }}>{formatAccountingMoney(reportTrendData.total, currency)}</strong>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {reportViewMode === 'movements' && (
               <div ref={reportDetailRef} className="folder-panel accounting-report-detail" style={{ marginTop: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                   <div>
@@ -2364,7 +2481,9 @@ export default function AccountingPage() {
                   </div>
                 )}
               </div>
+              )}
 
+              {reportViewMode === 'accounts' && (
               <div className="folder-panel" style={{ marginTop: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                   <div>
@@ -2406,7 +2525,9 @@ export default function AccountingPage() {
                   </div>
                 )}
               </div>
+              )}
 
+              {reportViewMode === 'daily_cash' && (
               <div className="folder-panel" style={{ marginTop: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                   <div>
@@ -2452,29 +2573,7 @@ export default function AccountingPage() {
                   </div>
                 )}
               </div>
-
-              <div className="panel-grid-2" style={{ marginTop: 20 }}>
-                <div className="folder-panel">
-                  <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 12px', fontSize: 18 }}>Gelir kategorileri</h3>
-                  {managementReport.incomeByCategory?.length === 0 ? <div className="empty-state">Gelir hareketi yok.</div> : (
-                    <div className="table-scroll">
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                        <tbody>{managementReport.incomeByCategory.map((row) => <tr key={row.category} style={{ borderTop: '1px solid var(--paper-line)' }}><td style={{ padding: '9px 8px' }}>{row.category}</td><td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatAccountingMoney(row.amount, currency)}</td></tr>)}</tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-                <div className="folder-panel">
-                  <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 12px', fontSize: 18 }}>Gider kategorileri</h3>
-                  {managementReport.expenseByCategory?.length === 0 ? <div className="empty-state">Gider hareketi yok.</div> : (
-                    <div className="table-scroll">
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                        <tbody>{managementReport.expenseByCategory.map((row) => <tr key={row.category} style={{ borderTop: '1px solid var(--paper-line)' }}><td style={{ padding: '9px 8px' }}>{row.category}</td><td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>{formatAccountingMoney(row.amount, currency)}</td></tr>)}</tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
+              )}
 
               <div className="folder-panel" style={{ marginTop: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
