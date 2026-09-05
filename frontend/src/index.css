@@ -1487,6 +1487,31 @@ button.metric-card--clickable {
   color: var(--muted);
   font-size: 12px;
 }
+/* Tek "Sade Muhasebe Raporları" çerçevesi içindeki mantıksal bölümler
+   (özet metrikler / rapor türü + içeriği); ayrı kutular yerine ince bir
+   üst çizgiyle ayrılırlar. */
+.accounting-report-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--paper-line);
+}
+.accounting-report-section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.accounting-report-section-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 8px 0 16px;
+}
+.accounting-report-tabs .btn {
+  padding: 8px 14px;
+  font-size: 12.5px;
+}
 .metric-card__label {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -3049,9 +3074,15 @@ button.metric-card--clickable {
     gap: 10px;
   }
 
-  .accounting-page .accounting-report-presets {
+  .accounting-page .accounting-report-presets,
+  .accounting-page .accounting-report-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accounting-page .accounting-report-section {
+    margin-top: 14px;
+    padding-top: 14px;
   }
 
   .accounting-page .accounting-report-date-form,
