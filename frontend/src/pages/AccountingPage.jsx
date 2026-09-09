@@ -1466,14 +1466,16 @@ export default function AccountingPage() {
               <FormField label="Tutar">
                 <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
-              <FormField label="Para birimi">
-                <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
-                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-                </select>
-              </FormField>
-              <FormField label="Açıklama" style={{ gridColumn: 'span 3' }}>
-                <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
-              </FormField>
+              <div style={{ gridColumn: 'span 4', display: 'flex', gap: 16 }}>
+                <FormField label="Para birimi" style={{ minWidth: 0, width: 100, flex: '0 0 auto' }}>
+                  <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
+                    {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Açıklama" style={{ minWidth: 0, flex: '1 1 auto' }}>
+                  <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
+                </FormField>
+              </div>
               {editingEntry && (
                 <FormField label="Düzeltme nedeni" style={{ gridColumn: 'span 2' }}>
                   <input value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Örn. Tutar yanlış girildi" required />
