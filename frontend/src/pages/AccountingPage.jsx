@@ -1413,23 +1413,23 @@ export default function AccountingPage() {
       {activeTab === 'entries' && (
         <>
           <div className="folder-panel" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 18 }}>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
-                <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 13 }}>
-                  {editingEntry ? 'Eski kayıt silinmez ve geçmişte korunur. Yeni değerler ayrı bir düzeltme kaydı olarak oluşturulur.' : 'Gelir/tahsilat, gider/ödeme veya aynı para birimindeki iki hesap arasında transfer kaydedin.'}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 19, color: 'var(--ink-navy)' }}>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
+              {editingEntry && (
+                <p style={{ color: 'var(--muted)', margin: 0, fontSize: 13 }}>
+                  Eski kayıt silinmez ve geçmişte korunur. Yeni değerler ayrı bir düzeltme kaydı olarak oluşturulur.
                 </p>
-              </div>
-              <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>İlk sürüm</span>
+              )}
             </div>
-            <form onSubmit={handleCreateEntry} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <form onSubmit={handleCreateEntry}>
+              <div className="accounting-entry-form-grid">
               <FormField label="Hareket türü">
                 <select name="type" value={entryForm.type} onChange={handleEntryChange}>
                   {ACCOUNTING_ENTRY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
               {!editingEntry && entryForm.type === 'expense' && (
-                <FormField label="Önceki gideri kullan" style={{ minWidth: 300 }}>
+                <FormField label="Önceki gideri kullan" style={{ gridColumn: 'span 2' }}>
                   {recentExpenseLoading ? (
                     <span className="quick-expense-empty">Önceki giderler yükleniyor…</span>
                   ) : quickExpenseOptions.length > 0 ? (
@@ -1489,7 +1489,7 @@ export default function AccountingPage() {
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'} style={{ minWidth: 210 }}>
+              <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'}>
                 <select name="accountId" value={entryForm.accountId} onChange={handleEntryChange} required>
                   <option value="">Hesap seçin</option>
                   {currencyAccounts.map((account) => (
@@ -1498,7 +1498,7 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               {entryForm.type === 'transfer' && (
-                <FormField label="Hedef hesap" style={{ minWidth: 210 }}>
+                <FormField label="Hedef hesap">
                   <select name="counterAccountId" value={entryForm.counterAccountId} onChange={handleEntryChange} required>
                     <option value="">Hesap seçin</option>
                     {currencyAccounts.filter((account) => account.id !== entryForm.accountId).map((account) => (
@@ -1508,7 +1508,7 @@ export default function AccountingPage() {
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && (
-                <FormField label="Kategori · sonraki kayıtlarda bu adla bulunur" style={{ minWidth: 280 }}>
+                <FormField label="Kategori · sonraki kayıtlarda bu adla bulunur" style={{ gridColumn: 'span 2' }}>
                   <span className="accounting-category-hint">İlk kayıtta anlaşılır bir isim yazın; açıklama bu seçim adını değiştirmez.</span>
                   <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
                     {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
@@ -1517,12 +1517,12 @@ export default function AccountingPage() {
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && entryForm.category === NEW_CATEGORY_VALUE && (
-                <FormField label="Yeni kategori adı" style={{ minWidth: 220 }}>
+                <FormField label="Yeni kategori adı">
                   <input name="customCategory" value={entryForm.customCategory} onChange={handleEntryChange} placeholder="Örn. Reklam gideri" required />
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && (
-                <FormField label="Cari kart / muhatap" style={{ minWidth: 220 }}>
+                <FormField label="Cari kart / muhatap">
                   <select name="partyId" value={entryForm.partyId} onChange={handleEntryChange}>
                     <option value="">Cari kart seçmeden devam et</option>
                     {parties.filter((party) => party.currency === entryForm.currency || party.type === 'agent').map((party) => {
@@ -1532,18 +1532,21 @@ export default function AccountingPage() {
                   </select>
                 </FormField>
               )}
-              <FormField label="Açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+              <FormField label="Açıklama" style={{ gridColumn: 'span 2' }}>
                 <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
               </FormField>
               {editingEntry && (
-                <FormField label="Düzeltme nedeni" style={{ minWidth: 260, flex: '1 1 260px' }}>
+                <FormField label="Düzeltme nedeni" style={{ gridColumn: 'span 2' }}>
                   <input value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Örn. Tutar yanlış girildi" required />
                 </FormField>
               )}
-              <button type="submit" className="btn btn-primary" disabled={saving || currencyAccounts.length === 0}>
-                {saving ? 'Kaydediliyor…' : editingEntry ? 'Düzeltmeyi Kaydet' : 'Hareketi Kaydet'}
-              </button>
-              {editingEntry && <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>}
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                <button type="submit" className="btn btn-primary" disabled={saving || currencyAccounts.length === 0}>
+                  {saving ? 'Kaydediliyor…' : editingEntry ? 'Düzeltmeyi Kaydet' : 'Hareketi Kaydet'}
+                </button>
+                {editingEntry && <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>}
+              </div>
             </form>
             <SavedRecordNotice notice={entrySaveNotice} />
             {currencyAccounts.length === 0 && (

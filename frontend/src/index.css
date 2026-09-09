@@ -652,6 +652,29 @@ button {
   grid-column: 1 / -1;
 }
 
+/* "Yeni muhasebe hareketi" formu: tutarlı grid + daha belirgin kenarlık/etiket. */
+.accounting-entry-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+.accounting-entry-form-grid .form-field label {
+  color: var(--ink-navy);
+  font-weight: 700;
+  font-size: 11.5px;
+}
+.accounting-entry-form-grid .form-field input,
+.accounting-entry-form-grid .form-field select {
+  border: 1.5px solid var(--ink-navy);
+}
+.accounting-entry-form-grid .form-field input:focus,
+.accounting-entry-form-grid .form-field select:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 2px rgba(169, 125, 59, 0.25);
+}
+
 .form-field label {
   font-family: var(--font-mono);
   font-size: 11px;
