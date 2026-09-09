@@ -2752,6 +2752,47 @@ button.metric-card--clickable {
   -webkit-overflow-scrolling: touch;
 }
 
+/* --- Muhasebe: standart veri tablosu görünümü (Hareketler, Hesaplar,
+   Cari Kartlar, Komisyonlar, Danışman Kiraları, Veri Aktarımı). Rapor
+   sekmesinin kendi .accounting-report-table stili var, o hariç tutulur. --- */
+.accounting-page .table-scroll {
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  overflow: auto;
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) {
+  border: none;
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) thead tr {
+  background: var(--ink-navy);
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) thead th {
+  color: var(--paper);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--brass);
+  white-space: nowrap;
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr {
+  background: var(--paper-raised);
+  transition: background-color 0.12s ease;
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:nth-child(even) {
+  background: var(--paper);
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:hover {
+  background: #eee2c4;
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:first-child td {
+  border-top: none !important;
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) td {
+  border-bottom: 1px solid var(--paper-line);
+}
+.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:last-child td {
+  border-bottom: none;
+}
+
 /* --- Finans: sekme içeriği kapsayıcısı --- */
 .finance-tab-content {
   margin-top: -1px;
