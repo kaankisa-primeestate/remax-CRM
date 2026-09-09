@@ -247,6 +247,57 @@ function FormField({ label, children, style }) {
   );
 }
 
+// "Yazarak ara" özellikli basit bir seçim kutusu. Danışman/ortak/kategori
+// listeleri uzun olabileceği için düz <select> yerine kullanılır.
+function SearchableSelect({ options, value, onChange, placeholder }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+  const selected = options.find((option) => option.value === value);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const normalizedQuery = query.trim().toLocaleLowerCase('tr-TR');
+  const filteredOptions = normalizedQuery
+    ? options.filter((option) => option.label.toLocaleLowerCase('tr-TR').includes(normalizedQuery))
+    : options;
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <input
+        type="text"
+        value={open ? query : (selected?.label || '')}
+        onFocus={() => { setOpen(true); setQuery(''); }}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      {open && (
+        <div style={{ position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, marginTop: 2, maxHeight: 240, overflowY: 'auto', background: 'var(--paper)', border: '1px solid var(--paper-line)', borderRadius: 6, boxShadow: '0 6px 16px rgba(0,0,0,0.18)' }}>
+          {filteredOptions.length === 0 ? (
+            <div style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: 13 }}>Sonuç yok</div>
+          ) : filteredOptions.map((option) => (
+            <div
+              key={option.value}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => { onChange(option.value); setOpen(false); setQuery(''); }}
+              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, background: option.value === value ? 'var(--paper-raised)' : 'transparent' }}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function parseAccountingAmount(value) {
   if (typeof value === 'number') return value;
   const raw = String(value ?? '').trim().replace(/\s/g, '');
@@ -376,7 +427,11 @@ export default function AccountingPage() {
   const [reportToDate, setReportToDate] = useState(DEFAULT_REPORT_RANGE.to);
   const [reportPreset, setReportPreset] = useState('this_month');
   const [reportType, setReportType] = useState('summary'); // summary | commission | dues | expenses | partners
-  const [reportSearch, setReportSearch] = useState('');
+  const [reportSubFilter, setReportSubFilter] = useState('ALL'); // 'ALL' | danışman/kategori/ortak id'si
+  // "Getir"e basılana kadar ekranda görünen sonucu değiştirmemek için, seçim
+  // kutularındaki (taslak) değerlerden ayrı bir "uygulanmış" durum tutuyoruz.
+  const [appliedReportType, setAppliedReportType] = useState('summary');
+  const [appliedReportSubFilter, setAppliedReportSubFilter] = useState('ALL');
   const [reportPage, setReportPage] = useState(1);
   const [managementReport, setManagementReport] = useState(null);
   const [managementReportLoading, setManagementReportLoading] = useState(false);
@@ -555,8 +610,9 @@ export default function AccountingPage() {
   useEffect(() => {
     if (activeTab !== 'reports') return undefined;
     loadManagementReport();
+    loadAgents(); // Komisyon/Aidat raporlarının 2. kutusu (danışman listesi) için gerekli
     return undefined;
-  }, [activeTab, loadManagementReport]);
+  }, [activeTab, loadManagementReport, loadAgents]);
 
   const loadMigrationPreview = useCallback(async () => {
     setMigrationLoading(true);
@@ -638,28 +694,51 @@ export default function AccountingPage() {
     return Array.from(latestByLabel.values()).sort((left, right) => quickExpenseLabel(left).localeCompare(quickExpenseLabel(right), 'tr-TR', { sensitivity: 'base' }));
   }, [recentExpenseEntries, hiddenQuickExpenseLabels]);
   const reportMovements = managementReport?.movements || [];
-  // Seçilen "Rapor Türü"ne göre, zaten gelen tek yönetimsel rapor cevabından
-  // (movements) ilgili alt kümeyi süzer. Her rapor türü için ayrı bir backend
-  // çağrısı gerekmez.
+  // 2. kutu (dinamik alt seçim), rapor türüne göre farklı gerçek veri
+  // kaynağından beslenir — hiçbiri uydurma/sabit isim değildir.
+  const reportSubFilterOptions = useMemo(() => {
+    if (reportType === 'expenses') {
+      return categoryNames(EXPENSE_CATEGORIES, customCategories.expense).map((name) => ({ value: name, label: name }));
+    }
+    if (reportType === 'commission' || reportType === 'dues') {
+      return agents
+        .slice()
+        .sort((left, right) => (left.name || '').localeCompare(right.name || '', 'tr-TR', { sensitivity: 'base' }))
+        .map((agent) => ({ value: agent.id, label: agent.name }));
+    }
+    if (reportType === 'partners') {
+      return parties
+        .filter((party) => party.type === 'partner')
+        .slice()
+        .sort((left, right) => (left.name || '').localeCompare(right.name || '', 'tr-TR', { sensitivity: 'base' }))
+        .map((party) => ({ value: party.id, label: party.name }));
+    }
+    return [];
+  }, [reportType, customCategories, agents, parties]);
+  // Seçilen "Rapor Türü"ne (ve varsa 2. kutudaki seçime) göre, zaten gelen tek
+  // yönetimsel rapor cevabından (movements) ilgili alt kümeyi süzer. Her rapor
+  // türü/kişi için ayrı bir backend çağrısı gerekmez. "Getir"e basılana kadar
+  // görünen sonuç değişmesin diye "applied" (uygulanmış) değerler kullanılır.
   const reportRows = useMemo(() => {
-    const query = reportSearch.trim().toLocaleLowerCase('tr-TR');
     return reportMovements.filter((entry) => {
       const classification = entry.classification || entry.type;
       let matchesType;
-      if (reportType === 'commission') matchesType = classification === 'income' && COMMISSION_INCOME_CATEGORIES.has(entry.category);
-      else if (reportType === 'dues') matchesType = classification === 'income' && DUES_INCOME_CATEGORIES.has(entry.category);
-      else if (reportType === 'expenses') matchesType = classification === 'expense';
-      else if (reportType === 'partners') matchesType = classification === 'partner_in' || classification === 'partner_out';
+      if (appliedReportType === 'commission') matchesType = classification === 'income' && COMMISSION_INCOME_CATEGORIES.has(entry.category);
+      else if (appliedReportType === 'dues') matchesType = classification === 'income' && DUES_INCOME_CATEGORIES.has(entry.category);
+      else if (appliedReportType === 'expenses') matchesType = classification === 'expense';
+      else if (appliedReportType === 'partners') matchesType = classification === 'partner_in' || classification === 'partner_out';
       else matchesType = classification !== 'transfer'; // summary: transferler haricinde tüm gelir/gider/ortak hareketleri
       if (!matchesType) return false;
-      if (!query) return true;
-      const searchable = [entry.category, entry.description, entry.partyName, entry.accountName, entry.counterAccountName, entry.referenceNo]
-        .filter(Boolean)
-        .join(' ')
-        .toLocaleLowerCase('tr-TR');
-      return searchable.includes(query);
+      if (appliedReportSubFilter && appliedReportSubFilter !== 'ALL') {
+        if (appliedReportType === 'expenses') {
+          if (entry.category !== appliedReportSubFilter) return false;
+        } else if (appliedReportType === 'commission' || appliedReportType === 'dues' || appliedReportType === 'partners') {
+          if (entry.partyId !== appliedReportSubFilter) return false;
+        }
+      }
+      return true;
     });
-  }, [reportMovements, reportType, reportSearch]);
+  }, [reportMovements, appliedReportType, appliedReportSubFilter]);
   // Homojen türler (komisyon/aidat/gider) için basit toplam; tüm tutarlar zaten
   // pozitif saklanır, yön "classification" ile belirlenir.
   const reportRowsTotal = useMemo(
@@ -714,7 +793,13 @@ export default function AccountingPage() {
 
   useEffect(() => {
     setReportPage(1);
-  }, [reportType, reportSearch, currency, reportFromDate, reportToDate]);
+  }, [appliedReportType, appliedReportSubFilter]);
+
+  // Rapor türü (1. kutu) değiştiğinde, 2. kutudaki seçimi "Tümü"ne sıfırla —
+  // bir önceki türden kalan danışman/kategori seçimi yeni türe taşınmasın.
+  useEffect(() => {
+    setReportSubFilter('ALL');
+  }, [reportType]);
 
   useEffect(() => {
     if (partyPage > partyPageCount) setPartyPage(partyPageCount);
@@ -2219,61 +2304,89 @@ export default function AccountingPage() {
               <strong style={{ color: 'var(--ink-navy)', fontSize: 13 }}>{formatDate(reportFromDate)} – {formatDate(reportToDate)}</strong>
             </div>
 
-            <div className="accounting-report-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-              <div className="accounting-report-section-label">1. Rapor Türü</div>
-              <div className="accounting-report-presets accounting-report-tabs" role="tablist" aria-label="Rapor türü seçenekleri">
-                {REPORT_TYPES.map((type) => (
-                  <button
-                    type="button"
-                    key={type.value}
-                    role="tab"
-                    aria-selected={reportType === type.value}
-                    className={`btn btn-secondary${reportType === type.value ? ' active' : ''}`}
-                    onClick={() => setReportType(type.value)}
-                  >
-                    {type.label}
-                  </button>
-                ))}
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                loadManagementReport();
+                setAppliedReportType(reportType);
+                setAppliedReportSubFilter(reportSubFilter);
+              }}
+            >
+              <div className="accounting-report-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+                <div className="accounting-report-section-label">1. Rapor Türü</div>
+                <div className="accounting-report-presets accounting-report-tabs" role="tablist" aria-label="Rapor türü seçenekleri">
+                  {REPORT_TYPES.map((type) => (
+                    <button
+                      type="button"
+                      key={type.value}
+                      role="tab"
+                      aria-selected={reportType === type.value}
+                      className={`btn btn-secondary${reportType === type.value ? ' active' : ''}`}
+                      onClick={() => setReportType(type.value)}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="accounting-report-section-hint">
+                  {REPORT_TYPES.find((type) => type.value === reportType)?.description}
+                </p>
               </div>
-              <p className="accounting-report-section-hint">
-                {REPORT_TYPES.find((type) => type.value === reportType)?.description}
-              </p>
-            </div>
 
-            <div className="accounting-report-section">
-              <div className="accounting-report-section-label">2. Tarih Aralığı</div>
-              <div className="accounting-report-presets" aria-label="Hızlı tarih aralığı seçenekleri">
-                {REPORT_PRESETS.map((preset) => (
-                  <button
-                    type="button"
-                    key={preset.value}
-                    className={`btn btn-secondary${reportPreset === preset.value ? ' active' : ''}`}
-                    onClick={() => handleReportPreset(preset.value)}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+              <div className="accounting-report-section">
+                <div className="accounting-report-section-label">
+                  2. {reportType === 'expenses' ? 'Kategori' : reportType === 'partners' ? 'Ortak' : reportType === 'summary' ? 'Kapsam' : 'Danışman'}
+                </div>
+                {reportType === 'summary' ? (
+                  <input type="text" disabled value="Tüm dönem — gelir, gider ve ortak hareketleri" style={{ maxWidth: 360, background: 'var(--paper-raised)', color: 'var(--muted)' }} />
+                ) : (
+                  <div style={{ maxWidth: 360 }}>
+                    <SearchableSelect
+                      value={reportSubFilter}
+                      onChange={setReportSubFilter}
+                      options={[{ value: 'ALL', label: 'Tümü' }, ...reportSubFilterOptions]}
+                      placeholder={reportType === 'expenses' ? 'Tümü ya da kategori adı yazın…' : reportType === 'partners' ? 'Tümü ya da ortak adı yazın…' : 'Tümü ya da danışman adı yazın…'}
+                    />
+                  </div>
+                )}
               </div>
-              <form onSubmit={(event) => { event.preventDefault(); loadManagementReport(); }} className="accounting-report-date-form">
-                <FormField label="Başlangıç tarihi">
-                  <input type="date" value={reportFromDate} onChange={(event) => { setReportFromDate(event.target.value); setReportPreset('custom'); }} required />
-                </FormField>
-                <FormField label="Bitiş tarihi">
-                  <input type="date" value={reportToDate} onChange={(event) => { setReportToDate(event.target.value); setReportPreset('custom'); }} required />
-                </FormField>
-                <FormField label="Para birimi">
-                  <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
-                    {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-                  </select>
-                </FormField>
-                <button type="submit" className="btn btn-primary" disabled={managementReportLoading}>
-                  {managementReportLoading ? 'Rapor hazırlanıyor…' : '🚀 Raporu Getir'}
-                </button>
-              </form>
-              <p style={{ color: 'var(--muted)', fontSize: 12, margin: '12px 0 0' }}>
-                Transferler gelir veya gider değildir, bu raporlara dahil edilmez. TRY, EUR ve USD raporları kur çevrimi yapılmadan ayrı gösterilir.
-              </p>
-            </div>
+
+              <div className="accounting-report-section">
+                <div className="accounting-report-section-label">3. Tarih Aralığı</div>
+                <div className="accounting-report-presets" aria-label="Hızlı tarih aralığı seçenekleri">
+                  {REPORT_PRESETS.map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.value}
+                      className={`btn btn-secondary${reportPreset === preset.value ? ' active' : ''}`}
+                      onClick={() => handleReportPreset(preset.value)}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="accounting-report-date-form">
+                  <FormField label="Başlangıç tarihi">
+                    <input type="date" value={reportFromDate} onChange={(event) => { setReportFromDate(event.target.value); setReportPreset('custom'); }} required />
+                  </FormField>
+                  <FormField label="Bitiş tarihi">
+                    <input type="date" value={reportToDate} onChange={(event) => { setReportToDate(event.target.value); setReportPreset('custom'); }} required />
+                  </FormField>
+                  <FormField label="Para birimi">
+                    <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+                      {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                    </select>
+                  </FormField>
+                  <button type="submit" className="btn btn-primary" disabled={managementReportLoading}>
+                    {managementReportLoading ? 'Rapor hazırlanıyor…' : '🚀 Raporu Getir'}
+                  </button>
+                </div>
+                <p style={{ color: 'var(--muted)', fontSize: 12, margin: '12px 0 0' }}>
+                  Transferler gelir veya gider değildir, bu raporlara dahil edilmez. TRY, EUR ve USD raporları kur çevrimi yapılmadan ayrı gösterilir.
+                </p>
+              </div>
+            </form>
+
 
             {managementReportLoading ? (
               <div className="empty-state" style={{ marginTop: 16 }}>Yönetimsel rapor hazırlanıyor…</div>
@@ -2283,7 +2396,7 @@ export default function AccountingPage() {
               <div className="accounting-report-section">
                 <div className="accounting-report-section-label">Sonuç</div>
 
-                {reportType === 'summary' && (
+                {appliedReportType === 'summary' && (
                   <div className="metric-grid accounting-report-metrics" style={{ marginBottom: 16 }}>
                     <div className="metric-card">
                       <div className="metric-card__label">Toplam Gelir</div>
@@ -2308,7 +2421,7 @@ export default function AccountingPage() {
                   </div>
                 )}
 
-                {reportType === 'commission' && (
+                {appliedReportType === 'commission' && (
                   <div className="metric-grid accounting-report-metrics" style={{ marginBottom: 16 }}>
                     <div className="metric-card">
                       <div className="metric-card__label">Toplam Komisyon Geliri</div>
@@ -2318,7 +2431,7 @@ export default function AccountingPage() {
                   </div>
                 )}
 
-                {reportType === 'dues' && (
+                {appliedReportType === 'dues' && (
                   <div className="metric-grid accounting-report-metrics" style={{ marginBottom: 16 }}>
                     <div className="metric-card">
                       <div className="metric-card__label">Toplam Aidat / Masa Kirası Geliri</div>
@@ -2328,7 +2441,7 @@ export default function AccountingPage() {
                   </div>
                 )}
 
-                {reportType === 'expenses' && (
+                {appliedReportType === 'expenses' && (
                   <>
                     <div className="metric-grid accounting-report-metrics" style={{ marginBottom: 16 }}>
                       <div className="metric-card">
@@ -2353,7 +2466,7 @@ export default function AccountingPage() {
                   </>
                 )}
 
-                {reportType === 'partners' && (
+                {appliedReportType === 'partners' && (
                   <div className="metric-grid accounting-report-metrics" style={{ marginBottom: 16 }}>
                     <div className="metric-card">
                       <div className="metric-card__label">Ortak Girişi</div>
@@ -2374,10 +2487,7 @@ export default function AccountingPage() {
                 )}
 
                 <div className="accounting-report-view accounting-report-detail">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 12, flexWrap: 'wrap' }}>
-                    <FormField label="Ara" style={{ minWidth: 220, marginBottom: 0 }}>
-                      <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Kategori, açıklama, hesap veya cari ara" />
-                    </FormField>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 10 }}>
                     <strong style={{ color: 'var(--ink-navy)', fontSize: 13 }}>{reportRows.length} kayıt</strong>
                   </div>
                   {visibleReportRows.length === 0 ? (
@@ -2418,9 +2528,9 @@ export default function AccountingPage() {
                     </div>
                   )}
                   {reportRows.length > 0 && (() => {
-                    const isMixed = reportType === 'summary' || reportType === 'partners';
+                    const isMixed = appliedReportType === 'summary' || appliedReportType === 'partners';
                     const displayValue = isMixed ? reportRowsNet : reportRowsTotal;
-                    const color = reportType === 'expenses'
+                    const color = appliedReportType === 'expenses'
                       ? 'var(--danger)'
                       : isMixed
                         ? (displayValue >= 0 ? 'var(--success)' : 'var(--danger)')
@@ -2429,7 +2539,7 @@ export default function AccountingPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--paper-line)' }}>
                         <strong>Toplam ({reportRows.length} kayıt)</strong>
                         <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 15, color }}>
-                          {reportType === 'expenses' ? '-' : ''}{formatAccountingMoney(Math.abs(displayValue), currency)}
+                          {appliedReportType === 'expenses' ? '-' : ''}{formatAccountingMoney(Math.abs(displayValue), currency)}
                         </strong>
                       </div>
                     );

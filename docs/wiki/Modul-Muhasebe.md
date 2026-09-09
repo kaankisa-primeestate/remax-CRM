@@ -27,23 +27,29 @@ tags: [modul, muhasebe]
 
 `agent`, `partner`, `customer`, `vendor`, `other`
 
-## Raporlama Sistemi (Önemli — 2026-09-07'de iş odaklı 5 rapora sadeleştirildi)
+## Raporlama Sistemi (Önemli — 2026-09-08'de 3 kutulu, arama destekli menüye geçildi)
 
-`AccountingPage.jsx`'in "Raporlar" bölümü artık **iş ihtiyacına göre adlandırılmış 5 rapor türü** sunar (önceki "Kategori Özeti / Trend / Hesap Özeti / Günlük Nakit Akışı" görünümleri kaldırıldı — kullanıcı bunları "karışık ve gereksiz" bulduğu için). Akış: **1. Rapor Türünü seç → 2. Tarih aralığını seç → "Raporu Getir" → sonuç aynı ekranda altta.**
+`AccountingPage.jsx`'in "Raporlar" bölümü, 3 aşamalı bir seçim akışıyla çalışır: **1. Rapor Türü → 2. Kapsam (Tümü / belirli danışman-kategori-ortak, yazarak aratılabilir) → 3. Tarih Aralığı → "Raporu Getir"**. Sonuç, "Getir"e basılana kadar değişmez (bkz. `appliedReportType`/`appliedReportSubFilter` — box1/box2'deki taslak seçim `reportType`/`reportSubFilter`'dan ayrı tutulur).
 
-Rapor türleri (`REPORT_TYPES` sabiti, `AccountingPage.jsx`):
+Rapor türleri (`REPORT_TYPES` sabiti):
 
-1. **Genel Özet** (varsayılan) — dönemin toplam gelir/gider/ortak cari net/net durumunu 4 kartla gösterir (`managementReport.summary`), altında transferler hariç tüm hareketlerin tablosu.
-2. **Komisyon Gelirleri** — `movements` listesi, `classification === 'income'` ve `category === 'Komisyon Tahsilatı'` olan kayıtlarla filtrelenir.
-3. **Danışman Aidat / Masa Kirası** — aynı mantık, `category === 'Danışman Kirası Tahsilatı'`.
-4. **Ofis Masraf ve Giderleri** — `classification === 'expense'` olan kayıtlar + `expenseByCategory` kırılımı (backend'den zaten geliyor).
-5. **Ortak Cari Hareketleri** — `classification` değeri `partner_in`/`partner_out` olan kayıtlar (giriş/çıkış/net kartlarıyla).
+1. **Genel Özet** (varsayılan) — 2. kutu devre dışı (tek "Tüm dönem" metni); dönemin toplam gelir/gider/ortak cari net/net durumunu 4 kartla gösterir, altında transferler hariç tüm hareketlerin tablosu.
+2. **Komisyon Gelirleri** — 2. kutu: gerçek danışman listesi (`agents`, `usersApi.listAgents()`'tan, alfabetik, aranabilir). `category === 'Komisyon Tahsilatı'` olan gelir kayıtları, seçilirse `entry.partyId` ile danışmana daraltılır.
+3. **Danışman Aidat / Masa Kirası** — aynı danışman listesi, `category === 'Danışman Kirası Tahsilatı'`.
+4. **Ofis Masraf ve Giderleri** — 2. kutu: gerçek gider kategorileri (`categoryNames(EXPENSE_CATEGORIES, customCategories.expense)`), `classification === 'expense'` kayıtları + `expenseByCategory` kırılımı.
+5. **Ortak Cari Hareketleri** — 2. kutu: gerçek ortak listesi (`parties.filter(p => p.type === 'partner')`), `partner_in`/`partner_out` kayıtları, seçilirse `entry.partyId` ile ortağa daraltılır.
 
-**Önemli:** Komisyon ve aidat filtresi, backend'in bu tahsilatları otomatik kaydederken kullandığı **sabit kategori adı string'ine** (`accounting.service.ts` içindeki `'Komisyon Tahsilatı'` ve `'Danışman Kirası Tahsilatı'` literalleri) bağımlıdır — bu isimler backend'de değişirse, frontend'deki `COMMISSION_INCOME_CATEGORIES`/`DUES_INCOME_CATEGORIES` sabitleri de (`AccountingPage.jsx` üstü) güncellenmelidir. Aynı desen, ortak cari ayrımı için zaten backend'de `PARTNER_FINANCING_INCOME_CATEGORIES`/`PARTNER_FINANCING_EXPENSE_CATEGORIES` olarak kullanılıyordu; bu sefer eşleştirme bilinçli olarak backend'e taşınmadı, frontend'de tutuldu (yeni backend riski almamak için) — hiçbir yeni backend endpoint'i veya migration gerekmedi.
+2. kutunun arama/seçim arayüzü `SearchableSelect` bileşenidir (`AccountingPage.jsx` içinde, dosya başına yakın) — yazarak filtreleyen, dışına tıklayınca kapanan basit bir combobox; harici kütüphane gerektirmez.
 
-Rapor sayfasında artık düzenleme/iptal/geçmiş butonları **yok** — bunlar "Hareketler" sekmesinde zaten mevcut; rapor sadece görüntüleme amaçlıdır.
+**Önemli — veri kaynağı gerçek, uydurma değil:** 2. kutunun seçenekleri (danışman/kategori/ortak) hiçbir zaman sabit/hard-code liste değildir — `agents` ve `parties` state'leri, "Raporlar" sekmesi açıldığında `loadAgents()`/`loadParties()` ile gerçek backend verisinden yüklenir (bkz. `useEffect` — `activeTab === 'reports'`). Komisyon/aidat filtresi `entry.partyId` üzerinden, `agent.id` ile birebir eşleşir (backend `commission.agentId`/`rent.agentId`'yi doğrudan `partyId` olarak yazıyor — bkz. `accounting.service.ts` `collectCommission`/`collectRent`). Ortak Cari filtresi de aynı şekilde `party.id` ile eşleşir (bkz. `partnerMovementForm.partyId`).
 
-Ayrıca, ortak cari hızlı-ekleme seçeneklerinden biri (`PARTNER_MOVEMENT_TYPES` içindeki `loan_out`) `'Ortağa Borç Ödemesi'` kategorisiyle kayıt açıyordu ama backend'in ortak-cari-çıkışı tanıdığı liste `'Ortağa Borç Geri Ödemesi'` bekliyordu — bu yüzden bu tür kayıtlar Ortak Cari raporuna hiç düşmüyordu. Bu isim uyuşmazlığı da bu oturumda düzeltildi.
+Komisyon/aidat **tür** ayrımı (Genel Özet dışındaki dört rapordan hangi movement'ın hangisine ait olduğu), backend'in bu tahsilatları otomatik kaydederken kullandığı **sabit kategori adı string'ine** (`'Komisyon Tahsilatı'`, `'Danışman Kirası Tahsilatı'`) bağımlıdır — bu isimler backend'de değişirse, frontend'deki `COMMISSION_INCOME_CATEGORIES`/`DUES_INCOME_CATEGORIES` sabitleri de güncellenmelidir.
+
+Rapor sayfasında düzenleme/iptal/geçmiş butonları **yok** — bunlar "Hareketler" sekmesinde zaten mevcut; rapor sadece görüntüleme amaçlıdır.
+
+Ayrıca, ortak cari hızlı-ekleme seçeneklerinden biri (`PARTNER_MOVEMENT_TYPES` içindeki `loan_out`) `'Ortağa Borç Ödemesi'` kategorisiyle kayıt açıyordu ama backend'in ortak-cari-çıkışı tanıdığı liste `'Ortağa Borç Geri Ödemesi'` bekliyordu — bu yüzden bu tür kayıtlar Ortak Cari raporuna hiç düşmüyordu. Bu isim uyuşmazlığı 2026-09-07'de düzeltildi.
+
+**Kaldırılan/kullanılmayan dosya:** `frontend/src/pages/ReportsPage.jsx` — 2026-09-07'de eklendi ama hiçbir route/menüye bağlanmadı (bkz. `App.jsx`), sahte/uydurma veriyle çalışıyordu, build çıktısına dahi girmiyordu (kullanılmadığı için tree-shake ediliyordu). Bu dosya silindi; gerçek rapor mantığı hep `AccountingPage.jsx` içinde kalmalı.
 
 Ana endpoint değişmedi: `GET /accounting/reports/management` (`accounting.service.ts` → `getManagementReport()`), tek bir çağrıda tüm rapor türleri için gereken veriyi (`summary`, `movements`, `incomeByCategory`, `expenseByCategory`, `pending`) döner. `accountBalances` ve `dailyCashFlow` alanları backend'den gelmeye devam ediyor ama artık raporlar ekranında kullanılmıyor (Hesaplar sekmesiyle örtüştüğü için kaldırıldı).
 
