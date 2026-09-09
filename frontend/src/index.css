@@ -652,12 +652,16 @@ button {
   grid-column: 1 / -1;
 }
 
-/* "Yeni muhasebe hareketi" formu: tutarlı grid + daha belirgin kenarlık/etiket. */
+/* "Yeni muhasebe hareketi" formu: tutarlı grid + daha belirgin kenarlık/etiket.
+   align-items: start -- "end" iken, altında yardımcı metin/açıklama olan
+   uzun bir alan (örn. "Önceki gideri kullan") aynı satırdaki kısa alanları
+   (Hareket türü, Tarih) satırın altına doğru itiyor, bu da etiketlerin
+   farklı hizalarda başlamasına yol açıyordu. */
 .accounting-entry-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 16px;
-  align-items: end;
+  align-items: start;
 }
 .accounting-entry-form-grid .form-field label {
   color: var(--ink-navy);
