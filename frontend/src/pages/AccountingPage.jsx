@@ -1422,14 +1422,14 @@ export default function AccountingPage() {
               )}
             </div>
             <form onSubmit={handleCreateEntry}>
-              <div className="accounting-entry-form-grid">
-              <FormField label="Hareket türü">
+              <div className="accounting-form-grid">
+              <FormField label="Hareket türü" style={{ gridColumn: 'span 3' }}>
                 <select name="type" value={entryForm.type} onChange={handleEntryChange}>
                   {ACCOUNTING_ENTRY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
               {!editingEntry && entryForm.type === 'expense' && (
-                <FormField label="Önceki gideri kullan" style={{ gridColumn: 'span 2' }}>
+                <FormField label="Önceki gideri kullan" style={{ gridColumn: 'span 6' }}>
                   {recentExpenseLoading ? (
                     <span className="quick-expense-empty">Önceki giderler yükleniyor…</span>
                   ) : quickExpenseOptions.length > 0 ? (
@@ -1478,18 +1478,18 @@ export default function AccountingPage() {
                   </span>
                 </FormField>
               )}
-              <FormField label="Tarih">
+              <FormField label="Tarih" style={{ gridColumn: 'span 3' }}>
                 <input type="date" name="date" value={entryForm.date} onChange={handleEntryChange} required />
               </FormField>
-              <FormField label="Tutar">
+              <FormField label="Tutar" style={{ gridColumn: 'span 3' }}>
                 <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
-              <FormField label="Para birimi">
+              <FormField label="Para birimi" style={{ gridColumn: 'span 2' }}>
                 <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'}>
+              <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'} style={{ gridColumn: 'span 4' }}>
                 <select name="accountId" value={entryForm.accountId} onChange={handleEntryChange} required>
                   <option value="">Hesap seçin</option>
                   {currencyAccounts.map((account) => (
@@ -1498,7 +1498,7 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               {entryForm.type === 'transfer' && (
-                <FormField label="Hedef hesap">
+                <FormField label="Hedef hesap" style={{ gridColumn: 'span 4' }}>
                   <select name="counterAccountId" value={entryForm.counterAccountId} onChange={handleEntryChange} required>
                     <option value="">Hesap seçin</option>
                     {currencyAccounts.filter((account) => account.id !== entryForm.accountId).map((account) => (
@@ -1508,7 +1508,7 @@ export default function AccountingPage() {
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && (
-                <FormField label="Kategori · sonraki kayıtlarda bu adla bulunur" style={{ gridColumn: 'span 2' }}>
+                <FormField label="Kategori · sonraki kayıtlarda bu adla bulunur" style={{ gridColumn: 'span 6' }}>
                   <span className="accounting-category-hint">İlk kayıtta anlaşılır bir isim yazın; açıklama bu seçim adını değiştirmez.</span>
                   <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
                     {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
@@ -1517,12 +1517,12 @@ export default function AccountingPage() {
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && entryForm.category === NEW_CATEGORY_VALUE && (
-                <FormField label="Yeni kategori adı">
+                <FormField label="Yeni kategori adı" style={{ gridColumn: 'span 4' }}>
                   <input name="customCategory" value={entryForm.customCategory} onChange={handleEntryChange} placeholder="Örn. Reklam gideri" required />
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && (
-                <FormField label="Cari kart / muhatap">
+                <FormField label="Cari kart / muhatap" style={{ gridColumn: 'span 5' }}>
                   <select name="partyId" value={entryForm.partyId} onChange={handleEntryChange}>
                     <option value="">Cari kart seçmeden devam et</option>
                     {parties.filter((party) => party.currency === entryForm.currency || party.type === 'agent').map((party) => {
@@ -1532,16 +1532,16 @@ export default function AccountingPage() {
                   </select>
                 </FormField>
               )}
-              <FormField label="Açıklama" style={{ gridColumn: 'span 2' }}>
+              <FormField label="Açıklama" style={{ gridColumn: 'span 6' }}>
                 <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
               </FormField>
               {editingEntry && (
-                <FormField label="Düzeltme nedeni" style={{ gridColumn: 'span 2' }}>
+                <FormField label="Düzeltme nedeni" style={{ gridColumn: 'span 12' }}>
                   <input value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Örn. Tutar yanlış girildi" required />
                 </FormField>
               )}
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <div className="accounting-form-actions">
                 <button type="submit" className="btn btn-primary" disabled={saving || currencyAccounts.length === 0}>
                   {saving ? 'Kaydediliyor…' : editingEntry ? 'Düzeltmeyi Kaydet' : 'Hareketi Kaydet'}
                 </button>
@@ -1650,36 +1650,40 @@ export default function AccountingPage() {
         <>
           <div className="folder-panel" style={{ marginBottom: 20 }}>
             <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 14px', fontSize: 18 }}>Yeni muhasebe hesabı</h3>
-            <form onSubmit={handleCreateAccount} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <FormField label="Hesap türü">
+            <form onSubmit={handleCreateAccount}>
+              <div className="accounting-form-grid">
+              <FormField label="Hesap türü" style={{ gridColumn: 'span 3' }}>
                 <select name="type" value={accountForm.type} onChange={(event) => setAccountForm({ ...accountForm, type: event.target.value })}>
                   {ACCOUNTING_ACCOUNT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Hesap adı" style={{ minWidth: 190 }}>
+              <FormField label="Hesap adı" style={{ gridColumn: 'span 4' }}>
                 <input value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} placeholder="Örn. Ana Banka Hesabı" required />
               </FormField>
               {accountForm.type !== 'cash' && (
-                <FormField label="Banka adı">
+                <FormField label="Banka adı" style={{ gridColumn: 'span 3' }}>
                   <input value={accountForm.bankName} onChange={(event) => setAccountForm({ ...accountForm, bankName: event.target.value })} placeholder="Örn. İş Bankası" />
                 </FormField>
               )}
               {accountForm.type !== 'cash' && (
-                <FormField label="IBAN / kart bilgisi">
+                <FormField label="IBAN / kart bilgisi" style={{ gridColumn: 'span 4' }}>
                   <input value={accountForm.iban} onChange={(event) => setAccountForm({ ...accountForm, iban: event.target.value })} placeholder="Opsiyonel" />
                 </FormField>
               )}
-              <FormField label="Para birimi">
+              <FormField label="Para birimi" style={{ gridColumn: 'span 2' }}>
                 <select value={accountForm.currency} onChange={(event) => setAccountForm({ ...accountForm, currency: event.target.value })}>
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Açılış bakiyesi">
+              <FormField label="Açılış bakiyesi" style={{ gridColumn: 'span 3' }}>
                 <AmountInput id="accounting-account-opening-balance" value={accountForm.openingBalance} currency={accountForm.currency} onChange={(event) => setAccountForm({ ...accountForm, openingBalance: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" />
               </FormField>
-              <button type="submit" className="btn btn-primary" disabled={accountSaving}>
-                {accountSaving ? 'Ekleniyor…' : '+ Hesap Ekle'}
-              </button>
+              </div>
+              <div className="accounting-form-actions">
+                <button type="submit" className="btn btn-primary" disabled={accountSaving}>
+                  {accountSaving ? 'Ekleniyor…' : '+ Hesap Ekle'}
+                </button>
+              </div>
             </form>
             <SavedRecordNotice notice={accountSaveNotice} />
           </div>
@@ -1740,39 +1744,42 @@ export default function AccountingPage() {
               </div>
               <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Danışmanlar otomatik</span>
             </div>
-            <form onSubmit={handleCreateParty} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <FormField label="Kart türü">
+            <form onSubmit={handleCreateParty}>
+              <div className="accounting-form-grid">
+              <FormField label="Kart türü" style={{ gridColumn: 'span 3' }}>
                 <select value={partyForm.type} onChange={(event) => setPartyForm({ ...partyForm, type: event.target.value })}>
                   {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Ad / unvan" style={{ minWidth: 210 }}>
+              <FormField label="Ad / unvan" style={{ gridColumn: 'span 4' }}>
                 <input value={partyForm.name} onChange={(event) => setPartyForm({ ...partyForm, name: event.target.value })} placeholder="Örn. ABC Elektrik" required />
               </FormField>
-              <FormField label="Şirket adı" style={{ minWidth: 190 }}>
+              <FormField label="Şirket adı" style={{ gridColumn: 'span 3' }}>
                 <input value={partyForm.companyName} onChange={(event) => setPartyForm({ ...partyForm, companyName: event.target.value })} placeholder="Opsiyonel" />
               </FormField>
-              <FormField label="Telefon">
+              <FormField label="Telefon" style={{ gridColumn: 'span 3' }}>
                 <input value={partyForm.phone} onChange={(event) => setPartyForm({ ...partyForm, phone: event.target.value })} placeholder="Opsiyonel" />
               </FormField>
-              <FormField label="Para birimi">
+              <FormField label="Para birimi" style={{ gridColumn: 'span 2' }}>
                 <select value={partyForm.currency} onChange={(event) => setPartyForm({ ...partyForm, currency: event.target.value })}>
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Açılış bakiyesi" style={{ minWidth: 150 }}>
-                                  <AmountInput id="accounting-party-opening-balance" value={partyForm.openingBalance} currency={partyForm.currency} onChange={(event) => setPartyForm({ ...partyForm, openingBalance: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" />
-
+              <FormField label="Açılış bakiyesi" style={{ gridColumn: 'span 3' }}>
+                <AmountInput id="accounting-party-opening-balance" value={partyForm.openingBalance} currency={partyForm.currency} onChange={(event) => setPartyForm({ ...partyForm, openingBalance: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" />
               </FormField>
-              <FormField label="Açılış yönü">
+              <FormField label="Açılış yönü" style={{ gridColumn: 'span 3' }}>
                 <select value={partyForm.openingBalanceDirection} onChange={(event) => setPartyForm({ ...partyForm, openingBalanceDirection: event.target.value })}>
                   <option value="receivable">Şirketten alacak</option>
                   <option value="payable">Şirkete borç</option>
                 </select>
               </FormField>
-              <button type="submit" className="btn btn-primary" disabled={partySaving || partyLoading}>
-                {partySaving ? 'Kaydediliyor…' : 'Cari Kart Ekle'}
-              </button>
+              </div>
+              <div className="accounting-form-actions">
+                <button type="submit" className="btn btn-primary" disabled={partySaving || partyLoading}>
+                  {partySaving ? 'Kaydediliyor…' : 'Cari Kart Ekle'}
+                </button>
+              </div>
             </form>
             <SavedRecordNotice notice={partySaveNotice} />
           </div>
@@ -1942,8 +1949,9 @@ export default function AccountingPage() {
               </div>
               <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Oran otomatik alınır</span>
             </div>
-            <form onSubmit={handleCreateCommission} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <FormField label="Danışman" style={{ minWidth: 210 }}>
+            <form onSubmit={handleCreateCommission}>
+              <div className="accounting-form-grid">
+              <FormField label="Danışman" style={{ gridColumn: 'span 4' }}>
                 <select value={commissionForm.agentId} onChange={(event) => setCommissionForm({ ...commissionForm, agentId: event.target.value })} required>
                   <option value="">Danışman seçin</option>
                   {agents.map((agent) => (
@@ -1951,29 +1959,32 @@ export default function AccountingPage() {
                   ))}
                 </select>
               </FormField>
-              <FormField label="İşlem tipi">
+              <FormField label="İşlem tipi" style={{ gridColumn: 'span 3' }}>
                 <select value={commissionForm.transactionType} onChange={(event) => setCommissionForm({ ...commissionForm, transactionType: event.target.value })}>
                   <option value="sale">Satış</option>
                   <option value="rent">Kiralama</option>
                 </select>
               </FormField>
-              <FormField label="Kapama tarihi">
+              <FormField label="Kapama tarihi" style={{ gridColumn: 'span 3' }}>
                 <input type="date" value={commissionForm.date} onChange={(event) => setCommissionForm({ ...commissionForm, date: event.target.value })} required />
               </FormField>
-              <FormField label="Brüt komisyon" style={{ minWidth: 170 }}>
+              <FormField label="Brüt komisyon" style={{ gridColumn: 'span 3' }}>
                 <AmountInput id="accounting-commission-gross-amount" value={commissionForm.grossAmount} currency={commissionForm.currency} onChange={(event) => setCommissionForm({ ...commissionForm, grossAmount: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
-              <FormField label="Para birimi">
+              <FormField label="Para birimi" style={{ gridColumn: 'span 2' }}>
                 <select value={commissionForm.currency} onChange={(event) => setCommissionForm({ ...commissionForm, currency: event.target.value })}>
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Portföy / açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+              <FormField label="Portföy / açıklama" style={{ gridColumn: 'span 6' }}>
                 <input value={commissionForm.propertyTitle} onChange={(event) => setCommissionForm({ ...commissionForm, propertyTitle: event.target.value })} placeholder="Opsiyonel" />
               </FormField>
-              <button type="submit" className="btn btn-primary" disabled={commissionSaving || commissionLoading}>
-                {commissionSaving ? 'Kaydediliyor…' : 'Komisyonu Kaydet'}
-              </button>
+              </div>
+              <div className="accounting-form-actions">
+                <button type="submit" className="btn btn-primary" disabled={commissionSaving || commissionLoading}>
+                  {commissionSaving ? 'Kaydediliyor…' : 'Komisyonu Kaydet'}
+                </button>
+              </div>
             </form>
             <SavedRecordNotice notice={commissionSaveNotice} />
           </div>
@@ -2173,42 +2184,46 @@ export default function AccountingPage() {
               </div>
             ) : (
               <>
-                <form onSubmit={handleCreatePartnerMovement} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <FormField label="Ortak" style={{ minWidth: 210 }}>
-                  <select value={partnerMovementForm.partyId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, partyId: event.target.value })} required>
-                    <option value="">Ortak seçin</option>
-                    {parties.filter((party) => party.type === 'partner').map((party) => <option value={party.id} key={party.id}>{party.name} · {party.currency}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Hareket türü" style={{ minWidth: 240 }}>
-                  <select value={partnerMovementForm.movementType} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, movementType: event.target.value })}>
-                    {PARTNER_MOVEMENT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Tarih">
-                  <input type="date" value={partnerMovementForm.date} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, date: event.target.value })} required />
-                </FormField>
-                <FormField label="Tutar" style={{ minWidth: 150 }}>
-                  <AmountInput id="accounting-partner-movement-amount" value={partnerMovementForm.amount} currency={partnerMovementForm.currency} onChange={(event) => { setPartnerSaveNotice(null); setPartnerMovementForm({ ...partnerMovementForm, amount: event.target.value }); }} placeholder="Örn. 170000 veya 170.000,00" required />
-                </FormField>
-                <FormField label="Para birimi">
-                  <select value={partnerMovementForm.currency} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, currency: event.target.value, accountId: '' })}>
-                    {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Para hesabı" style={{ minWidth: 210 }}>
-                  <select value={partnerMovementForm.accountId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, accountId: event.target.value })} required>
-                    <option value="">Hesap seçin</option>
-                    {accounts.filter((account) => account.currency === partnerMovementForm.currency && account.isActive !== false).map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
-                  <input value={partnerMovementForm.description} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, description: event.target.value })} placeholder="Opsiyonel" />
-                </FormField>
-                <button type="submit" className="btn btn-primary" disabled={partnerSaving}>
-                  {partnerSaving ? 'Kaydediliyor…' : 'Ortak Hareketini Kaydet'}
-                </button>
-              </form>
+                <form onSubmit={handleCreatePartnerMovement}>
+                  <div className="accounting-form-grid">
+                  <FormField label="Ortak" style={{ gridColumn: 'span 4' }}>
+                    <select value={partnerMovementForm.partyId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, partyId: event.target.value })} required>
+                      <option value="">Ortak seçin</option>
+                      {parties.filter((party) => party.type === 'partner').map((party) => <option value={party.id} key={party.id}>{party.name} · {party.currency}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Hareket türü" style={{ gridColumn: 'span 5' }}>
+                    <select value={partnerMovementForm.movementType} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, movementType: event.target.value })}>
+                      {PARTNER_MOVEMENT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Tarih" style={{ gridColumn: 'span 3' }}>
+                    <input type="date" value={partnerMovementForm.date} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, date: event.target.value })} required />
+                  </FormField>
+                  <FormField label="Tutar" style={{ gridColumn: 'span 3' }}>
+                    <AmountInput id="accounting-partner-movement-amount" value={partnerMovementForm.amount} currency={partnerMovementForm.currency} onChange={(event) => { setPartnerSaveNotice(null); setPartnerMovementForm({ ...partnerMovementForm, amount: event.target.value }); }} placeholder="Örn. 170000 veya 170.000,00" required />
+                  </FormField>
+                  <FormField label="Para birimi" style={{ gridColumn: 'span 2' }}>
+                    <select value={partnerMovementForm.currency} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, currency: event.target.value, accountId: '' })}>
+                      {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Para hesabı" style={{ gridColumn: 'span 4' }}>
+                    <select value={partnerMovementForm.accountId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, accountId: event.target.value })} required>
+                      <option value="">Hesap seçin</option>
+                      {accounts.filter((account) => account.currency === partnerMovementForm.currency && account.isActive !== false).map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
+                    </select>
+                  </FormField>
+                  <FormField label="Açıklama" style={{ gridColumn: 'span 6' }}>
+                    <input value={partnerMovementForm.description} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, description: event.target.value })} placeholder="Opsiyonel" />
+                  </FormField>
+                  </div>
+                  <div className="accounting-form-actions">
+                    <button type="submit" className="btn btn-primary" disabled={partnerSaving}>
+                      {partnerSaving ? 'Kaydediliyor…' : 'Ortak Hareketini Kaydet'}
+                    </button>
+                  </div>
+                </form>
                 <SavedRecordNotice notice={partnerSaveNotice} />
               </>
             )}
