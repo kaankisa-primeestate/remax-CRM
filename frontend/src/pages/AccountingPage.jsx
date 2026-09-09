@@ -1430,13 +1430,16 @@ export default function AccountingPage() {
               </FormField>
               {entryForm.type !== 'transfer' && (
                 <FormField label="Cari kartlar" style={{ gridColumn: 'span 2' }}>
-                  <select name="partyId" value={entryForm.partyId} onChange={handleEntryChange}>
-                    <option value="">Cari kart seçmeden devam et</option>
-                    {parties.filter((party) => party.currency === entryForm.currency || party.type === 'agent').map((party) => {
-                      const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
-                      return <option value={party.id} key={party.id}>{party.name} · {typeLabel}</option>;
-                    })}
+                  <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
+                    {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
+                    <option value={NEW_CATEGORY_VALUE}>+ Yeni kalem ekle</option>
                   </select>
+                  <span className="accounting-category-hint">Hareket türüne göre gider veya gelir kalemleri otomatik listelenir.</span>
+                </FormField>
+              )}
+              {entryForm.type !== 'transfer' && entryForm.category === NEW_CATEGORY_VALUE && (
+                <FormField label="Yeni kalem adı">
+                  <input name="customCategory" value={entryForm.customCategory} onChange={handleEntryChange} placeholder="Örn. Reklam gideri" required />
                 </FormField>
               )}
               <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'}>
