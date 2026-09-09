@@ -27,21 +27,26 @@ tags: [modul, muhasebe]
 
 `agent`, `partner`, `customer`, `vendor`, `other`
 
-## Raporlama Sistemi (Önemli — 2026-09-08'de 3 kutulu, arama destekli menüye geçildi)
+## Raporlama Sistemi (Önemli — 2026-09-09'da 3 buton + Getir'e sadeleştirildi)
 
-`AccountingPage.jsx`'in "Raporlar" bölümü, 3 aşamalı bir seçim akışıyla çalışır: **1. Rapor Türü → 2. Kapsam (Tümü / belirli danışman-kategori-ortak, yazarak aratılabilir) → 3. Tarih Aralığı → "Raporu Getir"**. Sonuç, "Getir"e basılana kadar değişmez (bkz. `appliedReportType`/`appliedReportSubFilter` — box1/box2'deki taslak seçim `reportType`/`reportSubFilter`'dan ayrı tutulur).
+`AccountingPage.jsx`'in "Raporlar" bölümü, ekranda **sadece 3 buton + 1 "Getir" butonu** gösterir (önceki sürümde her seçenek ayrı ayrı görünen 5+8 buton ve başlık/açıklama metinleri vardı — kullanıcı bunu da kalabalık bulduğu için tamamen kaldırıldı, `openReportBox` state'i (`'type' | 'scope' | 'date' | null`) ile yönetilen, tıklanınca açılan/kapanan 3 dropdown butona geçildi):
+
+1. **"Rapor Türü: …"** — tıklayınca `REPORT_TYPES`'ın 5 seçeneği açılır.
+2. **"Danışman/Kategori/Ortak: …"** — rapor türüne göre etiketi ve içeriği değişir; tıklayınca üstte arama kutusu + altta filtrelenen liste açılır (Genel Özet'te bu buton devre dışı). Yazarak arama artık ayrı bir `SearchableSelect` bileşeni değil, doğrudan bu panelin içinde (`reportScopeQuery` state'i ile).
+3. **"Tarih: …"** — tıklayınca hızlı presetler (`REPORT_PRESETS`) + "Tarih aralığı seç…" + (seçilirse) iki tarih input'u + para birimi seçici açılır.
+4. **"🚀 Getir"** — üç butonun o anki taslak seçimini (`reportType`/`reportSubFilter`/tarih) "uygulanmış" hale getirir (`appliedReportType`/`appliedReportSubFilter`) ve `loadManagementReport()`'u çağırır. Sonuç, "Getir"e basılana kadar değişmez.
+
+Dropdown panelleri için yeni CSS sınıfları: `.report-dropdown-panel` (konumlandırma/gölge), `.report-dropdown-item` (satır, `:hover`/`.active`) — `frontend/src/index.css`. Üç butonun ortak dış-tıklama-ile-kapanma mantığı `reportBoxRef` + tek bir `useEffect` ile yönetilir (üç ayrı bileşen değil, üçü de aynı ref'in içinde).
 
 Rapor türleri (`REPORT_TYPES` sabiti):
 
-1. **Genel Özet** (varsayılan) — 2. kutu devre dışı (tek "Tüm dönem" metni); dönemin toplam gelir/gider/ortak cari net/net durumunu 4 kartla gösterir, altında transferler hariç tüm hareketlerin tablosu.
-2. **Komisyon Gelirleri** — 2. kutu: gerçek danışman listesi (`agents`, `usersApi.listAgents()`'tan, alfabetik, aranabilir). `category === 'Komisyon Tahsilatı'` olan gelir kayıtları, seçilirse `entry.partyId` ile danışmana daraltılır.
+1. **Genel Özet** (varsayılan) — 2. buton devre dışı; dönemin toplam gelir/gider/ortak cari net/net durumunu 4 kartla gösterir, altında transferler hariç tüm hareketlerin tablosu.
+2. **Komisyon Gelirleri** — 2. buton: gerçek danışman listesi (`agents`, `usersApi.listAgents()`'tan, alfabetik, aranabilir). `category === 'Komisyon Tahsilatı'` olan gelir kayıtları, seçilirse `entry.partyId` ile danışmana daraltılır.
 3. **Danışman Aidat / Masa Kirası** — aynı danışman listesi, `category === 'Danışman Kirası Tahsilatı'`.
-4. **Ofis Masraf ve Giderleri** — 2. kutu: gerçek gider kategorileri (`categoryNames(EXPENSE_CATEGORIES, customCategories.expense)`), `classification === 'expense'` kayıtları + `expenseByCategory` kırılımı.
-5. **Ortak Cari Hareketleri** — 2. kutu: gerçek ortak listesi (`parties.filter(p => p.type === 'partner')`), `partner_in`/`partner_out` kayıtları, seçilirse `entry.partyId` ile ortağa daraltılır.
+4. **Ofis Masraf ve Giderleri** — 2. buton: gerçek gider kategorileri (`categoryNames(EXPENSE_CATEGORIES, customCategories.expense)`), `classification === 'expense'` kayıtları + `expenseByCategory` kırılımı.
+5. **Ortak Cari Hareketleri** — 2. buton: gerçek ortak listesi (`parties.filter(p => p.type === 'partner')`), `partner_in`/`partner_out` kayıtları, seçilirse `entry.partyId` ile ortağa daraltılır.
 
-2. kutunun arama/seçim arayüzü `SearchableSelect` bileşenidir (`AccountingPage.jsx` içinde, dosya başına yakın) — yazarak filtreleyen, dışına tıklayınca kapanan basit bir combobox; harici kütüphane gerektirmez.
-
-**Önemli — veri kaynağı gerçek, uydurma değil:** 2. kutunun seçenekleri (danışman/kategori/ortak) hiçbir zaman sabit/hard-code liste değildir — `agents` ve `parties` state'leri, "Raporlar" sekmesi açıldığında `loadAgents()`/`loadParties()` ile gerçek backend verisinden yüklenir (bkz. `useEffect` — `activeTab === 'reports'`). Komisyon/aidat filtresi `entry.partyId` üzerinden, `agent.id` ile birebir eşleşir (backend `commission.agentId`/`rent.agentId`'yi doğrudan `partyId` olarak yazıyor — bkz. `accounting.service.ts` `collectCommission`/`collectRent`). Ortak Cari filtresi de aynı şekilde `party.id` ile eşleşir (bkz. `partnerMovementForm.partyId`).
+**Önemli — veri kaynağı gerçek, uydurma değil:** 2. butonun seçenekleri (danışman/kategori/ortak) hiçbir zaman sabit/hard-code liste değildir — `agents` ve `parties` state'leri, "Raporlar" sekmesi açıldığında `loadAgents()`/`loadParties()` ile gerçek backend verisinden yüklenir (bkz. `useEffect` — `activeTab === 'reports'`). Komisyon/aidat filtresi `entry.partyId` üzerinden, `agent.id` ile birebir eşleşir (backend `commission.agentId`/`rent.agentId`'yi doğrudan `partyId` olarak yazıyor — bkz. `accounting.service.ts` `collectCommission`/`collectRent`). Ortak Cari filtresi de aynı şekilde `party.id` ile eşleşir (bkz. `partnerMovementForm.partyId`).
 
 Komisyon/aidat **tür** ayrımı (Genel Özet dışındaki dört rapordan hangi movement'ın hangisine ait olduğu), backend'in bu tahsilatları otomatik kaydederken kullandığı **sabit kategori adı string'ine** (`'Komisyon Tahsilatı'`, `'Danışman Kirası Tahsilatı'`) bağımlıdır — bu isimler backend'de değişirse, frontend'deki `COMMISSION_INCOME_CATEGORIES`/`DUES_INCOME_CATEGORIES` sabitleri de güncellenmelidir.
 

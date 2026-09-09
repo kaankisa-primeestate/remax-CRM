@@ -249,55 +249,6 @@ function FormField({ label, children, style }) {
 
 // "Yazarak ara" özellikli basit bir seçim kutusu. Danışman/ortak/kategori
 // listeleri uzun olabileceği için düz <select> yerine kullanılır.
-function SearchableSelect({ options, value, onChange, placeholder }) {
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef(null);
-  const selected = options.find((option) => option.value === value);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const normalizedQuery = query.trim().toLocaleLowerCase('tr-TR');
-  const filteredOptions = normalizedQuery
-    ? options.filter((option) => option.label.toLocaleLowerCase('tr-TR').includes(normalizedQuery))
-    : options;
-
-  return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      <input
-        type="text"
-        value={open ? query : (selected?.label || '')}
-        onFocus={() => { setOpen(true); setQuery(''); }}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder={placeholder}
-        autoComplete="off"
-      />
-      {open && (
-        <div style={{ position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, marginTop: 2, maxHeight: 240, overflowY: 'auto', background: 'var(--paper)', border: '1px solid var(--paper-line)', borderRadius: 6, boxShadow: '0 6px 16px rgba(0,0,0,0.18)' }}>
-          {filteredOptions.length === 0 ? (
-            <div style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: 13 }}>Sonuç yok</div>
-          ) : filteredOptions.map((option) => (
-            <div
-              key={option.value}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => { onChange(option.value); setOpen(false); setQuery(''); }}
-              style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, background: option.value === value ? 'var(--paper-raised)' : 'transparent' }}
-            >
-              {option.label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function parseAccountingAmount(value) {
   if (typeof value === 'number') return value;
   const raw = String(value ?? '').trim().replace(/\s/g, '');
@@ -432,6 +383,9 @@ export default function AccountingPage() {
   // kutularındaki (taslak) değerlerden ayrı bir "uygulanmış" durum tutuyoruz.
   const [appliedReportType, setAppliedReportType] = useState('summary');
   const [appliedReportSubFilter, setAppliedReportSubFilter] = useState('ALL');
+  const [openReportBox, setOpenReportBox] = useState(null); // 'type' | 'scope' | 'date' | null — 3 butonun hangisi açık
+  const [reportScopeQuery, setReportScopeQuery] = useState(''); // 2. buton içindeki arama kutusu
+  const reportBoxRef = useRef(null);
   const [reportPage, setReportPage] = useState(1);
   const [managementReport, setManagementReport] = useState(null);
   const [managementReportLoading, setManagementReportLoading] = useState(false);
@@ -795,11 +749,21 @@ export default function AccountingPage() {
     setReportPage(1);
   }, [appliedReportType, appliedReportSubFilter]);
 
-  // Rapor türü (1. kutu) değiştiğinde, 2. kutudaki seçimi "Tümü"ne sıfırla —
+  // Rapor türü (1. buton) değiştiğinde, 2. buton seçimini "Tümü"ne sıfırla —
   // bir önceki türden kalan danışman/kategori seçimi yeni türe taşınmasın.
   useEffect(() => {
     setReportSubFilter('ALL');
+    setReportScopeQuery('');
   }, [reportType]);
+
+  // 3 rapor butonundan biri açıkken dışarı tıklanırsa kapat.
+  useEffect(() => {
+    function handleClickOutsideReportBox(event) {
+      if (reportBoxRef.current && !reportBoxRef.current.contains(event.target)) setOpenReportBox(null);
+    }
+    document.addEventListener('mousedown', handleClickOutsideReportBox);
+    return () => document.removeEventListener('mousedown', handleClickOutsideReportBox);
+  }, []);
 
   useEffect(() => {
     if (partyPage > partyPageCount) setPartyPage(partyPageCount);
@@ -2294,99 +2258,126 @@ export default function AccountingPage() {
       {activeTab === 'reports' && (
         <>
           <div className="folder-panel accounting-report-filter" style={{ marginBottom: 20, borderLeft: '4px solid var(--brass)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 19 }}>Sade Muhasebe Raporları</h3>
-                <p style={{ color: 'var(--muted)', margin: '5px 0 0', fontSize: 13 }}>
-                  Önce rapor türünü, sonra tarih aralığını seçin; "Raporu Getir" dediğinizde sonuç hemen altta görünür.
-                </p>
-              </div>
-              <strong style={{ color: 'var(--ink-navy)', fontSize: 13 }}>{formatDate(reportFromDate)} – {formatDate(reportToDate)}</strong>
-            </div>
-
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                loadManagementReport();
-                setAppliedReportType(reportType);
-                setAppliedReportSubFilter(reportSubFilter);
-              }}
-            >
-              <div className="accounting-report-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-                <div className="accounting-report-section-label">1. Rapor Türü</div>
-                <div className="accounting-report-presets accounting-report-tabs" role="tablist" aria-label="Rapor türü seçenekleri">
-                  {REPORT_TYPES.map((type) => (
-                    <button
-                      type="button"
-                      key={type.value}
-                      role="tab"
-                      aria-selected={reportType === type.value}
-                      className={`btn btn-secondary${reportType === type.value ? ' active' : ''}`}
-                      onClick={() => setReportType(type.value)}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="accounting-report-section-hint">
-                  {REPORT_TYPES.find((type) => type.value === reportType)?.description}
-                </p>
-              </div>
-
-              <div className="accounting-report-section">
-                <div className="accounting-report-section-label">
-                  2. {reportType === 'expenses' ? 'Kategori' : reportType === 'partners' ? 'Ortak' : reportType === 'summary' ? 'Kapsam' : 'Danışman'}
-                </div>
-                {reportType === 'summary' ? (
-                  <input type="text" disabled value="Tüm dönem — gelir, gider ve ortak hareketleri" style={{ maxWidth: 360, background: 'var(--paper-raised)', color: 'var(--muted)' }} />
-                ) : (
-                  <div style={{ maxWidth: 360 }}>
-                    <SearchableSelect
-                      value={reportSubFilter}
-                      onChange={setReportSubFilter}
-                      options={[{ value: 'ALL', label: 'Tümü' }, ...reportSubFilterOptions]}
-                      placeholder={reportType === 'expenses' ? 'Tümü ya da kategori adı yazın…' : reportType === 'partners' ? 'Tümü ya da ortak adı yazın…' : 'Tümü ya da danışman adı yazın…'}
-                    />
+            <div ref={reportBoxRef} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* 1. buton: Rapor Türü */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setOpenReportBox(openReportBox === 'type' ? null : 'type')}
+                >
+                  Rapor Türü: <strong>{REPORT_TYPES.find((type) => type.value === reportType)?.label}</strong> ▾
+                </button>
+                {openReportBox === 'type' && (
+                  <div className="report-dropdown-panel">
+                    {REPORT_TYPES.map((type) => (
+                      <div
+                        key={type.value}
+                        className={`report-dropdown-item${reportType === type.value ? ' active' : ''}`}
+                        onClick={() => { setReportType(type.value); setOpenReportBox(null); }}
+                      >
+                        {type.label}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
-              <div className="accounting-report-section">
-                <div className="accounting-report-section-label">3. Tarih Aralığı</div>
-                <div className="accounting-report-presets" aria-label="Hızlı tarih aralığı seçenekleri">
-                  {REPORT_PRESETS.map((preset) => (
-                    <button
-                      type="button"
-                      key={preset.value}
-                      className={`btn btn-secondary${reportPreset === preset.value ? ' active' : ''}`}
-                      onClick={() => handleReportPreset(preset.value)}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="accounting-report-date-form">
-                  <FormField label="Başlangıç tarihi">
-                    <input type="date" value={reportFromDate} onChange={(event) => { setReportFromDate(event.target.value); setReportPreset('custom'); }} required />
-                  </FormField>
-                  <FormField label="Bitiş tarihi">
-                    <input type="date" value={reportToDate} onChange={(event) => { setReportToDate(event.target.value); setReportPreset('custom'); }} required />
-                  </FormField>
-                  <FormField label="Para birimi">
-                    <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
-                      {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-                    </select>
-                  </FormField>
-                  <button type="submit" className="btn btn-primary" disabled={managementReportLoading}>
-                    {managementReportLoading ? 'Rapor hazırlanıyor…' : '🚀 Raporu Getir'}
-                  </button>
-                </div>
-                <p style={{ color: 'var(--muted)', fontSize: 12, margin: '12px 0 0' }}>
-                  Transferler gelir veya gider değildir, bu raporlara dahil edilmez. TRY, EUR ve USD raporları kur çevrimi yapılmadan ayrı gösterilir.
-                </p>
+              {/* 2. buton: Kapsam (rapor türüne göre danışman / kategori / ortak) */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={reportType === 'summary'}
+                  onClick={() => setOpenReportBox(openReportBox === 'scope' ? null : 'scope')}
+                >
+                  {reportType === 'expenses' ? 'Kategori' : reportType === 'partners' ? 'Ortak' : reportType === 'summary' ? 'Kapsam' : 'Danışman'}:{' '}
+                  <strong>{reportType === 'summary' ? 'Tümü' : (reportSubFilter === 'ALL' ? 'Tümü' : (reportSubFilterOptions.find((o) => o.value === reportSubFilter)?.label || 'Tümü'))}</strong> ▾
+                </button>
+                {openReportBox === 'scope' && reportType !== 'summary' && (
+                  <div className="report-dropdown-panel" style={{ minWidth: 220 }}>
+                    <input
+                      type="text"
+                      value={reportScopeQuery}
+                      onChange={(event) => setReportScopeQuery(event.target.value)}
+                      placeholder="Ara…"
+                      autoFocus
+                      style={{ width: '100%', marginBottom: 6, boxSizing: 'border-box' }}
+                    />
+                    <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                      <div className="report-dropdown-item" onClick={() => { setReportSubFilter('ALL'); setOpenReportBox(null); setReportScopeQuery(''); }}>Tümü</div>
+                      {reportSubFilterOptions
+                        .filter((o) => o.label.toLocaleLowerCase('tr-TR').includes(reportScopeQuery.trim().toLocaleLowerCase('tr-TR')))
+                        .map((o) => (
+                          <div
+                            key={o.value}
+                            className={`report-dropdown-item${reportSubFilter === o.value ? ' active' : ''}`}
+                            onClick={() => { setReportSubFilter(o.value); setOpenReportBox(null); setReportScopeQuery(''); }}
+                          >
+                            {o.label}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </form>
 
+              {/* 3. buton: Tarih */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setOpenReportBox(openReportBox === 'date' ? null : 'date')}
+                >
+                  Tarih: <strong>{reportPreset === 'custom' ? `${formatDate(reportFromDate)} – ${formatDate(reportToDate)}` : REPORT_PRESETS.find((p) => p.value === reportPreset)?.label}</strong> ▾
+                </button>
+                {openReportBox === 'date' && (
+                  <div className="report-dropdown-panel" style={{ minWidth: 240 }}>
+                    {REPORT_PRESETS.map((preset) => (
+                      <div
+                        key={preset.value}
+                        className={`report-dropdown-item${reportPreset === preset.value ? ' active' : ''}`}
+                        onClick={() => { handleReportPreset(preset.value); setOpenReportBox(null); }}
+                      >
+                        {preset.label}
+                      </div>
+                    ))}
+                    <div
+                      className={`report-dropdown-item${reportPreset === 'custom' ? ' active' : ''}`}
+                      onClick={() => setReportPreset('custom')}
+                    >
+                      Tarih aralığı seç…
+                    </div>
+                    {reportPreset === 'custom' && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 6, padding: '0 4px 4px' }}>
+                        <input type="date" value={reportFromDate} onChange={(event) => setReportFromDate(event.target.value)} />
+                        <input type="date" value={reportToDate} onChange={(event) => setReportToDate(event.target.value)} />
+                      </div>
+                    )}
+                    <div style={{ borderTop: '1px solid var(--paper-line)', marginTop: 6, paddingTop: 6, paddingLeft: 4 }}>
+                      <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Para birimi</label>
+                      <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+                        {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={managementReportLoading}
+                onClick={() => {
+                  loadManagementReport();
+                  setAppliedReportType(reportType);
+                  setAppliedReportSubFilter(reportSubFilter);
+                  setOpenReportBox(null);
+                }}
+              >
+                {managementReportLoading ? 'Hazırlanıyor…' : '🚀 Getir'}
+              </button>
+            </div>
 
             {managementReportLoading ? (
               <div className="empty-state" style={{ marginTop: 16 }}>Yönetimsel rapor hazırlanıyor…</div>
