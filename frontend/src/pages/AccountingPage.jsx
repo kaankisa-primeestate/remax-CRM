@@ -2441,7 +2441,7 @@ export default function AccountingPage() {
                         <div className="metric-card__delta is-muted">{reportRows.length} gider kaydı</div>
                       </div>
                     </div>
-                    {(managementReport.expenseByCategory || []).length > 0 && (
+                    {appliedReportSubFilter === 'ALL' && (managementReport.expenseByCategory || []).length > 0 && (
                       <div style={{ marginBottom: 16 }}>
                         <div className="accounting-report-section-label">Kategoriye göre dağılım</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -2486,6 +2486,13 @@ export default function AccountingPage() {
                   ) : (
                     <div className="table-scroll">
                       <table className="accounting-report-table">
+                        <colgroup>
+                          <col className="col-date" />
+                          <col className="col-main" />
+                          <col className="col-account" />
+                          <col className="col-type" />
+                          <col className="col-amount" />
+                        </colgroup>
                         <thead>
                           <tr>
                             <th>Tarih</th>

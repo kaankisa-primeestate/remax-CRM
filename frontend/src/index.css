@@ -1447,9 +1447,19 @@ button.metric-card--clickable {
 }
 .accounting-report-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 720px;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 12px;
+}
+.accounting-report-table col.col-date { width: 11%; }
+.accounting-report-table col.col-main { width: 34%; }
+.accounting-report-table col.col-account { width: 28%; }
+.accounting-report-table col.col-type { width: 13%; }
+.accounting-report-table col.col-amount { width: 14%; }
+.accounting-report-table th,
+.accounting-report-table td {
+  overflow-wrap: break-word;
 }
 .accounting-report-table th {
   padding: 8px;
