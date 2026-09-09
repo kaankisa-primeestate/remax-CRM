@@ -1428,67 +1428,17 @@ export default function AccountingPage() {
                   {ACCOUNTING_ENTRY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              {!editingEntry && entryForm.type === 'expense' && (
-                <FormField label="Önceki gideri kullan" style={{ gridColumn: 'span 2' }}>
-                  {recentExpenseLoading ? (
-                    <span className="quick-expense-empty">Önceki giderler yükleniyor…</span>
-                  ) : quickExpenseOptions.length > 0 ? (
-                    <div className="quick-expense-dropdown">
-                      <button
-                        type="button"
-                        className="quick-expense-dropdown__trigger"
-                        aria-haspopup="listbox"
-                        aria-expanded={quickExpenseOpen}
-                        onClick={() => setQuickExpenseOpen((open) => !open)}
-                      >
-                        <span>{selectedQuickExpenseId ? quickExpenseLabel(recentExpenseEntries.find((entry) => entry.id === selectedQuickExpenseId) || {}) : 'Önceki gider seçin'}</span>
-                        <span aria-hidden="true">⌄</span>
-                      </button>
-                      {quickExpenseOpen && (
-                        <div className="quick-expense-dropdown__menu" role="listbox" aria-label="Önceki giderler">
-                          {quickExpenseOptions.map((expense) => {
-                            const label = quickExpenseLabel(expense);
-                            return (
-                              <div className="quick-expense-dropdown__item" role="option" aria-selected={selectedQuickExpenseId === expense.id} key={expense.id}>
-                                <button type="button" className="quick-expense-dropdown__select" onClick={() => applyRecentExpense(expense.id)}>
-                                  <span>{label}</span>
-                                  <small>{expense.currency} · {formatAccountingMoney(expense.amount, expense.currency)}</small>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="quick-expense-dropdown__remove"
-                                  aria-label={`${label} adını hızlı seçim listesinden gizle`}
-                                  title="Bu adı hızlı seçim listesinden gizle"
-                                  onClick={() => handleHideQuickExpense(label)}
-                                  disabled={quickExpensePreferenceAction === label}
-                                >
-                                  {quickExpensePreferenceAction === label ? '…' : '×'}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="quick-expense-empty">Henüz kaydedilmiş bir gider bulunmuyor.</span>
-                  )}
-                  <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>
-                    Seçim açıldığında kategori adları alfabetik görünür. İsme tıklayınca son kaydın alanları gelir; çarpı gerçek Muhasebe hareketini silmeden yalnızca listeden gizler.
-                  </span>
+              {entryForm.type !== 'transfer' && (
+                <FormField label="Cari kartlar" style={{ gridColumn: 'span 2' }}>
+                  <select name="partyId" value={entryForm.partyId} onChange={handleEntryChange}>
+                    <option value="">Cari kart seçmeden devam et</option>
+                    {parties.filter((party) => party.currency === entryForm.currency || party.type === 'agent').map((party) => {
+                      const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
+                      return <option value={party.id} key={party.id}>{party.name} · {typeLabel}</option>;
+                    })}
+                  </select>
                 </FormField>
               )}
-              <FormField label="Tarih">
-                <input type="date" name="date" value={entryForm.date} onChange={handleEntryChange} required />
-              </FormField>
-              <FormField label="Tutar">
-                <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
-              </FormField>
-              <FormField label="Para birimi">
-                <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
-                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-                </select>
-              </FormField>
               <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'}>
                 <select name="accountId" value={entryForm.accountId} onChange={handleEntryChange} required>
                   <option value="">Hesap seçin</option>
@@ -1507,32 +1457,18 @@ export default function AccountingPage() {
                   </select>
                 </FormField>
               )}
-              {entryForm.type !== 'transfer' && (
-                <FormField label="Kategori · sonraki kayıtlarda bu adla bulunur" style={{ gridColumn: 'span 2' }}>
-                  <span className="accounting-category-hint">İlk kayıtta anlaşılır bir isim yazın; açıklama bu seçim adını değiştirmez.</span>
-                  <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
-                    {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
-                    <option value={NEW_CATEGORY_VALUE}>+ Yeni kategori ekle</option>
-                  </select>
-                </FormField>
-              )}
-              {entryForm.type !== 'transfer' && entryForm.category === NEW_CATEGORY_VALUE && (
-                <FormField label="Yeni kategori adı">
-                  <input name="customCategory" value={entryForm.customCategory} onChange={handleEntryChange} placeholder="Örn. Reklam gideri" required />
-                </FormField>
-              )}
-              {entryForm.type !== 'transfer' && (
-                <FormField label="Cari kart / muhatap">
-                  <select name="partyId" value={entryForm.partyId} onChange={handleEntryChange}>
-                    <option value="">Cari kart seçmeden devam et</option>
-                    {parties.filter((party) => party.currency === entryForm.currency || party.type === 'agent').map((party) => {
-                      const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
-                      return <option value={party.id} key={party.id}>{party.name} · {typeLabel}</option>;
-                    })}
-                  </select>
-                </FormField>
-              )}
-              <FormField label="Açıklama" style={{ gridColumn: 'span 2' }}>
+              <FormField label="Tarih">
+                <input type="date" name="date" value={entryForm.date} onChange={handleEntryChange} required />
+              </FormField>
+              <FormField label="Tutar">
+                <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
+              </FormField>
+              <FormField label="Para birimi">
+                <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
+                  {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Açıklama" style={{ gridColumn: 'span 3' }}>
                 <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
               </FormField>
               {editingEntry && (
