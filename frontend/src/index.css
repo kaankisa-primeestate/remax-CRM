@@ -652,54 +652,27 @@ button {
   grid-column: 1 / -1;
 }
 
-/* Muhasebe veri giriş formları (Hareketler, Hesaplar, Cari Kartlar,
-   Komisyonlar, Ortaklar): 12 sütunlu, sabit sütun sayılı tutarlı grid +
-   daha belirgin kenarlık/etiket. Her alan, ihtiyacına göre grid-column
-   span değeriyle genişlik alır (örn. para birimi seçimi 2 sütun, ad/unvan
-   gibi metin alanları 4-6 sütun) — böylece kısa bir seçim kutusu, uzun bir
-   metin alanıyla aynı genişliği zorunlu paylaşmaz. Sütun sayısı ekran
-   genişliğine göre (aşağıdaki media query'lerde) sabit adımlarla azalır;
-   auto-fill kullanılmaz çünkü değişken sütun sayısı alanların satır satır
-   farklı hizalarda düşmesine yol açıyordu. align-items: start ile de her
-   alanın etiketi, altındaki yardımcı metin/açıklama uzunluğundan bağımsız
-   olarak satırın en üstünde hizalanır. */
-.accounting-form-grid {
+/* "Yeni muhasebe hareketi" formu: tutarlı grid + daha belirgin kenarlık/etiket. */
+.accounting-entry-form-grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 16px 20px;
-  align-items: start;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+  align-items: end;
 }
-.accounting-form-grid .form-field {
-  min-width: 0;
-}
-.accounting-form-grid .form-field label {
+.accounting-entry-form-grid .form-field label {
   color: var(--ink-navy);
   font-weight: 700;
   font-size: 11.5px;
 }
-.accounting-form-grid .form-field input,
-.accounting-form-grid .form-field select,
-.accounting-form-grid .quick-expense-dropdown__trigger {
+.accounting-entry-form-grid .form-field input,
+.accounting-entry-form-grid .form-field select {
   border: 1.5px solid var(--ink-navy);
-  min-height: 40px;
-  width: 100%;
 }
-.accounting-form-grid .form-field input:focus,
-.accounting-form-grid .form-field select:focus,
-.accounting-form-grid .quick-expense-dropdown__trigger:focus-visible {
+.accounting-entry-form-grid .form-field input:focus,
+.accounting-entry-form-grid .form-field select:focus {
   outline: none;
   border-color: var(--brass);
   box-shadow: 0 0 0 2px rgba(169, 125, 59, 0.25);
-}
-.accounting-form-grid .quick-expense-dropdown {
-  min-width: 0;
-}
-.accounting-form-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 4px;
 }
 
 .form-field label {
@@ -3167,20 +3140,6 @@ button.metric-card--clickable {
     border-radius: 8px;
   }
 
-  /* Dar ekranda tüm alanlar tek sütuna düşer. grid-template-columns'u
-     1fr yapmak tek başına yetmiyor: bir alanın grid-column: span N inline
-     stili, sütun sayısından büyükse tarayıcı bunu tek sütuna sığdırmaz,
-     bunun yerine örtük (implicit) yeni sütunlar oluşturur — bu da dar
-     ekranda alanların yan yana kalmasına yol açardı. Bu yüzden tüm
-     alanların span değerini burada 1/-1 ile eziyoruz. */
-  .accounting-page .accounting-form-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .accounting-page .accounting-form-grid .form-field {
-    grid-column: 1 / -1 !important;
-  }
-
   .accounting-page .folder-panel h3 {
     font-size: 17px !important;
     line-height: 1.3;
@@ -3344,13 +3303,6 @@ button.metric-card--clickable {
 
   .accounting-page .table-scroll table {
     max-width: 100%;
-  }
-
-  /* Orta genişlikte 6 sütuna düşülür; alanların span değerleri (örn. 3,
-     4, 6) aynı kalır ama toplam sütun sayısı yarıya indiği için her alan
-     göreceli olarak daha geniş, daha kullanışlı bir kutuya kavuşur. */
-  .accounting-page .accounting-form-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 
