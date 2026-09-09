@@ -268,27 +268,72 @@ function addMonthsToDate(dateString, count = 1) {
   return date.toISOString().slice(0, 10);
 }
 
+// Yazarken canli binlik nokta bicimlendirmesi (örn. "1200000" -> "1.200.000").
+// Sadece rakam ve tek bir virgülü (ondalik ayraci) kabul eder; her yeni
+// tuşta tam sayi kismi 3'erli gruplanip yeniden noktalanir.
+function formatAmountKeystroke(raw) {
+  const str = String(raw ?? '');
+  const isNegative = str.trimStart().startsWith('-');
+  let digitsAndComma = str.replace(/[^0-9,]/g, '');
+  const firstComma = digitsAndComma.indexOf(',');
+  if (firstComma !== -1) {
+    digitsAndComma = digitsAndComma.slice(0, firstComma + 1) + digitsAndComma.slice(firstComma + 1).replace(/,/g, '');
+  }
+  const [intPartRaw = '', decimalPart] = digitsAndComma.split(',');
+  const grouped = intPartRaw.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const sign = isNegative ? '-' : '';
+  if (decimalPart === undefined) return `${sign}${grouped}`;
+  return `${sign}${grouped},${decimalPart.slice(0, 2)}`;
+}
 
-function AmountInput({ value, currency, onChange, id, ...props }) {
-  const parsed = parseAccountingAmount(value);
-  const hintId = id ? `${id}-hint` : undefined;
+// Backend'den gelen ham sayisal bir tutari (örn. 1200000 veya 170000.5),
+// forma ilk yuklendigi anda ayni binlik noktali gorunume cevirir --
+// aksi halde bir kaydi duzeltirken tutar alani noktasiz gorunurdu.
+function formatAmountFromNumber(num) {
+  if (num === null || num === undefined || Number.isNaN(Number(num))) return '';
+  const value = Number(num);
+  const isNegative = value < 0;
+  const [intPart, decPart] = Math.abs(value).toFixed(2).split('.');
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${isNegative ? '-' : ''}${grouped}${decPart === '00' ? '' : `,${decPart}`}`;
+}
+
+function AmountInput({ value, currency: _currency, onChange, id, ...props }) {
+  function handleChange(event) {
+    const input = event.target;
+    const oldValue = input.value;
+    const oldCursor = input.selectionStart ?? oldValue.length;
+    const digitsBeforeCursor = oldValue.slice(0, oldCursor).replace(/[^0-9]/g, '').length;
+    const formatted = formatAmountKeystroke(oldValue);
+    input.value = formatted;
+    let newCursor = formatted.length;
+    if (digitsBeforeCursor === 0) {
+      newCursor = 0;
+    } else {
+      let seen = 0;
+      for (let i = 0; i < formatted.length; i += 1) {
+        if (/[0-9]/.test(formatted[i])) {
+          seen += 1;
+          if (seen === digitsBeforeCursor) {
+            newCursor = i + 1;
+            break;
+          }
+        }
+      }
+    }
+    input.setSelectionRange(newCursor, newCursor);
+    onChange(event);
+  }
+
   return (
-    <>
-      <input
-        {...props}
-        id={id}
-        type="text"
-        inputMode="decimal"
-        value={value ?? ''}
-        onChange={onChange}
-        aria-describedby={hintId}
-      />
-      <div id={hintId} className="accounting-amount-hint" aria-live="polite">
-        {value && Number.isFinite(parsed)
-          ? `Görünen tutar: ${formatAccountingMoney(parsed, currency)}`
-          : 'Nokta veya virgül kullanabilirsiniz; sistem tutarı böyle gösterecek.'}
-      </div>
-    </>
+    <input
+      {...props}
+      id={id}
+      type="text"
+      inputMode="decimal"
+      value={value ?? ''}
+      onChange={handleChange}
+    />
   );
 }
 
@@ -993,7 +1038,7 @@ export default function AccountingPage() {
       ...EMPTY_ENTRY_FORM,
       type: entry.type,
       date: entry.date,
-      amount: String(entry.amount),
+      amount: formatAmountFromNumber(entry.amount),
       currency: entry.currency,
       accountId: entry.accountId || '',
       counterAccountId: entry.counterAccountId || '',
@@ -1434,7 +1479,6 @@ export default function AccountingPage() {
                     {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
                     <option value={NEW_CATEGORY_VALUE}>+ Yeni kalem ekle</option>
                   </select>
-                  <span className="accounting-category-hint">Hareket türüne göre gider veya gelir kalemleri otomatik listelenir.</span>
                 </FormField>
               )}
               {entryForm.type !== 'transfer' && entryForm.category === NEW_CATEGORY_VALUE && (
