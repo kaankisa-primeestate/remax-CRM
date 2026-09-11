@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { AlertTriangle, CheckCircle2, Lock, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react';
 import { apiClient } from '../api/client.js';
 
 const FULL_TEXT_BY_TYPE = {
@@ -146,22 +147,22 @@ export default function PublicDocumentPage() {
   }
 
   if (loading) {
-    return <div style={{ maxWidth: 460, margin: '60px auto', textAlign: 'center', fontFamily: 'sans-serif', color: '#666' }}>Yükleniyor…</div>;
+    return <div style={{ maxWidth: 460, margin: '60px auto', textAlign: 'center', fontFamily: 'var(--font-body)', color: 'var(--cl-muted)' }}>Yükleniyor…</div>;
   }
   if (error) {
     return (
-      <div style={{ maxWidth: 460, margin: '60px auto', padding: '0 20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-        <p style={{ color: '#666' }}>{error}</p>
+      <div style={{ maxWidth: 460, margin: '60px auto', padding: '0 20px', textAlign: 'center', fontFamily: 'var(--font-body)' }}>
+        <AlertTriangle size={32} style={{ color: 'var(--cl-warning)', marginBottom: 12 }} />
+        <p style={{ color: 'var(--cl-muted)' }}>{error}</p>
       </div>
     );
   }
   if (done) {
     return (
-      <div style={{ maxWidth: 460, margin: '60px auto', padding: '0 20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-        <p style={{ fontSize: 17, fontWeight: 600, margin: 0 }}>Onaylandı</p>
-        <p style={{ fontSize: 14, color: '#666', marginTop: 6 }}>Kaydınız alındı, danışmanınıza iletilecektir.</p>
+      <div style={{ maxWidth: 460, margin: '60px auto', padding: '0 20px', textAlign: 'center', fontFamily: 'var(--font-body)' }}>
+        <CheckCircle2 size={40} style={{ color: 'var(--cl-success)', marginBottom: 12 }} />
+        <p style={{ fontSize: 17, fontWeight: 600, margin: 0, color: 'var(--cl-text)' }}>Onaylandı</p>
+        <p style={{ fontSize: 14, color: 'var(--cl-muted)', marginTop: 6 }}>Kaydınız alındı, danışmanınıza iletilecektir.</p>
       </div>
     );
   }
@@ -170,74 +171,80 @@ export default function PublicDocumentPage() {
   const g = data.gayrimenkul || {};
 
   return (
-    <div style={{ maxWidth: 460, margin: '20px auto', padding: '0 16px 40px', fontFamily: 'sans-serif' }}>
-      <div style={{ textAlign: 'center', marginBottom: 14, fontSize: 13, color: '#888' }}>RE/MAX Prime · Bostancı</div>
+    <div style={{ minHeight: '100vh', background: 'var(--cl-bg)' }}>
+      <div style={{ maxWidth: 460, margin: '0 auto', padding: '20px 16px 40px', fontFamily: 'var(--font-body)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 14, fontSize: 13, color: 'var(--cl-muted)', fontWeight: 600 }}>RE/MAX Prime · Bostancı</div>
 
-      <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{TITLE_BY_TYPE[type] || 'Sözleşme'}</div>
-        <div style={{ fontSize: 13, color: '#666', marginBottom: 14 }}>
-          Danışmanınız {data.danismanAdi || ''} tarafından hazırlandı
-        </div>
-
-        <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-          <Row label="Müşteri" value={data.musteriAdi} />
-          <Row label="Gayrimenkul" value={g.baslik} />
-          <Row label="Adres" value={[g.il, g.ilce, g.mahalle].filter(Boolean).join(' / ')} />
-          {g.satisBedeli != null && <Row label="Satış bedeli" value={`${Number(g.satisBedeli).toLocaleString('tr-TR')} ₺`} />}
-          {g.hizmetBedeliOrani && <Row label="Hizmet bedeli oranı" value={g.hizmetBedeliOrani} />}
-        </div>
-
-        <div style={{ fontSize: 12, color: '#999', lineHeight: 1.5 }}>🔒 Bu alanlar sistemden otomatik geldi, değiştirilemez.</div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setShowFullText((v) => !v)}
-        style={{ width: '100%', textAlign: 'left', fontSize: 13, color: '#1a1a2e', background: '#fff', border: '1px solid #ddd', borderRadius: 8, padding: '10px 12px', marginBottom: 12, cursor: 'pointer' }}
-      >
-        {showFullText ? '▲ Sözleşme özetini gizle' : '▼ Sözleşme metnini oku'}
-      </button>
-
-      {showFullText && (
-        <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 8, padding: 14, marginBottom: 14, fontSize: 12.5, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 260, overflowY: 'auto' }}>
-          {FULL_TEXT_BY_TYPE[type] || 'Metin bulunamadı.'}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <button type="button" onClick={() => setMethod('draw')} style={tabStyle(method === 'draw')}>Çizerek imzala</button>
-        <button type="button" onClick={() => setMethod('type')} style={tabStyle(method === 'type')}>Yazarak imzala</button>
-      </div>
-
-      {method === 'draw' ? (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ position: 'relative', background: '#fafafa', border: '1px solid #ccc', borderRadius: 12, height: 140, overflow: 'hidden' }}>
-            <canvas ref={canvasRef} style={{ width: '100%', height: '100%', touchAction: 'none', cursor: 'crosshair' }} />
+        <div style={{ background: 'var(--cl-surface)', border: '1px solid var(--cl-border)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 16, fontWeight: 700, marginBottom: 4, color: 'var(--cl-text)' }}>{TITLE_BY_TYPE[type] || 'Sözleşme'}</div>
+          <div style={{ fontSize: 13, color: 'var(--cl-muted)', marginBottom: 14 }}>
+            Danışmanınız {data.danismanAdi || ''} tarafından hazırlandı
           </div>
-          <button type="button" onClick={clearCanvas} style={{ marginTop: 6, fontSize: 12, padding: '4px 10px' }}>↺ Temizle</button>
-        </div>
-      ) : (
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 6 }}>Ad soyad</label>
-          <input
-            value={typedName}
-            onChange={(e) => setTypedName(e.target.value)}
-            placeholder="Adınızı ve soyadınızı yazın"
-            style={{ width: '100%', height: 40, border: '1px solid #ccc', borderRadius: 8, padding: '0 12px', fontSize: 14, boxSizing: 'border-box' }}
-          />
-        </div>
-      )}
 
-      {signError && <div style={{ fontSize: 13, color: '#c0392b', marginBottom: 8 }}>{signError}</div>}
+          <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+            <Row label="Müşteri" value={data.musteriAdi} />
+            <Row label="Gayrimenkul" value={g.baslik} />
+            <Row label="Adres" value={[g.il, g.ilce, g.mahalle].filter(Boolean).join(' / ')} />
+            {g.satisBedeli != null && <Row label="Satış bedeli" value={`${Number(g.satisBedeli).toLocaleString('tr-TR')} ₺`} />}
+            {g.hizmetBedeliOrani && <Row label="Hizmet bedeli oranı" value={g.hizmetBedeliOrani} />}
+          </div>
 
-      <button
-        type="button"
-        onClick={handleConfirm}
-        disabled={signing}
-        style={{ width: '100%', height: 44, background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-      >
-        {signing ? 'Kaydediliyor…' : 'Okudum, onaylıyorum'}
-      </button>
+          <div style={{ fontSize: 12, color: 'var(--cl-muted)', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+            <Lock size={12} style={{ flexShrink: 0, marginTop: 2 }} /> Bu alanlar sistemden otomatik geldi, değiştirilemez.
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowFullText((v) => !v)}
+          style={{ width: '100%', textAlign: 'left', fontSize: 13, color: 'var(--cl-primary-800)', background: 'var(--cl-surface)', border: '1px solid var(--cl-border)', borderRadius: 8, padding: '10px 12px', marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          {showFullText ? <ChevronUp size={13} /> : <ChevronDown size={13} />} {showFullText ? 'Sözleşme özetini gizle' : 'Sözleşme metnini oku'}
+        </button>
+
+        {showFullText && (
+          <div style={{ background: 'var(--cl-surface)', border: '1px solid var(--cl-border)', borderRadius: 8, padding: 14, marginBottom: 14, fontSize: 12.5, color: 'var(--cl-text)', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: 260, overflowY: 'auto' }}>
+            {FULL_TEXT_BY_TYPE[type] || 'Metin bulunamadı.'}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button type="button" onClick={() => setMethod('draw')} style={tabStyle(method === 'draw')}>Çizerek imzala</button>
+          <button type="button" onClick={() => setMethod('type')} style={tabStyle(method === 'type')}>Yazarak imzala</button>
+        </div>
+
+        {method === 'draw' ? (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ position: 'relative', background: 'var(--cl-bg)', border: '1px solid var(--cl-border)', borderRadius: 12, height: 140, overflow: 'hidden' }}>
+              <canvas ref={canvasRef} style={{ width: '100%', height: '100%', touchAction: 'none', cursor: 'crosshair' }} />
+            </div>
+            <button type="button" onClick={clearCanvas} style={{ marginTop: 6, fontSize: 12, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: '1px solid var(--cl-border)', borderRadius: 6, color: 'var(--cl-muted)', cursor: 'pointer' }}>
+              <RotateCcw size={11} /> Temizle
+            </button>
+          </div>
+        ) : (
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 13, color: 'var(--cl-muted)', display: 'block', marginBottom: 6 }}>Ad soyad</label>
+            <input
+              value={typedName}
+              onChange={(e) => setTypedName(e.target.value)}
+              placeholder="Adınızı ve soyadınızı yazın"
+              style={{ width: '100%', height: 40, border: '1px solid var(--cl-border)', borderRadius: 8, padding: '0 12px', fontSize: 14, boxSizing: 'border-box' }}
+            />
+          </div>
+        )}
+
+        {signError && <div style={{ fontSize: 13, color: 'var(--cl-danger)', marginBottom: 8 }}>{signError}</div>}
+
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={signing}
+          style={{ width: '100%', height: 44, background: 'var(--cl-primary-800)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+        >
+          {signing ? 'Kaydediliyor…' : 'Okudum, onaylıyorum'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -245,9 +252,9 @@ export default function PublicDocumentPage() {
 function Row({ label, value }) {
   if (!value) return null;
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '8px 10px', background: '#fff', borderRadius: 8 }}>
-      <span style={{ color: '#888' }}>{label}</span>
-      <span style={{ fontWeight: 600 }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '8px 10px', background: 'var(--cl-bg)', borderRadius: 8 }}>
+      <span style={{ color: 'var(--cl-muted)' }}>{label}</span>
+      <span style={{ fontWeight: 600, color: 'var(--cl-text)' }}>{value}</span>
     </div>
   );
 }
@@ -258,9 +265,9 @@ function tabStyle(active) {
     height: 36,
     fontSize: 13,
     fontWeight: 600,
-    border: active ? '1px solid #1a1a2e' : '1px solid #ddd',
-    background: active ? '#1a1a2e' : '#fff',
-    color: active ? '#fff' : '#666',
+    border: active ? '1px solid var(--cl-primary-800)' : '1px solid var(--cl-border)',
+    background: active ? 'var(--cl-primary-800)' : 'var(--cl-surface)',
+    color: active ? '#fff' : 'var(--cl-muted)',
     borderRadius: 8,
     cursor: 'pointer',
   };
