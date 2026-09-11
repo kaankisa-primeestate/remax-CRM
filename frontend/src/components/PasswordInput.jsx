@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 // Her sifre alaninda tekrar tekrar ayni "goster/gizle" mantigini
 // yazmamak icin tek, ortak bir bilesen. Kullanicinin ne yazdigini
@@ -33,12 +34,12 @@ export default function PasswordInput({ value, onChange, placeholder, minLength,
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          fontSize: 15,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           padding: 4,
+          display: 'flex',
         }}
       >
-        {visible ? '🙈' : '👁️'}
+        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
     </div>
   );

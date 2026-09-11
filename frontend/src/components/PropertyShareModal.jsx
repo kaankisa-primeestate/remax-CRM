@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { Check } from 'lucide-react';
 import { customersApi } from '../api/customers';
 import { buildWhatsappUrl, buildMailtoUrl } from '../utils/contact.js';
 
@@ -34,36 +35,36 @@ export default function PropertyShareModal({ propertyId, propertyTitle, onClose 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380, textAlign: 'center', padding: 24, maxHeight: '85vh', overflowY: 'auto' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', marginBottom: 16 }}>İlanı Paylaş</h3>
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginBottom: 16 }}>İlanı Paylaş</h3>
 
         <div style={{ background: 'white', display: 'inline-block', padding: 12, borderRadius: 8 }}>
           <QRCodeSVG value={shareUrl} size={180} />
         </div>
 
-        <div style={{ marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 12, wordBreak: 'break-all', color: 'var(--muted)' }}>
+        <div style={{ marginTop: 16, fontFamily: 'var(--font-body)', fontSize: 12, wordBreak: 'break-all', color: 'var(--cl-muted)' }}>
           {shareUrl}
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={handleCopy}>
-            {copied ? 'Kopyalandı ✓' : 'Linki Kopyala'}
+          <button className="btn btn-secondary" onClick={handleCopy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {copied ? (<><Check size={14} /> Kopyalandı</>) : 'Linki Kopyala'}
           </button>
         </div>
 
-        <div style={{ borderTop: '1px solid var(--paper-line)', marginTop: 20, paddingTop: 16, textAlign: 'left' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, marginBottom: 10 }}>
+        <div style={{ borderTop: '1px solid var(--cl-border)', marginTop: 20, paddingTop: 16, textAlign: 'left' }}>
+          <div style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 15, marginBottom: 10 }}>
             Bu İlanı Müşteriye Gönder
           </div>
 
           <input type="text" placeholder="Müşteri ara…" value={search} onChange={(e) => { setSearch(e.target.value); setSelectedCustomer(null); }} style={{ width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
 
           {!selectedCustomer && search && (
-            <div style={{ maxHeight: 140, overflowY: 'auto', border: '1px solid var(--paper-line)', borderRadius: 6, marginBottom: 10 }}>
+            <div style={{ maxHeight: 140, overflowY: 'auto', border: '1px solid var(--cl-border)', borderRadius: 6, marginBottom: 10 }}>
               {filteredCustomers.length === 0 ? (
-                <div style={{ padding: 10, fontSize: 13, color: 'var(--muted)' }}>Müşteri bulunamadı.</div>
+                <div style={{ padding: 10, fontSize: 13, color: 'var(--cl-muted)' }}>Müşteri bulunamadı.</div>
               ) : (
                 filteredCustomers.map((c) => (
-                  <div key={c.id} onClick={() => { setSelectedCustomer(c); setSearch(`${c.firstName} ${c.lastName}`); }} style={{ padding: '8px 10px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--paper-line)' }}>
+                  <div key={c.id} onClick={() => { setSelectedCustomer(c); setSearch(`${c.firstName} ${c.lastName}`); }} style={{ padding: '8px 10px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--cl-border)' }}>
                     {c.firstName} {c.lastName}
                   </div>
                 ))

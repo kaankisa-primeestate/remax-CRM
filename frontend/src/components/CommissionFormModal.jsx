@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Handshake, Lightbulb } from 'lucide-react';
 import { TRANSACTION_TYPES, commissionsApi } from '../api/commissions';
 import { usersApi } from '../api/auth';
 import { transactionsApi } from '../api/transactions';
@@ -165,18 +166,19 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
                   <option value="">Bağlanmasın (serbest kayıt)</option>
                   {transactions.map((t) => {
                     const label = t.externalPropertyLabel || t.externalCustomerLabel || `İşlem (${t.stage})`;
-                    const collabTag = t.collaboratorAgentId && t.splitFinalizedAt ? ' 🤝' : '';
+                    const collabTag = t.collaboratorAgentId && t.splitFinalizedAt ? ' (İşbirlikli)' : '';
                     return (
                       <option key={t.id} value={t.id}>{label}{collabTag}</option>
                     );
                   })}
                 </select>
                 {isCollaborative && (
-                  <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, marginBottom: 0, background: '#eef3f9', padding: '8px 10px', borderRadius: 6 }}>
-                    🤝 Bu işlem <strong>işbirlikli satış</strong> — onaylanmış paylaşıma göre komisyon otomatik olarak iki ayrı kayıt halinde oluşturulacak:{' '}
+                  <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: 6, marginBottom: 0, background: 'rgba(16, 35, 61, 0.06)', padding: '8px 10px', borderRadius: 8, display: 'flex', gap: 6 }}>
+                    <Handshake size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span>Bu işlem <strong>işbirlikli satış</strong> — onaylanmış paylaşıma göre komisyon otomatik olarak iki ayrı kayıt halinde oluşturulacak:{' '}
                     <strong>{nameFor(selectedTransaction.agentId)}</strong> (%{selectedTransaction.commissionSplitPercentage ?? 50}) ve{' '}
                     <strong>{nameFor(selectedTransaction.collaboratorAgentId)}</strong> (%{100 - (selectedTransaction.commissionSplitPercentage ?? 50)}).
-                    {' '}Aşağıdaki "Danışman Payı" oranı, bu iki paya bölünecek toplam havuzu belirler.
+                    {' '}Aşağıdaki "Danışman Payı" oranı, bu iki paya bölünecek toplam havuzu belirler.</span>
                   </p>
                 )}
               </div>
@@ -245,15 +247,16 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
                 required
               />
               {rateSuggestion && (
-                <p style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 0' }}>
-                  💡 Kademeli Prim önerisi: bu yılki ciro ({new Intl.NumberFormat('tr-TR').format(rateSuggestion.ytdVolume)} ₺ + bu işlem) eşiği aştığı için <strong>%{rateSuggestion.appliedTier.rate}</strong> önerilir.{' '}
+                <p style={{ fontSize: 11, color: 'var(--cl-muted)', margin: '4px 0 0', display: 'flex', gap: 5 }}>
+                  <Lightbulb size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>Kademeli Prim önerisi: bu yılki ciro ({new Intl.NumberFormat('tr-TR').format(rateSuggestion.ytdVolume)} ₺ + bu işlem) eşiği aştığı için <strong>%{rateSuggestion.appliedTier.rate}</strong> önerilir.{' '}
                   <button
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, agentSharePercent: String(rateSuggestion.appliedTier.rate) }))}
-                    style={{ background: 'none', border: 'none', color: 'var(--ink-navy)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 11 }}
+                    style={{ background: 'none', border: 'none', color: 'var(--cl-primary-800)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 11 }}
                   >
                     Uygula
-                  </button>
+                  </button></span>
                 </p>
               )}
             </div>
@@ -312,9 +315,10 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
             style={{
               marginTop: 16,
               padding: '12px 16px',
-              background: 'var(--paper-raised, #ece8da)',
-              borderRadius: 4,
-              fontFamily: 'var(--font-mono)',
+              background: 'var(--cl-bg)',
+              border: '1px solid var(--cl-border)',
+              borderRadius: 10,
+              fontFamily: 'var(--font-body)',
               fontSize: 13,
               display: 'flex',
               flexDirection: 'column',
@@ -325,7 +329,7 @@ export default function CommissionFormModal({ initialValues, onSubmit, onClose }
             <span>Danışman Brüt Payı (havuz): {formatMoney(preview.agentGross)}</span>
             {isCollaborative ? (
               <>
-                <span style={{ paddingTop: 4, borderTop: '1px dashed var(--paper-line)' }}>
+                <span style={{ paddingTop: 4, borderTop: '1px dashed var(--cl-border)' }}>
                   {nameFor(selectedTransaction.agentId)} payı (%{selectedTransaction.commissionSplitPercentage ?? 50}): {formatMoney((preview.net * (selectedTransaction.commissionSplitPercentage ?? 50)) / 100)}
                 </span>
                 <span>
