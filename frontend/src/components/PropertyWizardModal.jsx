@@ -1,19 +1,20 @@
 import { useState } from 'react';
+import { Banknote, KeyRound, Home, Building2, Trees, Wheat, Store, Building, Landmark, HardHat, Palmtree, X } from 'lucide-react';
 import { CATEGORY_FIELDS } from '../data/categoryFields';
 import { uploadFile } from '../api/client';
 import MoneyInput from './MoneyInput.jsx';
 
 const CATEGORIES = [
-  { value: 'apartment', label: 'Konut', icon: '🏠' },
-  { value: 'villa', label: 'Villa', icon: '🏡' },
-  { value: 'land', label: 'Arsa', icon: '🌳' },
-  { value: 'field', label: 'Tarla', icon: '🌾' },
-  { value: 'commercial', label: 'İşyeri', icon: '🏢' },
-  { value: 'office', label: 'Plaza / Ofis', icon: '🏨' },
-  { value: 'building', label: 'Komple Bina', icon: '🏙️' },
-  { value: 'project', label: 'Yeni Konut Projesi', icon: '🏗️' },
-  { value: 'timeshare', label: 'Devre Mülk', icon: '🔑' },
-  { value: 'hotel', label: 'Otel / Turizm Tesisi', icon: '🏝️' },
+  { value: 'apartment', label: 'Konut', Icon: Home },
+  { value: 'villa', label: 'Villa', Icon: Building2 },
+  { value: 'land', label: 'Arsa', Icon: Trees },
+  { value: 'field', label: 'Tarla', Icon: Wheat },
+  { value: 'commercial', label: 'İşyeri', Icon: Store },
+  { value: 'office', label: 'Plaza / Ofis', Icon: Building },
+  { value: 'building', label: 'Komple Bina', Icon: Landmark },
+  { value: 'project', label: 'Yeni Konut Projesi', Icon: HardHat },
+  { value: 'timeshare', label: 'Devre Mülk', Icon: KeyRound },
+  { value: 'hotel', label: 'Otel / Turizm Tesisi', Icon: Palmtree },
 ];
 
 const LISTING_LABELS = { sale: 'Satılık', rent: 'Kiralık' };
@@ -163,11 +164,11 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
           <div>
             <h2>İlanınız ne için?</h2>
             <div style={{ display: 'flex', gap: 16, marginTop: 20 }}>
-              <button type="button" className="btn" style={{ flex: 1, padding: '28px 0', background: '#e6f7ec', border: '1px solid #34a853', fontSize: 18 }} onClick={() => { update({ listingType: 'sale' }); setStep(1); }}>
-                🟢 Satılık
+              <button type="button" className="btn" style={{ flex: 1, padding: '28px 0', background: 'rgba(21, 154, 99, 0.08)', border: '1px solid var(--cl-success)', fontSize: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }} onClick={() => { update({ listingType: 'sale' }); setStep(1); }}>
+                <Banknote size={26} style={{ color: 'var(--cl-success)' }} /> Satılık
               </button>
-              <button type="button" className="btn" style={{ flex: 1, padding: '28px 0', background: '#e8f0fe', border: '1px solid #4285f4', fontSize: 18 }} onClick={() => { update({ listingType: 'rent' }); setStep(1); }}>
-                🔵 Kiralık
+              <button type="button" className="btn" style={{ flex: 1, padding: '28px 0', background: 'rgba(16, 35, 61, 0.06)', border: '1px solid var(--cl-primary-800)', fontSize: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }} onClick={() => { update({ listingType: 'rent' }); setStep(1); }}>
+                <KeyRound size={26} style={{ color: 'var(--cl-primary-800)' }} /> Kiralık
               </button>
             </div>
           </div>
@@ -178,8 +179,8 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
             <h2>Ne satıyor/kiralıyorsunuz?</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 20 }}>
               {CATEGORIES.map((cat) => (
-                <button key={cat.value} type="button" className="btn btn-secondary" style={{ padding: '24px 0', fontSize: 16 }} onClick={() => { update({ propertyType: cat.value }); setStep(2); }}>
-                  <div style={{ fontSize: 28, marginBottom: 6 }}>{cat.icon}</div>
+                <button key={cat.value} type="button" className="btn btn-secondary" style={{ padding: '24px 0', fontSize: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }} onClick={() => { update({ propertyType: cat.value }); setStep(2); }}>
+                  <cat.Icon size={28} style={{ color: 'var(--cl-primary-800)' }} />
                   {cat.label}
                 </button>
               ))}
@@ -246,7 +247,7 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
             </div>
             {fields.some((field) => field.type === 'boolean') && (
               <>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, marginTop: 24, marginBottom: 4 }}>Öne Çıkan Özellikler</h3>
+                <h3 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 16, marginTop: 24, marginBottom: 4 }}>Öne Çıkan Özellikler</h3>
                 <div className="feature-grid">
                   {fields.filter((field) => field.type === 'boolean').map((field) => (
                     <label key={field.key} className="feature-checkbox">
@@ -329,9 +330,11 @@ export default function PropertyWizardModal({ onSubmit, onClose }) {
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16, marginBottom: 10 }}>
               {photos.map((p) => (
                 <div key={p.id} style={{ position: 'relative', width: 84, height: 84 }}>
-                  <img src={p.previewUrl} alt="" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--ink-navy-light, #cfc9b8)', opacity: p.uploading ? 0.5 : 1 }} />
+                  <img src={p.previewUrl} alt="" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--cl-border)', opacity: p.uploading ? 0.5 : 1 }} />
                   {!p.uploading && (
-                    <button type="button" onClick={() => removePhoto(p.id)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger, #a8412c)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12, lineHeight: '20px' }}>×</button>
+                    <button type="button" onClick={() => removePhoto(p.id)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--cl-danger)', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <X size={12} />
+                    </button>
                   )}
                 </div>
               ))}

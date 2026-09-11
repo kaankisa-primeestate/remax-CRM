@@ -1,24 +1,45 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import {
+  Bell,
+  Home,
+  RefreshCw,
+  User,
+  Phone,
+  Wallet,
+  CheckCircle2,
+  Hourglass,
+  MessageCircle,
+  FileEdit,
+  Megaphone,
+  Trophy,
+  Handshake,
+  Circle,
+  X,
+  ScrollText,
+  PartyPopper,
+  FolderOpen,
+  FileText,
+  Trash2,
+} from 'lucide-react';
 import { notificationsApi } from '../api/notifications';
 import { announcementsApi } from '../api/announcements';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const TYPE_ICONS = {
-  new_property: '🏠',
-  property_status_changed: '🔄',
-  new_customer: '👤',
-  interaction: '📞',
-  commission_added: '💰',
-  commission_approved: '✅',
-  property_pending_approval: '⏳',
-  broker_message: '💬',
-  showing_disclosure: '📝',
-  announcement: '📢',
-  deal_pending_approval: '🏆',
-  collaborative_split_pending: '🤝',
+  new_property: Home,
+  property_status_changed: RefreshCw,
+  new_customer: User,
+  interaction: Phone,
+  commission_added: Wallet,
+  commission_approved: CheckCircle2,
+  property_pending_approval: Hourglass,
+  broker_message: MessageCircle,
+  showing_disclosure: FileEdit,
+  announcement: Megaphone,
+  deal_pending_approval: Trophy,
+  collaborative_split_pending: Handshake,
 };
 
 function timeAgo(dateStr) {
@@ -288,19 +309,19 @@ export default function NotificationBell() {
               <button
                 type="button"
                 onClick={handleOpenCompose}
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-navy)', background: 'transparent', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}
+                style={{ fontFamily: 'var(--font-body)', fontSize: 10, color: 'var(--cl-primary-800)', background: 'transparent', border: '1px solid var(--cl-border)', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}
               >
                 + Duyuru
               </button>
             )}
           </div>
           {soundPermission === 'default' && (
-            <div style={{ padding: '8px 14px', background: '#eef3f9', borderBottom: '1px solid var(--paper-line)', fontSize: 11, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <span>🔔 Yeni bildirim geldiğinde ses çalsın mı?</span>
+            <div style={{ padding: '8px 14px', background: 'rgba(16, 35, 61, 0.06)', borderBottom: '1px solid var(--cl-border)', fontSize: 11, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Bell size={12} /> Yeni bildirim geldiğinde ses çalsın mı?</span>
               <button
                 type="button"
                 onClick={handleRequestSoundPermission}
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: 'var(--ink-navy)', color: 'white', border: 'none', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
+                style={{ fontFamily: 'var(--font-body)', fontSize: 10, background: 'var(--cl-primary-800)', color: 'white', border: 'none', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
               >
                 İzin Ver
               </button>
@@ -310,23 +331,26 @@ export default function NotificationBell() {
             <div className="notif-bell__empty">Henüz işlem yok.</div>
           ) : (
             <div className="notif-bell__list">
-              {items.map((item) => (
+              {items.map((item) => {
+                const ItemIcon = TYPE_ICONS[item.type] || Circle;
+                return (
                 <div
                   key={item.id}
                   className={`notif-bell__item${item.read ? '' : ' notif-bell__item--unread'} notif-bell__item--clickable`}
                   onClick={() => handleItemClick(item)}
                 >
-                  <span className="notif-bell__icon" aria-hidden="true">{TYPE_ICONS[item.type] || '•'}</span>
+                  <span className="notif-bell__icon" aria-hidden="true"><ItemIcon size={15} /></span>
                   <div className="notif-bell__content">
                     <div className="notif-bell__title">{item.title}</div>
                     <div className="notif-bell__meta">{item.agentName} · {timeAgo(item.occurredAt)}</div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
-          <button type="button" className="notif-bell__archive-link" onClick={handleOpenArchive}>
-            📜 Geçmiş Duyurular / Arşiv
+          <button type="button" className="notif-bell__archive-link" onClick={handleOpenArchive} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <ScrollText size={13} /> Geçmiş Duyurular / Arşiv
           </button>
         </div>
       )}
@@ -335,47 +359,53 @@ export default function NotificationBell() {
         <div className="modal-backdrop" onClick={() => setDetailItem(null)}>
           <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ margin: 0, fontSize: 18 }}>{TYPE_ICONS[detailItem.type] || '•'} {detailItem.title.replace(/^Duyuru: /, '')}</h2>
-              <button type="button" className="office-modal__close" onClick={() => setDetailItem(null)}>✕</button>
+              <h2 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {(() => {
+                  const DetailIcon = TYPE_ICONS[detailItem.type] || Circle;
+                  return <DetailIcon size={18} />;
+                })()}
+                {detailItem.title.replace(/^Duyuru: /, '')}
+              </h2>
+              <button type="button" className="office-modal__close" onClick={() => setDetailItem(null)}><X size={16} /></button>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: 0 }}>
               {detailItem.agentName} · {new Date(detailItem.occurredAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
             </p>
             {detailItem.message ? (
               <p style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{detailItem.message}</p>
             ) : (
-              <p style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>Bu bildirim için ek içerik yok.</p>
+              <p style={{ fontSize: 13, color: 'var(--cl-muted)', fontStyle: 'italic' }}>Bu bildirim için ek içerik yok.</p>
             )}
             {(detailItem.type === 'commission_added' || detailItem.type === 'deal_pending_approval') && detailItem.transactionId && (
               <button
                 type="button"
                 className="btn btn-primary"
-                style={{ width: '100%', marginTop: 4 }}
+                style={{ width: '100%', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 onClick={() => {
                   navigate(`/islemler/${detailItem.transactionId}?tab=financial`);
                   setDetailItem(null);
                 }}
               >
-                📂 İşlem Dosyasını Aç ve Onayla
+                <FolderOpen size={14} /> İşlem Dosyasını Aç ve Onayla
               </button>
             )}
             {detailItem.type === 'showing_disclosure' && (
               <button
                 type="button"
                 className="btn btn-primary"
-                style={{ width: '100%', marginTop: 4 }}
+                style={{ width: '100%', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 onClick={() => {
                   navigate('/sozlesmeler');
                   setDetailItem(null);
                 }}
               >
-                📄 Sözleşmeler & Tapu'yu Aç
+                <FileText size={14} /> Sözleşmeler & Tapu'yu Aç
               </button>
             )}
             <div className="modal-actions" style={{ marginTop: 16, justifyContent: detailItem.type === 'announcement' && !detailItem.fromArchive ? 'space-between' : 'flex-end' }}>
               {detailItem.type === 'announcement' && !detailItem.fromArchive && (
-                <button type="button" className="btn btn-secondary" style={{ color: 'var(--danger)' }} disabled={dismissing} onClick={handleDismissAnnouncement}>
-                  {dismissing ? 'Kaldırılıyor…' : '🗑 Sil'}
+                <button type="button" className="btn btn-secondary" style={{ color: 'var(--cl-danger)', display: 'flex', alignItems: 'center', gap: 5 }} disabled={dismissing} onClick={handleDismissAnnouncement}>
+                  <Trash2 size={13} /> {dismissing ? 'Kaldırılıyor…' : 'Sil'}
                 </button>
               )}
               <button type="button" className="btn btn-primary" onClick={() => setDetailItem(null)}>
@@ -390,10 +420,12 @@ export default function NotificationBell() {
         <div className="modal-backdrop" onClick={() => setArchiveOpen(false)}>
           <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ margin: 0, fontSize: 18 }}>📜 Geçmiş Duyurular</h2>
-              <button type="button" className="office-modal__close" onClick={() => setArchiveOpen(false)}>✕</button>
+              <h2 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ScrollText size={17} /> Geçmiş Duyurular
+              </h2>
+              <button type="button" className="office-modal__close" onClick={() => setArchiveOpen(false)}><X size={16} /></button>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: 0 }}>
               Daha önce okuyup kapattığın duyurular — üzerine tıklayınca tekrar tam içeriğini görebilirsin.
             </p>
             {archiveLoading ? (
@@ -409,7 +441,9 @@ export default function NotificationBell() {
                     onClick={() => handleArchiveItemClick(a)}
                     style={{ borderRadius: 6 }}
                   >
-                    <span className="notif-bell__icon" aria-hidden="true">{a.type === 'celebration' ? '🎉' : '📢'}</span>
+                    <span className="notif-bell__icon" aria-hidden="true">
+                      {a.type === 'celebration' ? <PartyPopper size={15} /> : <Megaphone size={15} />}
+                    </span>
                     <div className="notif-bell__content">
                       <div className="notif-bell__title">{a.title}</div>
                       <div className="notif-bell__meta">{new Date(a.createdAt).toLocaleDateString('tr-TR')}</div>
@@ -426,8 +460,10 @@ export default function NotificationBell() {
         <div className="modal-backdrop" onClick={() => setComposeOpen(false)}>
           <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ margin: 0, fontSize: 18 }}>📢 Hızlı Duyuru Gönder</h2>
-              <button type="button" className="office-modal__close" onClick={() => setComposeOpen(false)}>✕</button>
+              <h2 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Megaphone size={17} /> Hızlı Duyuru Gönder
+              </h2>
+              <button type="button" className="office-modal__close" onClick={() => setComposeOpen(false)}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmitCompose}>
               <div className="form-field" style={{ marginBottom: 10 }}>
@@ -441,9 +477,9 @@ export default function NotificationBell() {
               <div className="form-field" style={{ marginBottom: 10 }}>
                 <label>Tür</label>
                 <select value={composeType} onChange={(e) => setComposeType(e.target.value)}>
-                  <option value="general">📢 Genel Duyuru</option>
-                  <option value="celebration">🎉 Kutlama</option>
-                  <option value="meeting">📅 Toplantı / Anket (katılım onayı istenir)</option>
+                  <option value="general">Genel Duyuru</option>
+                  <option value="celebration">Kutlama</option>
+                  <option value="meeting">Toplantı / Anket (katılım onayı istenir)</option>
                 </select>
               </div>
               <div style={{ display: 'flex', gap: 14, marginBottom: 10 }}>
@@ -459,7 +495,7 @@ export default function NotificationBell() {
               {!composeSendToAll && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14, maxHeight: 120, overflowY: 'auto' }}>
                   {composeAgents.map((a) => (
-                    <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 400, background: 'var(--paper)', padding: '3px 8px', borderRadius: 4 }}>
+                    <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 400, background: 'var(--cl-bg)', padding: '3px 8px', borderRadius: 4 }}>
                       <input
                         type="checkbox"
                         checked={composeSelectedAgentIds.includes(a.id)}
