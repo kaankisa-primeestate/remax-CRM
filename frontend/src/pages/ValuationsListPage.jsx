@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BarChart3, X } from 'lucide-react';
 import { valuationsApi, PROPERTY_TYPE_LABELS } from '../api/valuations';
 
 const money = (n) => (n != null ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : '—');
 
 const STATUS_LABELS = {
-  draft: { label: 'Taslak', color: '#8a6100', bg: '#fdf3e0' },
-  completed: { label: 'Tamamlandı', color: '#1e7a3d', bg: '#e6f4ea' },
+  draft: { label: 'Taslak', color: '#8a6420', bg: 'rgba(196, 154, 85, 0.15)' },
+  completed: { label: 'Tamamlandı', color: 'var(--cl-success)', bg: 'rgba(21, 154, 99, 0.12)' },
 };
 
 export default function ValuationsListPage() {
@@ -39,7 +40,9 @@ export default function ValuationsListPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 className="dossier__name" style={{ margin: 0 }}>📊 Piyasa Değer Analizleri</h2>
+        <h2 className="dossier__name" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <BarChart3 size={20} style={{ color: 'var(--cl-gold)' }} /> Piyasa Değer Analizleri
+        </h2>
         <button type="button" className="btn btn-primary" onClick={() => navigate('/degerleme/yeni')}>
           + Yeni Analiz
         </button>
@@ -65,18 +68,18 @@ export default function ValuationsListPage() {
               >
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div className="record-row__name">{v.subjectTitle}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
                     {PROPERTY_TYPE_LABELS[v.propertyType] || v.propertyType} · {v.subjectDistrict}, {v.subjectProvince}
                     {v.subjectAreaM2 ? ` · ${v.subjectAreaM2} m²` : ''}
                   </div>
                 </div>
                 {v.estimatedValueTarget && (
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{money(v.estimatedValueTarget)}</div>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600 }}>{money(v.estimatedValueTarget)}</div>
                 )}
-                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', background: statusInfo.bg, color: statusInfo.color, borderRadius: 999, padding: '3px 10px' }}>
+                <span style={{ fontSize: 11, fontFamily: 'var(--font-body)', background: statusInfo.bg, color: statusInfo.color, borderRadius: 999, padding: '3px 10px' }}>
                   {statusInfo.label}
                 </span>
-                <button type="button" className="task-row__delete" onClick={(e) => handleDelete(e, v.id)} title="Sil">✕</button>
+                <button type="button" className="task-row__delete" onClick={(e) => handleDelete(e, v.id)} title="Sil"><X size={13} /></button>
               </div>
             );
           })

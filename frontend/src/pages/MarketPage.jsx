@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LineChart, Newspaper } from 'lucide-react';
 import TradingViewWidget from '../components/TradingViewWidget.jsx';
 import { marketApi } from '../api/market';
 
@@ -98,9 +99,9 @@ export default function MarketPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           background: 'transparent',
           border: 'none',
           padding: 0,
@@ -111,11 +112,15 @@ export default function MarketPage() {
       >
         ← Geri Dön
       </button>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>💹 Piyasa</h2>
+      <h2 className="dossier__name" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <LineChart size={22} style={{ color: 'var(--cl-gold)' }} /> Piyasa
+      </h2>
 
       <div className="panel" style={{ marginBottom: 20 }}>
-        <h3 className="panel__title">📰 Emlak & Ekonomi Haberleri</h3>
-        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: -6, marginBottom: 12 }}>
+        <h3 className="panel__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Newspaper size={16} /> Emlak & Ekonomi Haberleri
+        </h3>
+        <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: -6, marginBottom: 12 }}>
           Enflasyon, konut kredisi faizleri, kira artış oranları, TÜİK konut satış verileri ve benzeri konularda güncel haberler — birkaç güvenilir kaynaktan otomatik derlenir.
         </p>
         {newsLoading ? (
@@ -137,8 +142,8 @@ export default function MarketPage() {
               >
                 <span className="record-row__name" style={{ fontSize: 14 }}>{item.title}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>{item.source}</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>{formatRelativeDate(item.publishedAt)}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--cl-muted)' }}>{item.source}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--cl-muted)' }}>{formatRelativeDate(item.publishedAt)}</span>
                 </span>
               </a>
             ))}
