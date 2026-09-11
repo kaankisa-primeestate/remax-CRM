@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { PartyPopper, Send, Home, Receipt, Wallet, Circle, CreditCard, FileText, MessageCircle, BarChart3 } from 'lucide-react';
 import { agentLedgerApi } from '../api/agentLedger';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -13,11 +14,11 @@ function today() {
 }
 
 const CATEGORY_META = {
-  commission: { icon: '🎉', label: 'Komisyon Hakedişi' },
-  commission_payment: { icon: '💸', label: 'Ofis Ödemesi' },
-  agent_due: { icon: '🏠', label: 'Aylık Ofis Aidatı' },
-  expense_chargeback: { icon: '📸', label: 'Masraf Yansıtma' },
-  manual: { icon: '💵', label: 'Manuel Kayıt' },
+  commission: { Icon: PartyPopper, label: 'Komisyon Hakedişi' },
+  commission_payment: { Icon: Send, label: 'Ofis Ödemesi' },
+  agent_due: { Icon: Home, label: 'Aylık Ofis Aidatı' },
+  expense_chargeback: { Icon: Receipt, label: 'Masraf Yansıtma' },
+  manual: { Icon: Wallet, label: 'Manuel Kayıt' },
 };
 
 function money(n) {
@@ -149,20 +150,22 @@ export default function AgentLedgerStatementPage() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
+        style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
       >
         ← Geri Dön
       </button>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
-        <h2 className="dossier__name" style={{ margin: 0 }}>💳 Cari Hesap Ekstresi: {displayName}</h2>
+        <h2 className="dossier__name" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CreditCard size={20} style={{ color: 'var(--cl-gold)' }} /> Cari Hesap Ekstresi: {displayName}
+        </h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" disabled={pdfDownloading} onClick={handleDownloadPdf}>
-            {pdfDownloading ? 'Hazırlanıyor…' : '📄 PDF İndir'}
+          <button type="button" className="btn btn-secondary" disabled={pdfDownloading} onClick={handleDownloadPdf} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {pdfDownloading ? 'Hazırlanıyor…' : (<><FileText size={14} /> PDF İndir</>)}
           </button>
           {isBroker && agentInfo?.phone && (
-            <button type="button" className="btn btn-secondary" onClick={handleWhatsApp}>
-              💬 WhatsApp'tan Gönder
+            <button type="button" className="btn btn-secondary" onClick={handleWhatsApp} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <MessageCircle size={14} /> WhatsApp'tan Gönder
             </button>
           )}
           {isBroker && (
@@ -176,15 +179,19 @@ export default function AgentLedgerStatementPage() {
         <div style={{ marginBottom: 16 }}>
           <span
             style={{
-              fontFamily: 'var(--font-mono)',
+              fontFamily: 'var(--font-body)',
+              fontWeight: 600,
               fontSize: 11,
-              background: '#eef3f9',
-              color: 'var(--ink-navy)',
+              background: 'rgba(16, 35, 61, 0.06)',
+              color: 'var(--cl-primary-800)',
               borderRadius: 999,
               padding: '4px 10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
             }}
           >
-            📊 Prim Modeli: {commissionModelLabel}
+            <BarChart3 size={12} /> Prim Modeli: {commissionModelLabel}
           </span>
         </div>
       )}
@@ -202,7 +209,7 @@ export default function AgentLedgerStatementPage() {
 
       {showAddForm && isBroker && (
         <div className="folder-panel" style={{ marginBottom: 20 }}>
-          <h4 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Yeni Cari Hareket</h4>
+          <h4 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0 }}>Yeni Cari Hareket</h4>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="form-field" style={{ margin: 0 }}>
               <label>Tür</label>
@@ -237,21 +244,21 @@ export default function AgentLedgerStatementPage() {
       ) : (
         <>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
-            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: '#e6f4ea', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Toplam Hakediş</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#1e7a3d' }}>{money(statement.summary.totalCredit)}</div>
+            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: 'rgba(21, 154, 99, 0.08)', borderRadius: 10 }}>
+              <div style={{ fontSize: 10, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase' }}>Toplam Hakediş</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cl-success)' }}>{money(statement.summary.totalCredit)}</div>
             </div>
-            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: '#fdf3e0', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Kesinti / Avans</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#8a6100' }}>{money(statement.summary.totalDeductions)}</div>
+            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: 'rgba(196, 154, 85, 0.12)', borderRadius: 10 }}>
+              <div style={{ fontSize: 10, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase' }}>Kesinti / Avans</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#8a6420' }}>{money(statement.summary.totalDeductions)}</div>
             </div>
-            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: '#eef3f9', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Yapılan Ödeme</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-navy)' }}>{money(statement.summary.totalPayments)}</div>
+            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: 'rgba(16, 35, 61, 0.06)', borderRadius: 10 }}>
+              <div style={{ fontSize: 10, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase' }}>Yapılan Ödeme</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cl-primary-800)' }}>{money(statement.summary.totalPayments)}</div>
             </div>
-            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: statement.summary.netBalance >= 0 ? '#e6f4ea' : '#fbeeeb', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Net Bakiye</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: statement.summary.netBalance >= 0 ? '#1e7a3d' : 'var(--danger)' }}>
+            <div style={{ flex: 1, minWidth: 150, padding: '12px 16px', background: statement.summary.netBalance >= 0 ? 'rgba(21, 154, 99, 0.08)' : 'rgba(214, 69, 69, 0.06)', borderRadius: 10 }}>
+              <div style={{ fontSize: 10, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase' }}>Net Bakiye</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: statement.summary.netBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                 {statement.summary.netBalance >= 0 ? 'Ofis Borçlu: ' : 'Danışman Borçlu: '}
                 {money(Math.abs(statement.summary.netBalance))}
               </div>
@@ -265,7 +272,7 @@ export default function AgentLedgerStatementPage() {
               <div className="table-scroll">
                 <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
                       <th style={{ padding: '8px' }}>Tarih</th>
                       <th style={{ padding: '8px' }}>Açıklama</th>
                       <th style={{ padding: '8px', textAlign: 'right' }}>Borç</th>
@@ -275,18 +282,20 @@ export default function AgentLedgerStatementPage() {
                   </thead>
                   <tbody>
                     {statement.entries.map((e, i) => {
-                      const meta = CATEGORY_META[e.category] || { icon: '•', label: e.category };
+                      const meta = CATEGORY_META[e.category] || { Icon: Circle, label: e.category };
                       return (
-                        <tr key={i} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                        <tr key={i} style={{ borderTop: '1px solid var(--cl-border)' }}>
                           <td style={{ padding: '8px', whiteSpace: 'nowrap' }}>{new Date(e.date).toLocaleDateString('tr-TR')}</td>
-                          <td style={{ padding: '8px' }}>{meta.icon} {e.label}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: e.debit ? 'var(--danger)' : 'var(--muted)' }}>
+                          <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <meta.Icon size={13} style={{ color: 'var(--cl-muted)', flexShrink: 0 }} /> {e.label}
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: e.debit ? 'var(--cl-danger)' : 'var(--cl-muted)' }}>
                             {e.debit ? money(e.debit) : '—'}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: e.credit ? 'var(--success)' : 'var(--muted)' }}>
+                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: e.credit ? 'var(--cl-success)' : 'var(--cl-muted)' }}>
                             {e.credit ? money(e.credit) : '—'}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: e.runningBalance >= 0 ? '#1e7a3d' : 'var(--danger)' }}>
+                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-body)', fontWeight: 700, color: e.runningBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                             {e.runningBalance >= 0 ? '+' : '−'}{money(Math.abs(e.runningBalance))}
                           </td>
                         </tr>

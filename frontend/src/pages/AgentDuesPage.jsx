@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Check, X } from 'lucide-react';
 import { agentDuesApi, currentPeriod, periodLabel } from '../api/agentDues';
 import { bankAccountsApi, formatMoney } from '../api/bankAccounts';
 import { usersApi } from '../api/auth';
@@ -107,7 +108,7 @@ export default function AgentDuesPage() {
 
       {unpaidOverdue.length > 0 && (
         <div className="dues-warning-banner">
-          <span className="dues-warning-banner__icon">⚠️</span>
+          <span className="dues-warning-banner__icon"><AlertTriangle size={16} /></span>
           <div>
             <strong>{unpaidOverdue.length} aidat ödemesi bekliyor.</strong>
             <div style={{ fontSize: 12, marginTop: 2 }}>
@@ -121,8 +122,8 @@ export default function AgentDuesPage() {
         <div className="folder-panel" style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>{periodLabel(nowPeriod)} Aidatlarını Oluştur</h3>
-              <p style={{ color: 'var(--muted)', fontSize: 13, margin: '4px 0 0' }}>
+              <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16 }}>{periodLabel(nowPeriod)} Aidatlarını Oluştur</h3>
+              <p style={{ color: 'var(--cl-muted)', fontSize: 13, margin: '4px 0 0' }}>
                 Aylık aidat tutarı tanımlı tüm danışmanlar için bu ayın kaydını otomatik açar. Zaten var olan kayıtları tekrar oluşturmaz.
               </p>
             </div>
@@ -144,7 +145,7 @@ export default function AgentDuesPage() {
           <div className="table-scroll">
             <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
                   <th style={{ padding: '6px 8px' }}>Dönem</th>
                   {isBroker && <th style={{ padding: '6px 8px' }}>Danışman</th>}
                   <th style={{ padding: '6px 8px' }}>Tutar</th>
@@ -154,15 +155,19 @@ export default function AgentDuesPage() {
               </thead>
               <tbody>
                 {dues.map((due) => (
-                  <tr key={due.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                  <tr key={due.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
                     <td style={{ padding: '8px' }}>{periodLabel(due.period)}</td>
                     {isBroker && <td style={{ padding: '8px' }}>{agentNameById[due.agentId] || '—'}</td>}
-                    <td style={{ padding: '8px', fontFamily: 'var(--font-mono)' }}>{formatMoney(due.expectedAmount)}</td>
+                    <td style={{ padding: '8px', fontFamily: 'var(--font-body)' }}>{formatMoney(due.expectedAmount)}</td>
                     <td style={{ padding: '8px' }}>
                       {due.paid ? (
-                        <span className="dues-status dues-status--paid">✓ Ödendi ({new Date(due.paidDate).toLocaleDateString('tr-TR')})</span>
+                        <span className="dues-status dues-status--paid" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Check size={12} /> Ödendi ({new Date(due.paidDate).toLocaleDateString('tr-TR')})
+                        </span>
                       ) : (
-                        <span className="dues-status dues-status--unpaid">⚠️ Ödenmedi</span>
+                        <span className="dues-status dues-status--unpaid" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <AlertTriangle size={12} /> Ödenmedi
+                        </span>
                       )}
                     </td>
                     <td style={{ padding: '8px' }}>
@@ -186,7 +191,7 @@ export default function AgentDuesPage() {
                         )
                       )}
                       {isBroker && (
-                        <button type="button" className="task-row__delete" onClick={() => handleDelete(due.id)} title="Sil">✕</button>
+                        <button type="button" className="task-row__delete" onClick={() => handleDelete(due.id)} title="Sil"><X size={13} /></button>
                       )}
                     </td>
                   </tr>
