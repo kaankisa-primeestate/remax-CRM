@@ -2226,7 +2226,7 @@ button.metric-card--clickable {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 4px;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
 }
 .task-row:last-child { border-bottom: none; }
 .task-row__checkbox {
@@ -2243,52 +2243,53 @@ button.metric-card--clickable {
 }
 .task-row__title {
   font-size: 14px;
-  color: var(--slate);
+  color: var(--cl-text);
   font-weight: 500;
 }
 .task-row__title.is-completed {
   text-decoration: line-through;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-weight: 400;
 }
 .task-row__due {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 12px;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-top: 3px;
 }
 .task-row__due.is-today {
-  color: var(--brass);
+  color: var(--cl-gold);
   font-weight: 700;
 }
 .task-row__due.is-overdue {
-  color: var(--danger);
+  color: var(--cl-danger);
   font-weight: 700;
 }
 .task-row__link {
   display: inline-block;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
   margin-top: 3px;
   text-decoration: underline;
 }
 .task-row__notes {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-top: 4px;
   white-space: pre-wrap;
 }
 .task-row__edit {
   background: transparent;
   border: none;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 14px;
   cursor: pointer;
   padding: 4px 8px;
+  display: inline-flex;
 }
 .task-row__edit:hover {
-  color: var(--brass);
+  color: var(--cl-gold);
 }
 .task-row__edit-form {
   display: flex;
@@ -2305,13 +2306,14 @@ button.metric-card--clickable {
 .task-row__delete {
   background: transparent;
   border: none;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 14px;
   cursor: pointer;
   padding: 4px 8px;
+  display: inline-flex;
 }
 .task-row__delete:hover {
-  color: var(--danger);
+  color: var(--cl-danger);
 }
 
 /* --- Takvim: Ajanda grupları --- */
@@ -2322,7 +2324,8 @@ button.metric-card--clickable {
   margin-bottom: 0;
 }
 .agenda-group__date {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -3805,7 +3808,7 @@ button.metric-card--clickable {
 
 .calendar-new-entry-modal__header p {
   margin: 5px 0 0;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 13px;
 }
 
@@ -3813,10 +3816,10 @@ button.metric-card--clickable {
   width: 34px;
   height: 34px;
   flex: 0 0 34px;
-  border: 1px solid var(--paper-line);
+  border: 1px solid var(--cl-border);
   border-radius: 50%;
-  background: var(--paper);
-  color: var(--muted);
+  background: var(--cl-bg);
+  color: var(--cl-muted);
   font-size: 21px;
   line-height: 1;
   cursor: pointer;
@@ -3824,8 +3827,8 @@ button.metric-card--clickable {
 
 .calendar-new-entry-modal__close:hover,
 .calendar-new-entry-modal__close:focus-visible {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--cl-danger);
+  border-color: var(--cl-danger);
   outline: none;
 }
 
@@ -3841,10 +3844,10 @@ button.metric-card--clickable {
   align-items: flex-start;
   gap: 4px;
   padding: 13px 14px;
-  border: 1px solid var(--paper-line);
+  border: 1px solid var(--cl-border);
   border-radius: 8px;
-  background: var(--paper-raised);
-  color: var(--slate);
+  background: var(--cl-surface);
+  color: var(--cl-text);
   text-align: left;
   cursor: pointer;
   transition: border-color 160ms ease-out, background-color 160ms ease-out, transform 160ms ease-out;
@@ -3852,8 +3855,8 @@ button.metric-card--clickable {
 
 .calendar-new-entry-options button:hover,
 .calendar-new-entry-options button:focus-visible {
-  border-color: var(--ink-navy);
-  background: var(--paper);
+  border-color: var(--cl-primary-800);
+  background: var(--cl-bg);
   outline: none;
 }
 
@@ -3862,12 +3865,12 @@ button.metric-card--clickable {
 }
 
 .calendar-new-entry-options strong {
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
   font-size: 14px;
 }
 
 .calendar-new-entry-options span {
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -3891,19 +3894,19 @@ button.metric-card--clickable {
   gap: 20px;
   padding-bottom: 14px;
   margin-bottom: 16px;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
 }
 
 .calendar-day-detail-modal__header h2 {
   margin: 0;
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
   font-size: 24px;
 }
 
 .calendar-day-detail-modal__header p {
   margin: 4px 0 0;
-  color: var(--muted);
-  font-family: var(--font-mono);
+  color: var(--cl-muted);
+  font-family: var(--font-body);
   font-size: 12px;
 }
 
@@ -3934,7 +3937,7 @@ button.metric-card--clickable {
 
 .calendar-day-detail-event:not(:disabled):hover,
 .calendar-day-detail-event:not(:disabled):focus-visible {
-  box-shadow: 0 0 0 1px var(--ink-navy);
+  box-shadow: 0 0 0 1px var(--cl-primary-800);
   outline: none;
 }
 
@@ -3949,12 +3952,12 @@ button.metric-card--clickable {
 }
 
 .calendar-day-detail-event span {
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 12px;
 }
 
 .calendar-day-detail-event small {
-  color: var(--danger);
+  color: var(--cl-danger);
   font-size: 11px;
 }
 
@@ -3964,7 +3967,7 @@ button.metric-card--clickable {
   align-items: stretch;
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid var(--paper-line);
+  border-top: 1px solid var(--cl-border);
 }
 
 .calendar-day-detail-modal__quick-task {
@@ -3977,7 +3980,7 @@ button.metric-card--clickable {
   flex: 1;
   min-width: 0;
   padding: 9px 12px;
-  border: 1px solid var(--paper-line);
+  border: 1px solid var(--cl-border);
   border-radius: 6px;
   background: white;
   font: inherit;

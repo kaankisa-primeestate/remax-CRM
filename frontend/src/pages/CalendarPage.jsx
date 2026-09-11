@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Calendar, CalendarRange, ListTodo, X, Clock, Check, Hourglass, Pencil, MessageSquare, Home, StickyNote, Send } from 'lucide-react';
 import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
@@ -57,10 +58,16 @@ function buildDisclosureMessage({ customerName, propertyTitle, date, time, link 
 }
 
 const VIEW_TABS = [
-  { key: 'month', label: '📅 Aylık' },
-  { key: 'week', label: '🗓️ Haftalık' },
-  { key: 'agenda', label: '📋 Ajanda' },
+  { key: 'month', label: 'Aylık', Icon: Calendar },
+  { key: 'week', label: 'Haftalık', Icon: CalendarRange },
+  { key: 'agenda', label: 'Ajanda', Icon: ListTodo },
 ];
+
+const APPOINTMENT_TYPE_ICONS = {
+  meeting: MessageSquare,
+  showing: Home,
+  other: StickyNote,
+};
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -401,7 +408,7 @@ export default function CalendarPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)', background: 'transparent',
+          fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent',
           border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block',
         }}
       >
@@ -416,8 +423,8 @@ export default function CalendarPage() {
           </button>
           <div className="folder-tabs">
             {VIEW_TABS.map((t) => (
-              <button key={t.key} className={`folder-tab ${view === t.key ? 'active' : ''}`} onClick={() => setView(t.key)}>
-                {t.label}
+              <button key={t.key} className={`folder-tab ${view === t.key ? 'active' : ''}`} onClick={() => setView(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <t.Icon size={14} /> {t.label}
               </button>
             ))}
           </div>
@@ -432,7 +439,7 @@ export default function CalendarPage() {
                 <h2 id="calendar-new-entry-heading">Yeni kayıt ekle</h2>
                 <p>Eklemek istediğiniz kayıt türünü seçin.</p>
               </div>
-              <button type="button" className="calendar-new-entry-modal__close" onClick={() => setNewEntryMenuOpen(false)} aria-label="Pencereyi kapat">×</button>
+              <button type="button" className="calendar-new-entry-modal__close" onClick={() => setNewEntryMenuOpen(false)} aria-label="Pencereyi kapat"><X size={18} /></button>
             </div>
             <div className="calendar-new-entry-options">
               <button type="button" onClick={() => handleNewEntryChoice('task')}>
@@ -461,7 +468,7 @@ export default function CalendarPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button type="button" className="btn btn-secondary" style={{ padding: '4px 12px' }} onClick={() => navigatePeriod(-1)}>←</button>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, minWidth: 160, textAlign: 'center' }}>
+              <span style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 16, minWidth: 160, textAlign: 'center' }}>
                 {view === 'month'
                   ? anchorDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
                   : `${toDateStr(startOfWeek(anchorDate))} — ${toDateStr(addDays(startOfWeek(anchorDate), 6))}`}
@@ -478,10 +485,10 @@ export default function CalendarPage() {
                   type="button"
                   onClick={() => toggleCategory(c.key)}
                   style={{
-                    fontSize: 11, fontFamily: 'var(--font-mono)', padding: '3px 9px', borderRadius: 999,
-                    border: '1px solid var(--paper-line)', cursor: 'pointer',
-                    background: activeCategories.includes(c.key) ? 'var(--ink-navy)' : 'transparent',
-                    color: activeCategories.includes(c.key) ? 'white' : 'var(--muted)',
+                    fontSize: 11, fontFamily: 'var(--font-body)', padding: '3px 9px', borderRadius: 999,
+                    border: '1px solid var(--cl-border)', cursor: 'pointer',
+                    background: activeCategories.includes(c.key) ? 'var(--cl-primary-800)' : 'transparent',
+                    color: activeCategories.includes(c.key) ? 'white' : 'var(--cl-muted)',
                   }}
                 >
                   {c.label}
@@ -495,7 +502,7 @@ export default function CalendarPage() {
             <div style={{ flex: '1 1 560px', minWidth: 320 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 6 }}>
                 {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d) => (
-                  <div key={d} style={{ textAlign: 'center', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{d}</div>
+                  <div key={d} style={{ textAlign: 'center', fontSize: 11, fontFamily: 'var(--font-body)', color: 'var(--cl-muted)' }}>{d}</div>
                 ))}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
@@ -518,15 +525,15 @@ export default function CalendarPage() {
                         textAlign: 'left',
                         borderRadius: 8,
                         cursor: 'pointer',
-                        border: isSelected ? '2px solid var(--ink-navy)' : '1px solid var(--paper-line)',
-                        background: dayEvents.length > 0 ? '#fbfaf5' : 'white',
+                        border: isSelected ? '2px solid var(--cl-primary-800)' : '1px solid var(--cl-border)',
+                        background: dayEvents.length > 0 ? 'var(--cl-bg)' : 'var(--cl-surface)',
                         opacity: isCurrentMonth ? 1 : 0.4,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 3,
                       }}
                     >
-                      <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--ink-navy)' : 'inherit' }}>
+                      <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--cl-primary-800)' : 'inherit' }}>
                         {isToday && '● '}{d.getDate()}
                       </span>
                       {dayEvents.slice(0, view === 'month' ? 2 : 4).map((e) => {
@@ -544,9 +551,13 @@ export default function CalendarPage() {
                         );
                       })}
                       {dayEvents.length > (view === 'month' ? 2 : 4) && (
-                        <span style={{ fontSize: 9, color: 'var(--muted)' }}>+{dayEvents.length - (view === 'month' ? 2 : 4)} tane daha</span>
+                        <span style={{ fontSize: 9, color: 'var(--cl-muted)' }}>+{dayEvents.length - (view === 'month' ? 2 : 4)} tane daha</span>
                       )}
-                      {hasOverdue && <span style={{ fontSize: 9, color: 'var(--danger)' }}>⏱ gecikmiş</span>}
+                      {hasOverdue && (
+                        <span style={{ fontSize: 9, color: 'var(--cl-danger)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Clock size={9} /> gecikmiş
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -565,7 +576,7 @@ export default function CalendarPage() {
                 <h2 id="calendar-day-detail-heading">{formatDateLabel(selectedDate)}</h2>
                 <p>{new Date(`${selectedDate}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
-              <button type="button" className="calendar-new-entry-modal__close" onClick={() => setDayDetailOpen(false)} aria-label="Gün penceresini kapat">×</button>
+              <button type="button" className="calendar-new-entry-modal__close" onClick={() => setDayDetailOpen(false)} aria-label="Gün penceresini kapat"><X size={18} /></button>
             </div>
 
             <div className="calendar-day-detail-modal__events">
@@ -586,11 +597,15 @@ export default function CalendarPage() {
                       style={{ background: colors.bg, borderLeftColor: colors.fg }}
                     >
                       <strong style={{ color: colors.fg, textDecoration: event.completed ? 'line-through' : 'none' }}>
-                        {event.time && <span style={{ fontFamily: 'var(--font-mono)' }}>{event.time} · </span>}
+                        {event.time && <span style={{ fontFamily: 'var(--font-body)' }}>{event.time} · </span>}
                         {event.title}
                       </strong>
                       {event.subtitle && <span>{event.subtitle}</span>}
-                      {event.overdue && <small>⏱ Süresi geçti</small>}
+                      {event.overdue && (
+                        <small style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Clock size={11} /> Süresi geçti
+                        </small>
+                      )}
                     </button>
                   );
                 })
@@ -677,7 +692,7 @@ export default function CalendarPage() {
 
           <div className="folder-panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>Ajanda</h3>
+              <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16 }}>Ajanda</h3>
               <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setShowPast((v) => !v)}>
                 {showPast ? 'Sadece Yaklaşanları Göster' : 'Geçmişi de Göster'}
               </button>
@@ -759,16 +774,22 @@ export default function CalendarPage() {
                               <input type="checkbox" checked={appt.completed} onChange={() => handleToggleComplete(appt)} />
                             </label>
                             <div className="task-row__body">
-                              <div className={`task-row__title${appt.completed ? ' is-completed' : ''}`}>
-                                {typeInfo?.icon} {appt.title}
+                              <div className={`task-row__title${appt.completed ? ' is-completed' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {(() => {
+                                  const TypeIcon = APPOINTMENT_TYPE_ICONS[appt.type] || StickyNote;
+                                  return <TypeIcon size={13} style={{ color: 'var(--cl-muted)', flexShrink: 0 }} />;
+                                })()}
+                                {appt.title}
                               </div>
                               <div className="task-row__due">
-                                {appt.time ? `🕒 ${appt.time}` : 'Saat belirtilmedi'} · {typeInfo?.label}
+                                {appt.time ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Clock size={11} /> {appt.time}</span>
+                                ) : 'Saat belirtilmedi'} · {typeInfo?.label}
                                 {isShowing && customer && ` · ${customer.firstName} ${customer.lastName}`}
                                 {isShowing && property && ` · ${property.title}`}
                                 {isShowing && (
-                                  <span className={appt.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'}>
-                                    {appt.disclosureAccepted ? '✓ İmzalandı' : '⏳ İmza bekleniyor'}
+                                  <span className={appt.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    {appt.disclosureAccepted ? (<><Check size={11} /> İmzalandı</>) : (<><Hourglass size={11} /> İmza bekleniyor</>)}
                                   </span>
                                 )}
                               </div>
@@ -777,18 +798,18 @@ export default function CalendarPage() {
                                 <button
                                   type="button"
                                   className="task-row__link"
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                   onClick={() => handleShareDisclosure(appt)}
                                 >
-                                  📲 WhatsApp ile İmzalama Linki Gönder
+                                  <Send size={12} /> WhatsApp ile İmzalama Linki Gönder
                                 </button>
                               )}
                             </div>
                             <button type="button" className="task-row__edit" onClick={() => startEdit(appt)} title="Düzenle">
-                              ✎
+                              <Pencil size={13} />
                             </button>
                             <button type="button" className="task-row__delete" onClick={() => handleDelete(appt.id)} title="Sil">
-                              ✕
+                              <X size={13} />
                             </button>
                           </>
                         )}
