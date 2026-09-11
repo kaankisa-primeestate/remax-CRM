@@ -686,23 +686,27 @@ button {
 .accounting-entry-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 16px;
+  gap: 18px;
   align-items: start;
 }
 .accounting-entry-form-grid .form-field label {
-  color: var(--ink-navy);
-  font-weight: 700;
-  font-size: 11.5px;
+  color: var(--cl-text);
+  font-weight: 600;
+  font-size: 12px;
 }
 .accounting-entry-form-grid .form-field input,
 .accounting-entry-form-grid .form-field select {
-  border: 1.5px solid var(--ink-navy);
+  border: 1px solid var(--cl-border);
+  border-radius: 9px;
+  min-height: 42px;
+  background: var(--cl-surface);
+  color: var(--cl-text);
 }
 .accounting-entry-form-grid .form-field input:focus,
 .accounting-entry-form-grid .form-field select:focus {
   outline: none;
-  border-color: var(--brass);
-  box-shadow: 0 0 0 2px rgba(169, 125, 59, 0.25);
+  border-color: var(--cl-gold);
+  box-shadow: 0 0 0 3px rgba(196, 154, 85, 0.18);
 }
 
 .form-field label {
@@ -727,6 +731,36 @@ button {
 .form-field textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+/* Muhasebe sayfasındaki TÜM form alanları (Hareketler'in özel grid'i
+   dışındakiler dahil — Hesaplar, Cari Kartlar, Komisyonlar, Ortaklar) aynı
+   Corporate Luxury etiket/input stiline sahip olsun diye; diğer sayfaları
+   etkilemesin diye .accounting-page ile sınırlı. */
+.accounting-page .form-field label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--cl-text);
+}
+.accounting-page .form-field input,
+.accounting-page .form-field select,
+.accounting-page .form-field textarea {
+  border: 1px solid var(--cl-border);
+  border-radius: 9px;
+  min-height: 42px;
+  background: var(--cl-surface);
+  color: var(--cl-text);
+  font-size: 13.5px;
+}
+.accounting-page .form-field input:focus,
+.accounting-page .form-field select:focus,
+.accounting-page .form-field textarea:focus {
+  outline: none;
+  border-color: var(--cl-gold);
+  box-shadow: 0 0 0 3px rgba(196, 154, 85, 0.18);
 }
 
 .quick-expense-picker {
@@ -1554,8 +1588,8 @@ button.metric-card--clickable {
   font-size: 12px;
 }
 .accounting-report-presets .btn.active {
-  border-color: var(--ink-navy);
-  background: var(--ink-navy);
+  border-color: var(--cl-primary-800);
+  background: var(--cl-primary-800);
   color: #fff;
 }
 .accounting-report-date-form,
@@ -1568,9 +1602,9 @@ button.metric-card--clickable {
 .accounting-report-detail-filters {
   padding: 12px;
   margin-bottom: 14px;
-  border: 1px solid var(--paper-line);
+  border: 1px solid var(--cl-border);
   border-radius: 8px;
-  background: var(--paper-raised);
+  background: var(--cl-surface);
 }
 .accounting-report-table {
   width: 100%;
@@ -1591,19 +1625,19 @@ button.metric-card--clickable {
 .accounting-report-table th {
   padding: 8px;
   text-align: left;
-  color: var(--muted);
-  font-family: var(--font-mono);
+  color: var(--cl-muted);
+  font-family: var(--font-body);
   font-size: 10px;
   text-transform: uppercase;
 }
 .accounting-report-table td {
   padding: 10px 8px;
   vertical-align: top;
-  border-top: 1px solid var(--paper-line);
+  border-top: 1px solid var(--cl-border);
 }
 .accounting-report-subtext {
   margin-top: 3px;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 11px;
 }
 .accounting-report-actions {
@@ -1621,7 +1655,7 @@ button.metric-card--clickable {
   align-items: center;
   gap: 10px;
   margin-top: 14px;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 12px;
 }
 /* Tek "Sade Muhasebe Raporları" çerçevesi içindeki mantıksal bölümler
@@ -1630,18 +1664,18 @@ button.metric-card--clickable {
 .accounting-report-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid var(--paper-line);
+  border-top: 1px solid var(--cl-border);
 }
 .accounting-report-section-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-bottom: 8px;
 }
 .accounting-report-section-hint {
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 13px;
   margin: 8px 0 16px;
 }
@@ -1654,8 +1688,8 @@ button.metric-card--clickable {
   z-index: 30;
   top: calc(100% + 6px);
   left: 0;
-  background: var(--paper);
-  border: 1px solid var(--paper-line);
+  background: var(--cl-bg);
+  border: 1px solid var(--cl-border);
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
   padding: 6px;
@@ -1669,10 +1703,10 @@ button.metric-card--clickable {
   white-space: nowrap;
 }
 .report-dropdown-item:hover {
-  background: var(--paper-raised);
+  background: var(--cl-surface);
 }
 .report-dropdown-item.active {
-  background: var(--paper-raised);
+  background: var(--cl-surface);
   font-weight: 600;
 }
 .metric-card__label {
@@ -2888,43 +2922,240 @@ button.metric-card--clickable {
 
 /* --- Muhasebe: standart veri tablosu görünümü (Hareketler, Hesaplar,
    Cari Kartlar, Komisyonlar, Danışman Kiraları, Veri Aktarımı). Rapor
-   sekmesinin kendi .accounting-report-table stili var, o hariç tutulur. --- */
+   sekmesinin kendi .accounting-report-table stili var, o hariç tutulur.
+   Corporate Luxury: koyu baslik bandi yerine sade/muted baslik, zebra
+   yerine sadece hover + ince ayirici cizgiler (spec: "Başlık satırı
+   daha küçük ve muted; gereksiz ağır uppercase kaçınılmalı"). --- */
 .accounting-page .table-scroll {
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
   overflow: auto;
 }
 .accounting-page .table-scroll table:not(.accounting-report-table) {
   border: none;
 }
 .accounting-page .table-scroll table:not(.accounting-report-table) thead tr {
-  background: var(--ink-navy);
+  background: var(--cl-bg);
 }
 .accounting-page .table-scroll table:not(.accounting-report-table) thead th {
-  color: var(--paper);
+  color: var(--cl-muted);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  border-bottom: 2px solid var(--brass);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--cl-border);
   white-space: nowrap;
 }
 .accounting-page .table-scroll table:not(.accounting-report-table) tbody tr {
-  background: var(--paper-raised);
+  background: var(--cl-surface);
   transition: background-color 0.12s ease;
 }
-.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:nth-child(even) {
-  background: var(--paper);
-}
 .accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:hover {
-  background: #eee2c4;
+  background: var(--cl-bg);
 }
 .accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:first-child td {
   border-top: none !important;
 }
 .accounting-page .table-scroll table:not(.accounting-report-table) td {
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
 }
 .accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* ================================================================
+   Muhasebe sayfası — Corporate Luxury (Faz 2). Sadece .accounting-page
+   içinde kullanılır; diğer sayfalar hâlâ .folder-panel/.folder-tabs
+   kullanıyor ve bu bloktan etkilenmez.
+   ================================================================ */
+.acc-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.acc-page-title {
+  font-family: var(--cl-font-heading);
+  font-size: 27px;
+  font-weight: 800;
+  color: var(--cl-text);
+  margin: 0 0 4px;
+}
+.acc-page-subtitle {
+  color: var(--cl-muted);
+  font-size: 14px;
+  margin: 0;
+  max-width: 560px;
+}
+.acc-page-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.acc-control label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cl-muted);
+  margin-bottom: 5px;
+}
+.acc-control input,
+.acc-control select {
+  border: 1px solid var(--cl-border);
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  background: var(--cl-surface);
+  color: var(--cl-text);
+  min-height: 40px;
+}
+.acc-control input:focus,
+.acc-control select:focus {
+  outline: none;
+  border-color: var(--cl-gold);
+  box-shadow: 0 0 0 3px rgba(196, 154, 85, 0.18);
+}
+.acc-report-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--cl-primary-800);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 16px;
+  min-height: 40px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.acc-report-btn:hover {
+  background: var(--cl-primary-700);
+}
+
+/* --- KPI kartları --- */
+.acc-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.acc-kpi-card {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
+}
+.acc-kpi-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+.acc-kpi-card--income .acc-kpi-card__icon { background: rgba(21, 154, 99, 0.12); color: var(--cl-success); }
+.acc-kpi-card--expense .acc-kpi-card__icon { background: rgba(214, 69, 69, 0.1); color: var(--cl-danger); }
+.acc-kpi-card--net .acc-kpi-card__icon { background: rgba(53, 106, 230, 0.1); color: var(--cl-info); }
+.acc-kpi-card--pending .acc-kpi-card__icon { background: rgba(196, 154, 85, 0.16); color: #a9793c; }
+.acc-kpi-card__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cl-muted);
+  margin-bottom: 6px;
+}
+.acc-kpi-card__value {
+  font-family: var(--font-body);
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--cl-text);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.acc-kpi-card__trend {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.acc-kpi-card__trend--up { color: var(--cl-success); }
+.acc-kpi-card__trend--down { color: var(--cl-danger); }
+.acc-kpi-card__trend--flat { color: var(--cl-muted); }
+.acc-kpi-card__trend-note {
+  color: var(--cl-muted);
+  font-weight: 500;
+}
+@media (max-width: 1023px) {
+  .acc-kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .acc-kpi-row { grid-template-columns: 1fr; }
+}
+
+/* --- Sekmeler --- */
+.acc-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--cl-border);
+}
+.acc-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 11px 14px;
+  margin-bottom: -1px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cl-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.acc-tab:hover {
+  color: var(--cl-text);
+}
+.acc-tab.active {
+  color: var(--cl-primary-800);
+  border-bottom-color: var(--cl-gold);
+}
+
+/* --- Panel/kart --- */
+.acc-panel {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
+}
+@media (max-width: 600px) {
+  .acc-panel { padding: 16px; border-radius: 12px; }
+}
+
+/* Muhasebe'deki butonlar da yeni renk sistemine göre (paylaşılan .btn
+   sınıfını değiştirmiyoruz, sadece bu sayfa içinde geçersiz kılıyoruz). */
+.accounting-page .btn-primary {
+  background: var(--cl-primary-800);
+}
+.accounting-page .btn-primary:hover {
+  background: var(--cl-primary-700);
+}
+.accounting-page .btn-secondary {
+  color: var(--cl-primary-800);
+  border-color: var(--cl-border);
 }
 
 /* --- Finans: sekme içeriği kapsayıcısı --- */
@@ -3269,12 +3500,12 @@ button.metric-card--clickable {
     min-width: 0;
   }
 
-  .accounting-page .folder-panel {
+  .accounting-page .acc-panel {
     padding: 12px;
     border-radius: 8px;
   }
 
-  .accounting-page .folder-panel h3 {
+  .accounting-page .acc-panel h3 {
     font-size: 17px !important;
     line-height: 1.3;
   }
@@ -3298,7 +3529,7 @@ button.metric-card--clickable {
   }
 
   .accounting-page form > .btn,
-  .accounting-page .folder-panel > .btn {
+  .accounting-page .acc-panel > .btn {
     width: 100%;
     min-height: 44px;
   }
@@ -3419,12 +3650,12 @@ button.metric-card--clickable {
     overflow-wrap: anywhere;
   }
 
-  .accounting-page .folder-tabs {
+  .accounting-page .acc-tabs {
     margin-right: -4px;
     padding-bottom: 2px;
   }
 
-  .accounting-page .folder-tab {
+  .accounting-page .acc-tab {
     min-height: 40px;
   }
 }
@@ -3448,31 +3679,36 @@ button.metric-card--clickable {
 }
 
 @media (max-width: 600px) {
-  .accounting-page__header {
-    gap: 10px !important;
+  .acc-page-header {
+    gap: 14px;
   }
 
-  .accounting-page__header > div:first-child {
+  .acc-page-header > div:first-child {
     width: 100%;
   }
 
-  .accounting-page__filters {
+  .acc-page-controls {
     width: 100%;
-    display: grid !important;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 6px 8px !important;
-    align-items: center !important;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
-  .accounting-page__filters label {
-    font-size: 11px !important;
+  .acc-control {
+    width: 100%;
   }
 
-  .accounting-page__filters input,
-  .accounting-page__filters select {
+  .acc-control input,
+  .acc-control select {
     width: 100%;
     min-width: 0 !important;
     min-height: 40px;
+  }
+
+  .acc-report-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
   }
 }
 
