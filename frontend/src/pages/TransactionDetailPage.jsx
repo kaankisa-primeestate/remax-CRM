@@ -1,5 +1,27 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import {
+  Clock,
+  Eye,
+  Tag,
+  FileStack,
+  Wallet,
+  Handshake,
+  User,
+  Home,
+  Briefcase,
+  FolderOpen,
+  Paperclip,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  MessageCircle,
+  Check,
+  X,
+  Hourglass,
+  CheckCircle2,
+  Square,
+} from 'lucide-react';
 import { transactionsApi, TRANSACTION_STAGES, TRANSACTION_DOC_TYPES } from '../api/transactions';
 import { commissionsApi } from '../api/commissions';
 import { customersApi } from '../api/customers';
@@ -15,11 +37,11 @@ const money = (n) =>
 // "kayit sayfasi" deseninde oldugu gibi, bir islemi actiginda once onun
 // KRONOLOJIK HIKAYESINI gormelisin, bir forma degil.
 const ACTION_TABS = [
-  { key: 'activity', label: '🕐 Aktivite Akışı' },
-  { key: 'showing', label: '👁️ Gösterim' },
-  { key: 'offer', label: '🏷️ Teklif' },
-  { key: 'deed_checklist', label: '📑 Tapu Kontrol' },
-  { key: 'financial', label: '💰 Kapanış & Komisyon' },
+  { key: 'activity', label: 'Aktivite Akışı', Icon: Clock },
+  { key: 'showing', label: 'Gösterim', Icon: Eye },
+  { key: 'offer', label: 'Teklif', Icon: Tag },
+  { key: 'deed_checklist', label: 'Tapu Kontrol', Icon: FileStack },
+  { key: 'financial', label: 'Kapanış & Komisyon', Icon: Wallet },
 ];
 
 export default function TransactionDetailPage() {
@@ -318,7 +340,7 @@ export default function TransactionDetailPage() {
     if (!rejectNote.trim()) return;
     setApprovalSaving(true);
     try {
-      await transactionsApi.addNote(id, `⚠️ Broker itirazı: ${rejectNote.trim()}`);
+      await transactionsApi.addNote(id, `Broker itirazı: ${rejectNote.trim()}`);
       const fresh = await transactionsApi.getNotes(id);
       setNotes(fresh);
       setRejectNote('');
@@ -379,7 +401,7 @@ export default function TransactionDetailPage() {
     const note = prompt(`Broker'a hangi düzeltmeyi bildirmek istiyorsun? (${docLabel})`);
     if (!note || !note.trim()) return;
     try {
-      const saved = await transactionsApi.addNote(id, `⚠️ Broker'a bildirim: ${note.trim()} (${docLabel})`, true);
+      const saved = await transactionsApi.addNote(id, `Broker'a bildirim: ${note.trim()} (${docLabel})`, true);
       setNotes((prev) => [saved, ...prev]);
       alert("Broker'a bildirildi — Aktivite Akışı'na kaydedildi ve Broker'ın Aksiyon Merkezi'nde görünecek.");
     } catch {
@@ -440,7 +462,7 @@ export default function TransactionDetailPage() {
       <button
         type="button"
         onClick={() => navigate('/islemler')}
-        style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
+        style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
       >
         ← İşlemler Panosuna Dön
       </button>
@@ -448,13 +470,15 @@ export default function TransactionDetailPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
         <div>
           <h2 className="dossier__name" style={{ margin: 0 }}>{property?.title || tx.externalPropertyLabel || 'İşlem Dosyası'}</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>
+          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--cl-muted)' }}>
             {customer ? `${customer.firstName} ${customer.lastName}` : tx.externalCustomerLabel || 'Müşteri belirtilmemiş'}
             {' · '}
-            <span style={{ fontWeight: 600 }}>🧑‍💼 {agentNameFor(tx.agentId)}</span>
+            <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Briefcase size={12} /> {agentNameFor(tx.agentId)}
+            </span>
           </p>
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, background: 'var(--ink-navy)', color: 'white', borderRadius: 999, padding: '5px 14px' }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, background: 'var(--cl-primary-800)', color: 'white', borderRadius: 999, padding: '5px 14px' }}>
           {stageLabel}
         </span>
       </div>
@@ -463,54 +487,86 @@ export default function TransactionDetailPage() {
         {/* SOL SUTUN: Ozet + Belgeler + Bagli Kayitlar */}
         <div style={{ flex: '1 1 280px', minWidth: 260, maxWidth: 340 }}>
           <div className="folder-panel" style={{ marginBottom: 16 }}>
-            <h4 style={{ marginTop: 0, fontSize: 13, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Özet</h4>
-            <div style={{ fontSize: 13, marginBottom: 6, fontWeight: 600 }}>🧑‍💼 Danışman: {agentNameFor(tx.agentId)}</div>
+            <h4 style={{ marginTop: 0, fontSize: 13, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', textTransform: 'uppercase' }}>Özet</h4>
+            <div style={{ fontSize: 13, marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Briefcase size={13} /> Danışman: {agentNameFor(tx.agentId)}
+            </div>
             {customer ? (
-              <Link to={`/musteriler/${customer.id}`} style={{ display: 'block', marginBottom: 6, fontSize: 13 }}>👤 {customer.firstName} {customer.lastName} →</Link>
+              <Link to={`/musteriler/${customer.id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 13 }}>
+                <User size={13} /> {customer.firstName} {customer.lastName} →
+              </Link>
             ) : (
-              <div style={{ fontSize: 13, marginBottom: 6 }}>👤 {tx.externalCustomerLabel || '—'}</div>
+              <div style={{ fontSize: 13, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <User size={13} /> {tx.externalCustomerLabel || '—'}
+              </div>
             )}
             {property ? (
-              <Link to={`/portfoyler/${property.id}`} style={{ display: 'block', marginBottom: 6, fontSize: 13 }}>🏠 {property.title} →</Link>
+              <Link to={`/portfoyler/${property.id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 13 }}>
+                <Home size={13} /> {property.title} →
+              </Link>
             ) : (
-              <div style={{ fontSize: 13, marginBottom: 6 }}>🏠 {tx.externalPropertyLabel || '—'}</div>
+              <div style={{ fontSize: 13, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Home size={13} /> {tx.externalPropertyLabel || '—'}
+              </div>
             )}
-            {tx.offerAmount && <div style={{ fontSize: 13, marginBottom: 4 }}>🏷️ Teklif: {money(tx.offerAmount)}</div>}
-            {tx.showingDate && <div style={{ fontSize: 12, color: 'var(--muted)' }}>👁️ Gösterim: {new Date(tx.showingDate).toLocaleString('tr-TR')}</div>}
+            {tx.offerAmount && (
+              <div style={{ fontSize: 13, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Tag size={13} /> Teklif: {money(tx.offerAmount)}
+              </div>
+            )}
+            {tx.showingDate && (
+              <div style={{ fontSize: 12, color: 'var(--cl-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Eye size={12} /> Gösterim: {new Date(tx.showingDate).toLocaleString('tr-TR')}
+              </div>
+            )}
             {tx.collaboratorAgentId && (
-              <div style={{ marginTop: 8, fontSize: 11, background: tx.splitFinalizedAt ? '#e6f4ea' : '#fdf3e0', borderRadius: 6, padding: '6px 8px' }}>
-                🤝 İşbirlikli{tx.splitFinalizedAt ? '' : ' · onay bekliyor'}
+              <div style={{ marginTop: 8, fontSize: 11, background: tx.splitFinalizedAt ? 'rgba(21, 154, 99, 0.12)' : 'rgba(196, 154, 85, 0.15)', borderRadius: 6, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Handshake size={12} /> İşbirlikli{tx.splitFinalizedAt ? '' : ' · onay bekliyor'}
               </div>
             )}
             {tx.stage === 'closed' && (
-              <div style={{ marginTop: 8 }} className={tx.dealApproved ? 'deal-approval-badge deal-approval-badge--ok' : 'deal-approval-badge'}>
-                {tx.dealApproved ? '✓ Broker onayladı' : '⏳ Broker onayı bekliyor'}
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }} className={tx.dealApproved ? 'deal-approval-badge deal-approval-badge--ok' : 'deal-approval-badge'}>
+                {tx.dealApproved ? (<><Check size={12} /> Broker onayladı</>) : (<><Hourglass size={12} /> Broker onayı bekliyor</>)}
               </div>
             )}
           </div>
 
           <div className="folder-panel">
-            <h4 style={{ marginTop: 0, fontSize: 13, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>📁 Belgeler</h4>
+            <h4 style={{ marginTop: 0, fontSize: 13, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <FolderOpen size={13} /> Belgeler
+            </h4>
             {TRANSACTION_DOC_TYPES.map((dt) => {
               const latest = latestDocFor(dt.value);
               return (
-                <div key={dt.value} style={{ padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
+                <div key={dt.value} style={{ padding: '8px 0', borderBottom: '1px solid var(--cl-border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, fontSize: 12 }}>{dt.label} {latest?.fileUrl || latest?.completed ? '✅' : '⬜'}</span>
+                    <span style={{ fontWeight: 600, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      {dt.label} {latest?.fileUrl || latest?.completed ? <CheckCircle2 size={13} style={{ color: 'var(--cl-success)' }} /> : <Square size={13} style={{ color: 'var(--cl-border)' }} />}
+                    </span>
                     <label className="btn btn-secondary" style={{ fontSize: 10, padding: '3px 8px' }}>
                       {latest?.fileUrl ? 'Değiştir' : 'Yükle'}
                       <input type="file" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleUploadDocument(dt.value, e.target.files[0])} />
                     </label>
                   </div>
                   {latest && (
-                    <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--muted)' }}>
-                      {latest.fileUrl && <a href={latest.fileUrl} target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: 2 }}>📎 {latest.fileName || 'Dosyayı Gör'}</a>}
+                    <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--cl-muted)' }}>
+                      {latest.fileUrl && (
+                        <a href={latest.fileUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                          <Paperclip size={11} /> {latest.fileName || 'Dosyayı Gör'}
+                        </a>
+                      )}
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button type="button" onClick={() => handleEditDocumentLabel(latest)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-navy)', fontSize: 10 }}>✎ Düzenle</button>
+                        <button type="button" onClick={() => handleEditDocumentLabel(latest)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cl-primary-800)', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Pencil size={10} /> Düzenle
+                        </button>
                         {isBroker ? (
-                          <button type="button" onClick={() => handleDeleteDocument(latest.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 10 }}>🗑 Sil</button>
+                          <button type="button" onClick={() => handleDeleteDocument(latest.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cl-danger)', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <Trash2 size={10} /> Sil
+                          </button>
                         ) : (
-                          <button type="button" onClick={() => handleFlagForBroker(dt.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6100', fontSize: 10 }}>⚠️ Broker'a Bildir</button>
+                          <button type="button" onClick={() => handleFlagForBroker(dt.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6420', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            <AlertTriangle size={10} /> Broker'a Bildir
+                          </button>
                         )}
                       </div>
                     </div>
@@ -519,14 +575,24 @@ export default function TransactionDetailPage() {
               );
             })}
             <div style={{ marginTop: 10 }}>
-              <h5 style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--muted)' }}>Diğer Belgeler</h5>
+              <h5 style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--cl-muted)' }}>Diğer Belgeler</h5>
               {documents.filter((d) => d.docType === 'other').map((d) => (
-                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 10.5 }}>
-                  <span>{d.fileUrl ? <a href={d.fileUrl} target="_blank" rel="noreferrer">📎 {d.label || d.fileName}</a> : (d.label || 'Etiketsiz')}</span>
+                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 10.5 }}>
+                  <span>
+                    {d.fileUrl ? (
+                      <a href={d.fileUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Paperclip size={11} /> {d.label || d.fileName}
+                      </a>
+                    ) : (d.label || 'Etiketsiz')}
+                  </span>
                   {isBroker ? (
-                    <button type="button" onClick={() => handleDeleteDocument(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>🗑</button>
+                    <button type="button" onClick={() => handleDeleteDocument(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cl-danger)', display: 'inline-flex' }}>
+                      <Trash2 size={12} />
+                    </button>
                   ) : (
-                    <button type="button" onClick={() => handleFlagForBroker(d.label || 'Diğer Belge')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6100' }}>⚠️</button>
+                    <button type="button" onClick={() => handleFlagForBroker(d.label || 'Diğer Belge')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6420', display: 'inline-flex' }}>
+                      <AlertTriangle size={12} />
+                    </button>
                   )}
                 </div>
               ))}
@@ -545,13 +611,13 @@ export default function TransactionDetailPage() {
         <div style={{ flex: '2 1 480px', minWidth: 320 }}>
           <div className="folder-tabs" style={{ flexWrap: 'wrap' }}>
             {ACTION_TABS.map((tab) => (
-              <button key={tab.key} type="button" className={`folder-tab${activeTab === tab.key ? ' active' : ''}`} onClick={() => setActiveTab(tab.key)}>
-                {tab.label}
+              <button key={tab.key} type="button" className={`folder-tab${activeTab === tab.key ? ' active' : ''}`} onClick={() => setActiveTab(tab.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <tab.Icon size={14} /> {tab.label}
               </button>
             ))}
             {tx.collaboratorAgentId && (
-              <button type="button" className={`folder-tab${activeTab === 'collab' ? ' active' : ''}`} onClick={() => setActiveTab('collab')}>
-                🤝 İşbirliği
+              <button type="button" className={`folder-tab${activeTab === 'collab' ? ' active' : ''}`} onClick={() => setActiveTab('collab')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Handshake size={14} /> İşbirliği
               </button>
             )}
           </div>
@@ -559,7 +625,7 @@ export default function TransactionDetailPage() {
           <div className="folder-panel" style={{ marginTop: 0, borderTopLeftRadius: 0 }}>
             {activeTab === 'activity' && (
               <div>
-                <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 0 }}>
+                <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: 0 }}>
                   Bu işlemin başından (Talep) bugüne kadarki tüm hikayesi — aşama değişimleri, belge işlemleri ve notlar otomatik olarak burada birikir.
                 </p>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
@@ -570,9 +636,9 @@ export default function TransactionDetailPage() {
                   <div className="empty-state">Henüz bir aktivite yok.</div>
                 ) : (
                   notes.map((n) => (
-                    <div key={n.id} style={{ fontSize: 12.5, borderLeft: '2px solid var(--paper-line)', paddingLeft: 10, marginBottom: 12 }}>
+                    <div key={n.id} style={{ fontSize: 12.5, borderLeft: '2px solid var(--cl-border)', paddingLeft: 10, marginBottom: 12 }}>
                       <div>{n.text}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 2 }}>
+                      <div style={{ fontSize: 10.5, color: 'var(--cl-muted)', marginTop: 2 }}>
                         {n.authorName} · {new Date(n.createdAt).toLocaleString('tr-TR')}
                       </div>
                     </div>
@@ -583,7 +649,9 @@ export default function TransactionDetailPage() {
 
             {activeTab === 'showing' && (
               <div>
-                <h4 style={{ marginTop: 0 }}>👁️ Yer Gösterme & Buluşma Detayları</h4>
+                <h4 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Eye size={16} /> Yer Gösterme & Buluşma Detayları
+                </h4>
                 <div className="form-field" style={{ marginBottom: 10 }}>
                   <label>Gösterim Tarihi & Saati</label>
                   <input type="datetime-local" value={showingDate} onChange={(e) => setShowingDate(e.target.value)} />
@@ -596,8 +664,8 @@ export default function TransactionDetailPage() {
                   <button type="button" className="btn btn-primary" onClick={handleSaveShowing} disabled={savingShowing}>
                     {savingShowing ? 'Kaydediliyor…' : 'Gösterim Bilgisini Kaydet'}
                   </button>
-                  <button type="button" className="btn btn-secondary" onClick={handleSendWhatsAppShowing}>
-                    💬 WhatsApp Randevu Mesajı Gönder
+                  <button type="button" className="btn btn-secondary" onClick={handleSendWhatsAppShowing} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <MessageCircle size={14} /> WhatsApp Randevu Mesajı Gönder
                   </button>
                 </div>
               </div>
@@ -605,7 +673,9 @@ export default function TransactionDetailPage() {
 
             {activeTab === 'offer' && (
               <div>
-                <h4 style={{ marginTop: 0 }}>🏷️ Teklif & Kaparo Yönetimi</h4>
+                <h4 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Tag size={16} /> Teklif & Kaparo Yönetimi
+                </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                   <div className="form-field">
                     <label>Teklif Tutarı (TL)</label>
@@ -619,10 +689,10 @@ export default function TransactionDetailPage() {
                 <div className="form-field" style={{ marginBottom: 10 }}>
                   <label>Teklif Durumu</label>
                   <select value={offerStatus} onChange={(e) => setOfferStatus(e.target.value)}>
-                    <option value="pending">⏳ Beklemede</option>
-                    <option value="accepted">✅ Kabul Edildi</option>
-                    <option value="rejected">❌ Reddedildi</option>
-                    <option value="withdrawn">↩️ Geri Çekildi</option>
+                    <option value="pending">Beklemede</option>
+                    <option value="accepted">Kabul Edildi</option>
+                    <option value="rejected">Reddedildi</option>
+                    <option value="withdrawn">Geri Çekildi</option>
                   </select>
                 </div>
                 <div className="form-field" style={{ marginBottom: 10 }}>
@@ -650,13 +720,15 @@ export default function TransactionDetailPage() {
 
             {activeTab === 'deed_checklist' && (
               <div>
-                <h4 style={{ marginTop: 0 }}>📑 Tapu Öncesi Kontrol Listesi</h4>
-                <p style={{ fontSize: 12, color: 'var(--muted)' }}>Satış/Kapanış öncesinde tamamlanması gereken resmi adımları işaretleyin:</p>
+                <h4 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileStack size={16} /> Tapu Öncesi Kontrol Listesi
+                </h4>
+                <p style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Satış/Kapanış öncesinde tamamlanması gereken resmi adımları işaretleyin:</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                   {tx.deedChecklist?.map((item) => (
-                    <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: item.completed ? '#e6f4ea' : '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer' }}>
+                    <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: item.completed ? 'rgba(21, 154, 99, 0.08)' : 'var(--cl-bg)', border: '1px solid var(--cl-border)', borderRadius: 6, cursor: 'pointer' }}>
                       <input type="checkbox" checked={item.completed} onChange={() => handleToggleDeedChecklist(item.key)} style={{ width: 'auto' }} />
-                      <span style={{ fontSize: 13, fontWeight: item.completed ? 'bold' : 'normal', color: item.completed ? '#1e7a3d' : 'inherit' }}>{item.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: item.completed ? 'bold' : 'normal', color: item.completed ? 'var(--cl-success)' : 'var(--cl-text)' }}>{item.label}</span>
                     </label>
                   ))}
                 </div>
@@ -665,19 +737,21 @@ export default function TransactionDetailPage() {
 
             {activeTab === 'financial' && (
               <div>
-                <h4 style={{ marginTop: 0 }}>💰 Kapanış & Komisyon Dökümü</h4>
+                <h4 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Wallet size={16} /> Kapanış & Komisyon Dökümü
+                </h4>
                 {isBroker && tx.stage === 'closed' && !tx.dealApproved && (
-                  <div style={{ background: '#fdf3e0', border: '1px solid #e8d5a8', borderRadius: 6, padding: '14px', marginBottom: 16 }}>
-                    <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600 }}>
-                      ⏳ Bu işlem onayınızı bekliyor — aşağıdaki kapanış dökümünü inceleyip onaylayın ya da itiraz notu yazın.
+                  <div style={{ background: 'rgba(196, 154, 85, 0.1)', border: '1px solid rgba(196, 154, 85, 0.4)', borderRadius: 8, padding: '14px', marginBottom: 16 }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Hourglass size={14} /> Bu işlem onayınızı bekliyor — aşağıdaki kapanış dökümünü inceleyip onaylayın ya da itiraz notu yazın.
                     </p>
                     {!showRejectBox ? (
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button type="button" className="btn btn-primary" onClick={handleApproveDeal} disabled={approvalSaving}>
-                          {approvalSaving ? 'Onaylanıyor…' : '✓ Onayla'}
+                        <button type="button" className="btn btn-primary" onClick={handleApproveDeal} disabled={approvalSaving} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {approvalSaving ? 'Onaylanıyor…' : (<><Check size={14} /> Onayla</>)}
                         </button>
-                        <button type="button" className="btn btn-secondary" onClick={() => setShowRejectBox(true)} disabled={approvalSaving}>
-                          ✗ İtiraz Notu Yaz
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowRejectBox(true)} disabled={approvalSaving} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <X size={14} /> İtiraz Notu Yaz
                         </button>
                       </div>
                     ) : (
@@ -699,11 +773,14 @@ export default function TransactionDetailPage() {
                   </div>
                 )}
                 {tx.collaboratorAgentId && (
-                  <div style={{ background: tx.splitFinalizedAt ? '#e6f4ea' : '#fdf3e0', borderRadius: 6, padding: '10px 12px', marginBottom: 14, fontSize: 12.5 }}>
-                    🤝 Bu işlem <strong>işbirlikli</strong> — komisyon otomatik olarak{' '}
-                    <strong>{agentNameFor(tx.agentId)} (%{tx.commissionSplitPercentage ?? 50})</strong> ve{' '}
-                    <strong>{agentNameFor(tx.collaboratorAgentId)} (%{100 - (tx.commissionSplitPercentage ?? 50)})</strong> arasında bölünecek.
-                    {!tx.splitFinalizedAt && ' ⚠️ Paylaşım henüz iki taraftan da onaylanmadı — komisyon kaydı yine de oluşturulur, ama pay oranı bu son onaylı haline göre hesaplanır.'}
+                  <div style={{ background: tx.splitFinalizedAt ? 'rgba(21, 154, 99, 0.1)' : 'rgba(196, 154, 85, 0.1)', borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12.5, display: 'flex', gap: 8 }}>
+                    <Handshake size={15} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span>
+                      Bu işlem <strong>işbirlikli</strong> — komisyon otomatik olarak{' '}
+                      <strong>{agentNameFor(tx.agentId)} (%{tx.commissionSplitPercentage ?? 50})</strong> ve{' '}
+                      <strong>{agentNameFor(tx.collaboratorAgentId)} (%{100 - (tx.commissionSplitPercentage ?? 50)})</strong> arasında bölünecek.
+                      {!tx.splitFinalizedAt && ' Paylaşım henüz iki taraftan da onaylanmadı — komisyon kaydı yine de oluşturulur, ama pay oranı bu son onaylı haline göre hesaplanır.'}
+                    </span>
                   </div>
                 )}
                 <div className="form-field" style={{ marginBottom: 10 }}>
@@ -714,7 +791,7 @@ export default function TransactionDetailPage() {
                   <label>
                     Toplam Hizmet Bedeli / Komisyon (TL)
                     {!totalCommissionTouched && saleAmount && (
-                      <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 10.5 }}>
+                      <span style={{ fontWeight: 400, color: 'var(--cl-muted)', fontSize: 10.5 }}>
                         {' '}· {property?.listingType === 'rent' ? '1 aylık kira bedelinden' : '%4 yasal orandan'} otomatik
                       </span>
                     )}
@@ -726,7 +803,7 @@ export default function TransactionDetailPage() {
                     <label>
                       Danışman Payı (TL)
                       {!agentShareTouched && agentSharePercent != null && (
-                        <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 10.5 }}> · %{agentSharePercent} oranından otomatik</span>
+                        <span style={{ fontWeight: 400, color: 'var(--cl-muted)', fontSize: 10.5 }}> · %{agentSharePercent} oranından otomatik</span>
                       )}
                     </label>
                     <input type="number" value={agentCommission} onChange={(e) => handleAgentCommissionChange(e.target.value)} placeholder="0.00" />
@@ -736,18 +813,20 @@ export default function TransactionDetailPage() {
                     <input type="number" value={officeCommission} onChange={(e) => setOfficeCommission(e.target.value)} placeholder="0.00" />
                   </div>
                 </div>
-                <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: -4, marginBottom: 10 }}>
+                <p style={{ fontSize: 11, color: 'var(--cl-muted)', marginTop: -4, marginBottom: 10 }}>
                   Bu ekran, gerçek bir komisyon kaydı oluşturur — Cari Hesabına ve Komisyonlar listene otomatik yansır.
                 </p>
-                <button type="button" className="btn btn-primary" onClick={handleSaveCommissionAndClose} disabled={savingCommission} style={{ marginTop: 10 }}>
-                  {savingCommission ? 'İşlem Onaya Gönderiliyor…' : '✓ Kapanışı Yap & Broker Onayına Gönder'}
+                <button type="button" className="btn btn-primary" onClick={handleSaveCommissionAndClose} disabled={savingCommission} style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {savingCommission ? 'İşlem Onaya Gönderiliyor…' : (<><Check size={14} /> Kapanışı Yap & Broker Onayına Gönder</>)}
                 </button>
               </div>
             )}
 
             {activeTab === 'collab' && (
               <div>
-                <h4 style={{ marginTop: 0 }}>🤝 İşbirlikli Satış</h4>
+                <h4 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Handshake size={16} /> İşbirlikli Satış
+                </h4>
                 <p>Müşteri & Portföy sahibi farklı danışmanlardır. İşbirlikli satış aktiftir.</p>
                 <input type="number" value={splitDraft} onChange={(e) => setSplitDraft(e.target.value)} style={{ width: 80 }} /> % Pay
                 <button type="button" className="btn btn-secondary" onClick={handleUpdateSplit} disabled={splitSaving} style={{ marginLeft: 8 }}>Güncelle</button>
