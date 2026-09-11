@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Flame, AlertTriangle, User } from 'lucide-react';
 import { customersApi } from '../api/customers';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -7,9 +8,9 @@ const money = (n) =>
   n ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : '—';
 
 function scoreColor(score) {
-  if (score >= 70) return { bg: '#e6f4ea', fg: '#1e7a3d' };
-  if (score >= 55) return { bg: '#fdf3e0', fg: '#8a6100' };
-  return { bg: '#eef3f9', fg: 'var(--ink-navy)' };
+  if (score >= 70) return { bg: 'rgba(21, 154, 99, 0.12)', fg: 'var(--cl-success)' };
+  if (score >= 55) return { bg: 'rgba(196, 154, 85, 0.15)', fg: '#8a6420' };
+  return { bg: 'rgba(16, 35, 61, 0.06)', fg: 'var(--cl-primary-800)' };
 }
 
 // Sicak Firsatlar: TEK bir sunucu tarafi endpoint'ten (hot-matches) ofis
@@ -56,7 +57,9 @@ export default function RequestsPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <h2 className="dossier__name" style={{ margin: 0 }}>🔥 Sıcak Fırsatlar</h2>
+        <h2 className="dossier__name" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Flame size={20} style={{ color: 'var(--cl-danger)' }} /> Sıcak Fırsatlar
+        </h2>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -64,7 +67,7 @@ export default function RequestsPage() {
           style={{ maxWidth: 260 }}
         />
       </div>
-      <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: -10, marginBottom: 20 }}>
+      <p style={{ fontSize: 13, color: 'var(--cl-muted)', marginTop: -10, marginBottom: 20 }}>
         {isBroker
           ? 'Ofis genelindeki tüm danışmanların müşteri ve portföyleri arasındaki eşleşmeler, en yüksek orandan en düşüğe sıralı.'
           : 'Sizinle ilgili (kendi müşteriniz ya da kendi portföyünüz olan) tüm eşleşmeler, en yüksek orandan en düşüğe sıralı.'}
@@ -72,8 +75,8 @@ export default function RequestsPage() {
       </p>
 
       {error && (
-        <div className="empty-state" style={{ color: 'var(--danger)' }}>
-          ⚠️ {error} <button type="button" className="btn btn-secondary" style={{ marginLeft: 8 }} onClick={load}>Tekrar dene</button>
+        <div className="empty-state" style={{ color: 'var(--cl-danger)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+          <AlertTriangle size={15} /> {error} <button type="button" className="btn btn-secondary" style={{ marginLeft: 8 }} onClick={load}>Tekrar dene</button>
         </div>
       )}
 
@@ -95,13 +98,13 @@ export default function RequestsPage() {
                   alignItems: 'center',
                   gap: 14,
                   padding: '12px 16px',
-                  borderTop: i > 0 ? '1px solid var(--paper-line)' : 'none',
+                  borderTop: i > 0 ? '1px solid var(--cl-border)' : 'none',
                   flexWrap: 'wrap',
                 }}
               >
                 <span
                   style={{
-                    fontFamily: 'var(--font-mono)',
+                    fontFamily: 'var(--font-body)',
                     fontWeight: 700,
                     fontSize: 13,
                     background: colors.bg,
@@ -119,18 +122,20 @@ export default function RequestsPage() {
                   <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {p.property.title}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
                     {p.property.district} · {money(p.property.price)}
                     {isBroker && p.propertyAgentName && ` · ${p.propertyAgentName}`}
                   </div>
                 </Link>
                 <Link
                   to={`/musteriler/${p.customer.id}`}
-                  style={{ fontSize: 12, color: 'var(--ink-navy)', textAlign: 'right', flexShrink: 0, textDecoration: 'none' }}
+                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--cl-primary-800)', textAlign: 'right', flexShrink: 0, textDecoration: 'none', display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}
                 >
-                  👤 {p.customer.firstName} {p.customer.lastName}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <User size={12} /> {p.customer.firstName} {p.customer.lastName}
+                  </span>
                   {isBroker && p.customerAgentName && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.customerAgentName}</div>
+                    <span style={{ fontSize: 11, color: 'var(--cl-muted)', fontWeight: 400 }}>{p.customerAgentName}</span>
                   )}
                 </Link>
               </div>

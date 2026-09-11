@@ -1859,31 +1859,32 @@ button.metric-card--clickable {
   }
 }
 .kanban-column {
-  background: var(--paper);
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  background: var(--cl-bg);
+  border: 1px solid var(--cl-border);
+  border-radius: 10px;
   padding: 10px;
   min-height: 100px;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 /* Surukle-birak: kart bir kolonun uzerine suruklenirken hedef kolon vurgulanir */
 .kanban-column--drag-over {
-  background: #eef3f9;
-  border-color: var(--accent, #1f3a5f);
+  background: rgba(196, 154, 85, 0.08);
+  border-color: var(--cl-gold);
   border-style: dashed;
 }
 .kanban-column__title {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-bottom: 8px;
 }
 .kanban-card {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 6px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 8px;
   padding: 8px 10px;
   margin-bottom: 8px;
   font-size: 12px;
@@ -1896,20 +1897,20 @@ button.metric-card--clickable {
   transition: border-color 0.15s ease;
 }
 .kanban-card--clickable:hover {
-  border-color: var(--brass);
+  border-color: var(--cl-gold);
 }
 .kanban-card__name {
   font-weight: 700;
-  color: var(--ink-navy);
+  color: var(--cl-text);
   margin-bottom: 2px;
 }
 .kanban-card__meta {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
-  color: var(--muted);
+  color: var(--cl-muted);
 }
 .kanban-empty {
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 12px;
   text-align: center;
   padding: 12px 0;
@@ -2822,9 +2823,9 @@ button.metric-card--clickable {
 
 /* --- İşlemler: Kanban kartı --- */
 .transaction-card {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 6px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 8px;
   padding: 10px;
   margin-bottom: 8px;
   font-size: 12px;
@@ -2842,23 +2843,23 @@ button.metric-card--clickable {
   margin-bottom: 3px;
 }
 .transaction-card__title a {
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
   text-decoration: none;
 }
 .transaction-card__title a:hover {
   text-decoration: underline;
 }
 .transaction-card__meta {
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 11px;
 }
 .transaction-card__meta a {
-  color: var(--slate);
+  color: var(--cl-text);
 }
 .transaction-card__offer {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-weight: 700;
-  color: var(--success);
+  color: var(--cl-success);
   margin-top: 4px;
 }
 .transaction-card__actions {
@@ -2875,15 +2876,15 @@ button.metric-card--clickable {
 
 /* --- İşlemler: Hareketsizlik uyarısı (7/15 gün) --- */
 .transaction-card--stale-warning {
-  border-left: 3px solid #b8860b;
-  background: #fdf8ee;
+  border-left: 3px solid var(--cl-warning);
+  background: rgba(196, 154, 85, 0.06);
 }
 .transaction-card--stale-danger {
-  border-left: 3px solid var(--danger);
-  background: #fbeeeb;
+  border-left: 3px solid var(--cl-danger);
+  background: rgba(214, 69, 69, 0.06);
 }
 .staleness-badge {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 700;
   padding: 2px 7px;
@@ -2892,37 +2893,37 @@ button.metric-card--clickable {
   margin-bottom: 6px;
 }
 .staleness-badge--warning {
-  background: #fdf1d6;
-  color: #8a5a00;
+  background: rgba(196, 154, 85, 0.15);
+  color: #8a6420;
 }
 .staleness-badge--danger {
-  background: #f6dcd6;
-  color: var(--danger);
+  background: rgba(214, 69, 69, 0.1);
+  color: var(--cl-danger);
 }
 
 /* --- İşlemler: Kanban sütun toplamı --- */
 .kanban-column__total {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
   font-weight: 700;
-  color: var(--success);
+  color: var(--cl-success);
   margin-top: 2px;
 }
 
 /* --- İşlemler: Tapu onay rozeti --- */
 .deal-approval-badge {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 10px;
   padding: 3px 8px;
   border-radius: 4px;
-  background: #fdf1d6;
-  color: #8a5a00;
+  background: rgba(196, 154, 85, 0.15);
+  color: #8a6420;
   margin-top: 6px;
   display: inline-block;
 }
 .deal-approval-badge--ok {
-  background: #dfeee2;
-  color: var(--success);
+  background: rgba(21, 154, 99, 0.12);
+  color: var(--cl-success);
 }
 
 /* --- Piyasa: kompakt kayan şerit (Panelim/Dashboard üstü) --- */

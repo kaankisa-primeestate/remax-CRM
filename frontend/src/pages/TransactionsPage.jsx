@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Clock, Handshake, ClipboardList, Check, Hourglass, FolderOpen, X } from 'lucide-react';
 import { transactionsApi, TRANSACTION_STAGES } from '../api/transactions';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
@@ -140,7 +141,7 @@ export default function TransactionsPage() {
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>İşlemler (Uçtan Uca Takip)</h2>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni İşlem Başlat</h3>
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yeni İşlem Başlat</h3>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-field" style={{ margin: 0, minWidth: 200 }}>
             <label>Müşteri</label>
@@ -227,17 +228,18 @@ export default function TransactionsPage() {
                           onDragEnd={handleDragEnd}
                         >
                           {staleness.level !== 'none' && (
-                            <div className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'}>
-                              ⏱ {staleness.days} gündür bekliyor
+                            <div className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              <Clock size={12} /> {staleness.days} gündür bekliyor
                             </div>
                           )}
                           {t.collaboratorAgentId && (
-                            <div className="staleness-badge" style={{ background: t.splitFinalizedAt ? '#e6f4ea' : '#eef3f9', color: t.splitFinalizedAt ? '#1e7a3d' : 'var(--ink-navy)', marginBottom: 6 }}>
-                              🤝 İşbirlikli{t.splitFinalizedAt ? '' : ' · onay bekliyor'}
+                            <div className="staleness-badge" style={{ background: t.splitFinalizedAt ? 'rgba(21, 154, 99, 0.12)' : 'rgba(16, 35, 61, 0.06)', color: t.splitFinalizedAt ? 'var(--cl-success)' : 'var(--cl-primary-800)', marginBottom: 6, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              <Handshake size={12} /> İşbirlikli{t.splitFinalizedAt ? '' : ' · onay bekliyor'}
                             </div>
                           )}
-                          <Link to={`/islemler/${t.id}`} className="transaction-card__title" style={{ display: 'block', cursor: 'pointer' }}>
-                            {property ? property.title : (t.externalPropertyLabel || '📋 Portföy Belirlenmedi')}
+                          <Link to={`/islemler/${t.id}`} className="transaction-card__title" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                            {!property && <ClipboardList size={13} style={{ color: 'var(--cl-muted)', flexShrink: 0 }} />}
+                            {property ? property.title : (t.externalPropertyLabel || 'Portföy Belirlenmedi')}
                           </Link>
                           <div className="transaction-card__meta">
                             {customer ? (
@@ -248,13 +250,13 @@ export default function TransactionsPage() {
                             <div className="transaction-card__offer">{money(t.offerAmount)}</div>
                           )}
                           {t.stage === 'closed' && (
-                            <div className={t.dealApproved ? 'deal-approval-badge deal-approval-badge--ok' : 'deal-approval-badge'}>
-                              {t.dealApproved ? '✓ Broker onayladı' : '⏳ Broker onayı bekliyor'}
+                            <div className={t.dealApproved ? 'deal-approval-badge deal-approval-badge--ok' : 'deal-approval-badge'} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                              {t.dealApproved ? (<><Check size={12} /> Broker onayladı</>) : (<><Hourglass size={12} /> Broker onayı bekliyor</>)}
                             </div>
                           )}
                           {t.stage === 'closed' && !t.dealApproved && isBroker && (
-                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%' }} onClick={() => navigate(`/islemler/${t.id}?tab=financial`)}>
-                              📂 İncele ve Onayla
+                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} onClick={() => navigate(`/islemler/${t.id}?tab=financial`)}>
+                              <FolderOpen size={12} /> İncele ve Onayla
                             </button>
                           )}
                           <div className="transaction-card__actions">
@@ -264,7 +266,7 @@ export default function TransactionsPage() {
                               ))}
                             </select>
                             <Link to={`/islemler/${t.id}`} className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }}>Dosyayı Aç</Link>
-                            <button type="button" className="task-row__delete" onClick={() => handleDelete(t.id)} title="Sil">✕</button>
+                            <button type="button" className="task-row__delete" onClick={() => handleDelete(t.id)} title="Sil"><X size={13} /></button>
                           </div>
                         </div>
                       );
