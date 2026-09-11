@@ -3278,6 +3278,7 @@ button.metric-card--clickable {
 
   .accounting-page .table-scroll td {
     line-height: 1.35;
+    min-width: 0 !important;
   }
 
   .accounting-page .table-scroll .btn {
