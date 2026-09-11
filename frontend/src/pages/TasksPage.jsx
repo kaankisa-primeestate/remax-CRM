@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { AlertTriangle, Calendar, Pencil, X } from 'lucide-react';
 import { tasksApi } from '../api/tasks';
 
 function isOverdue(task) {
@@ -123,9 +124,9 @@ export default function TasksPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           background: 'transparent',
           border: 'none',
           padding: 0,
@@ -161,7 +162,7 @@ export default function TasksPage() {
 
       <div className="folder-panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>
+          <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16 }}>
             {showCompleted ? 'Tüm Görevler' : 'Bekleyen Görevler'}
           </h3>
           <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setShowCompleted((v) => !v)}>
@@ -173,7 +174,7 @@ export default function TasksPage() {
           <div className="empty-state">Yükleniyor…</div>
         ) : visibleTasks.length === 0 ? (
           <div className="empty-state">
-            {showCompleted ? 'Henüz görev eklenmemiş.' : 'Bekleyen görev yok. 🎉'}
+            {showCompleted ? 'Henüz görev eklenmemiş.' : 'Bekleyen görev yok.'}
           </div>
         ) : (
           visibleTasks.map((task) => (
@@ -207,8 +208,8 @@ export default function TasksPage() {
                   <div className="task-row__body">
                     <div className={`task-row__title${task.completed ? ' is-completed' : ''}`}>{task.title}</div>
                     {task.dueDate && (
-                      <div className={`task-row__due${isOverdue(task) ? ' is-overdue' : ''}${isToday(task) ? ' is-today' : ''}`}>
-                        {isOverdue(task) ? '⚠️ Gecikti' : isToday(task) ? '📅 Bugün' : `📅 ${formatDueDate(task.dueDate)}`}
+                      <div className={`task-row__due${isOverdue(task) ? ' is-overdue' : ''}${isToday(task) ? ' is-today' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {isOverdue(task) ? (<><AlertTriangle size={11} /> Gecikti</>) : isToday(task) ? (<><Calendar size={11} /> Bugün</>) : (<><Calendar size={11} /> {formatDueDate(task.dueDate)}</>)}
                       </div>
                     )}
                     {task.notes && <div className="task-row__notes">{task.notes}</div>}
@@ -217,10 +218,10 @@ export default function TasksPage() {
                     )}
                   </div>
                   <button type="button" className="task-row__edit" onClick={() => startEdit(task)} title="Düzenle">
-                    ✎
+                    <Pencil size={13} />
                   </button>
                   <button type="button" className="task-row__delete" onClick={() => handleDelete(task.id)} title="Sil">
-                    ✕
+                    <X size={13} />
                   </button>
                 </>
               )}

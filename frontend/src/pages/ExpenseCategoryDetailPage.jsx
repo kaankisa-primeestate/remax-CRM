@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Landmark } from 'lucide-react';
 import { expensesApi } from '../api/expenses';
 import { formatMoney } from '../api/bankAccounts';
 
@@ -72,7 +73,7 @@ export default function ExpenseCategoryDetailPage() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
+        style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
       >
         ← Geri Dön
       </button>
@@ -80,7 +81,7 @@ export default function ExpenseCategoryDetailPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
         <div>
           <h2 className="dossier__name" style={{ margin: 0 }}>{categoryLabel}</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>{items.length} kalem · Toplam {formatMoney(total)}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--cl-muted)' }}>{items.length} kalem · Toplam {formatMoney(total)}</p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {PERIODS.map((p) => (
@@ -89,10 +90,10 @@ export default function ExpenseCategoryDetailPage() {
               type="button"
               onClick={() => setPeriod(p.value)}
               style={{
-                fontSize: 12, fontFamily: 'var(--font-mono)', padding: '5px 12px', borderRadius: 999,
-                border: '1px solid var(--paper-line)', cursor: 'pointer',
-                background: period === p.value ? 'var(--ink-navy)' : 'transparent',
-                color: period === p.value ? 'white' : 'var(--muted)',
+                fontSize: 12, fontFamily: 'var(--font-body)', padding: '5px 12px', borderRadius: 999,
+                border: '1px solid var(--cl-border)', cursor: 'pointer',
+                background: period === p.value ? 'var(--cl-primary-800)' : 'transparent',
+                color: period === p.value ? 'white' : 'var(--cl-muted)',
               }}
             >
               {p.label}
@@ -113,22 +114,25 @@ export default function ExpenseCategoryDetailPage() {
             const monthLabel = new Date(`${monthKey}-01`).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
             return (
               <div key={monthKey} style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--paper-line)', paddingBottom: 6, marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--cl-border)', paddingBottom: 6, marginBottom: 8 }}>
                   <h4 style={{ margin: 0, fontSize: 14 }}>{monthLabel}</h4>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{formatMoney(monthTotal)}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600 }}>{formatMoney(monthTotal)}</span>
                 </div>
                 {monthItems.map((item) => (
-                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--cl-border)' }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 500 }}>{item.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                        {new Date(item.date).toLocaleDateString('tr-TR')}
-                        {item.bankAccountName && ` · 🏦 ${item.bankAccountName}`}
-                        {!item.bankAccountName && ' · Hesap belirtilmedi'}
-                        {item.notes && ` · ${item.notes}`}
+                      <div style={{ fontSize: 11, color: 'var(--cl-muted)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                        <span>{new Date(item.date).toLocaleDateString('tr-TR')}</span>
+                        {item.bankAccountName ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>· <Landmark size={11} /> {item.bankAccountName}</span>
+                        ) : (
+                          <span>· Hesap belirtilmedi</span>
+                        )}
+                        {item.notes && <span>· {item.notes}</span>}
                       </div>
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{formatMoney(item.amount)}</div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 600 }}>{formatMoney(item.amount)}</div>
                   </div>
                 ))}
               </div>
