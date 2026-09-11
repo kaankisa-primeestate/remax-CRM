@@ -17,6 +17,27 @@
   --font-body: 'Inter', -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
 
+  /* --- "Corporate Luxury" yeni tasarım sistemi (PrimeCRM UI/UX spec) ---
+     Kademeli geçiş sürecindeyiz: sayfalar tek tek bu token'lara taşınıyor,
+     henüz taşınmamış sayfalar yukarıdaki eski token'ları kullanmaya devam
+     eder. Tüm sayfalar taşınınca eski token'lar kaldırılacak. İsim çakışması
+     olmasın diye (örn. --muted, --danger, --success zaten yukarıda farklı
+     bir değerle tanımlı) hepsi "cl-" (Corporate Luxury) önekiyle. */
+  --cl-primary-900: #10233d;
+  --cl-primary-800: #172a46;
+  --cl-primary-700: #223b60;
+  --cl-gold: #c49a55;
+  --cl-bg: #f7f8fa;
+  --cl-surface: #ffffff;
+  --cl-border: #e5e7eb;
+  --cl-text: #172033;
+  --cl-muted: #667085;
+  --cl-success: #159a63;
+  --cl-danger: #d64545;
+  --cl-info: #356ae6;
+  --cl-warning: #b8862e;
+  --cl-font-heading: 'Manrope', 'Inter', -apple-system, sans-serif;
+
   color-scheme: light;
 }
 
@@ -112,24 +133,28 @@ button {
 }
 .notif-bell__button {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
-  font-size: 20px;
-  padding: 6px 8px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
   cursor: pointer;
-  line-height: 1;
-  border-radius: 6px;
+  border-radius: 9px;
+  color: var(--cl-text);
 }
 .notif-bell__button:hover {
-  background: var(--ink-navy-light);
+  background: var(--cl-bg);
 }
 .notif-bell__badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  background: var(--danger);
+  top: 2px;
+  right: 2px;
+  background: var(--cl-danger);
   color: white;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
@@ -146,26 +171,27 @@ button {
   max-width: 88vw;
   max-height: 420px;
   overflow-y: auto;
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(16, 35, 61, 0.14);
   z-index: 100;
-  color: var(--slate);
+  color: var(--cl-text);
 }
 .notif-bell__header {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  color: var(--cl-muted);
   padding: 12px 14px;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
 }
 .notif-bell__empty {
   padding: 24px 14px;
   text-align: center;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 13px;
 }
 .notif-bell__list {
@@ -1224,14 +1250,14 @@ button {
 .app-shell {
   display: flex;
   min-height: 100%;
+  background: var(--cl-bg);
 }
 
-/* --- Sol Menü --- */
+/* --- Sol Menü (Corporate Luxury kabuğu — tüm sayfalarda ortak) --- */
 .sidebar {
-  width: 232px;
+  width: 252px;
   flex-shrink: 0;
-  background: var(--paper-raised);
-  border-right: 1px solid var(--paper-line);
+  background: var(--cl-primary-900);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -1239,23 +1265,52 @@ button {
   top: 0;
 }
 .sidebar__brand {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--paper-line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .sidebar__brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
 }
+.sidebar__brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: linear-gradient(155deg, var(--cl-gold), #a9793c);
+  color: var(--cl-primary-900);
+}
+.sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 .sidebar__brand-title {
-  font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 700;
-  color: var(--ink-navy);
+  font-family: var(--cl-font-heading);
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
   letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.sidebar__brand-subtitle {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
 }
 .sidebar__nav {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1263,39 +1318,73 @@ button {
 .sidebar__link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
-  border-radius: 6px;
+  gap: 11px;
+  padding: 10px 12px;
+  min-height: 42px;
+  border-radius: 8px;
   text-decoration: none;
-  color: var(--slate);
+  color: rgba(255, 255, 255, 0.72);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
-  border-left: 3px solid transparent;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .sidebar__link:hover {
-  background: var(--paper);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
 }
 .sidebar__link.is-active {
-  background: #fbf3e6;
-  border-left-color: var(--brass);
-  color: var(--ink-navy);
+  background: var(--cl-gold);
+  color: var(--cl-primary-900);
   font-weight: 700;
 }
 .sidebar__link.is-disabled {
-  color: var(--muted);
-  opacity: 0.5;
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 0.6;
   cursor: not-allowed;
 }
 .sidebar__icon {
-  font-size: 14px;
-  width: 18px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
   flex-shrink: 0;
 }
+.sidebar__promo {
+  margin: 4px 12px 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, var(--cl-primary-700), var(--cl-primary-800));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sidebar__promo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(196, 154, 85, 0.2);
+  color: var(--cl-gold);
+  margin-bottom: 10px;
+}
+.sidebar__promo-title {
+  font-family: var(--cl-font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.sidebar__promo-text {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
 .sidebar__footer {
-  border-top: 1px solid var(--paper-line);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 14px 16px;
 }
 .sidebar__account {
@@ -1308,31 +1397,38 @@ button {
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
-  color: var(--ink-navy);
+  color: #ffffff;
 }
 .sidebar__account-role {
   display: block;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.45);
   margin-top: 2px;
 }
 .sidebar__logout {
   width: 100%;
-  background: transparent;
-  border: 1px solid var(--paper-line);
-  border-radius: 6px;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 9px 12px;
+  min-height: 38px;
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
-  color: var(--danger);
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
 }
 .sidebar__logout:hover {
-  background: #fbeeec;
+  background: rgba(214, 69, 69, 0.16);
+  border-color: rgba(214, 69, 69, 0.3);
+  color: #ffffff;
 }
 .sidebar__backdrop {
   display: none;
@@ -1346,13 +1442,14 @@ button {
   flex-direction: column;
 }
 .app-topbar {
-  height: 56px;
+  height: 64px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  background: var(--paper-raised);
-  border-bottom: 1px solid var(--paper-line);
+  gap: 14px;
+  padding: 0 24px;
+  background: var(--cl-surface);
+  border-bottom: 1px solid var(--cl-border);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -1374,7 +1471,7 @@ button {
   display: block;
   width: 22px;
   height: 2px;
-  background: var(--ink-navy);
+  background: var(--cl-text);
   border-radius: 2px;
 }
 
@@ -1397,11 +1494,14 @@ button {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.35);
+    background: rgba(0,0,0,0.45);
     z-index: 199;
   }
   .app-topbar__hamburger {
     display: flex;
+  }
+  .sidebar__promo {
+    display: none;
   }
 }
 
@@ -1775,28 +1875,29 @@ button.metric-card--clickable {
 .app-topbar__search {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--paper);
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
-  padding: 7px 12px;
-  max-width: 360px;
+  gap: 9px;
+  background: var(--cl-bg);
+  border: 1px solid var(--cl-border);
+  border-radius: 10px;
+  padding: 9px 14px;
+  max-width: 420px;
   width: 100%;
-  margin-left: 12px;
   position: relative;
 }
 .app-topbar__search-icon {
-  font-size: 13px;
-  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  color: var(--cl-muted);
+  flex-shrink: 0;
 }
 .app-topbar__search input {
   border: none;
   background: transparent;
   outline: none;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 13.5px;
   width: 100%;
-  color: var(--slate);
+  color: var(--cl-text);
 }
 .app-topbar__search input:disabled {
   cursor: not-allowed;
@@ -1874,21 +1975,25 @@ button.metric-card--clickable {
 
 .quickadd-menu {
   position: relative;
-  margin-right: 8px;
 }
 .quickadd-menu__button {
-  background: var(--ink-navy);
-  color: white;
+  background: var(--cl-gold);
+  color: #ffffff;
   border: none;
-  border-radius: 6px;
-  padding: 8px 14px;
+  border-radius: 9px;
+  padding: 9px 16px;
+  min-height: 40px;
   font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  transition: background 0.15s ease;
+}
+.quickadd-menu__button:hover {
+  background: #b3894a;
 }
 .quickadd-menu__backdrop {
   position: fixed;
@@ -1899,48 +2004,73 @@ button.metric-card--clickable {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  min-width: 170px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(16, 35, 61, 0.14);
+  min-width: 180px;
   z-index: 61;
   overflow: hidden;
 }
 .quickadd-menu__item {
-  display: block;
-  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
   font-size: 13px;
-  color: var(--slate);
+  font-weight: 500;
+  color: var(--cl-text);
   text-decoration: none;
 }
 .quickadd-menu__item:hover {
-  background: var(--paper);
+  background: var(--cl-bg);
 }
 
 .app-topbar__profile {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  gap: 9px;
   text-decoration: none;
-  padding-left: 12px;
-  border-left: 1px solid var(--paper-line);
-  margin-left: 4px;
+  padding-left: 14px;
+  border-left: 1px solid var(--cl-border);
+}
+.app-topbar__profile-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--cl-primary-800);
+  color: var(--cl-gold);
+  font-family: var(--cl-font-heading);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.app-topbar__profile-text {
+  display: flex;
+  flex-direction: column;
 }
 .app-topbar__profile-name {
   font-size: 13px;
   font-weight: 700;
-  color: var(--ink-navy);
+  color: var(--cl-text);
+  line-height: 1.3;
 }
 .app-topbar__profile-role {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--cl-muted);
+  line-height: 1.3;
+}
+.app-topbar__profile-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--cl-muted);
 }
 @media (max-width: 480px) {
-  .app-topbar__profile-name { display: none; }
+  .app-topbar__profile-text { display: none; }
 }
 
 /* --- Ofis Ciro Grafiği (bağımsız, kütüphanesiz çubuk grafik) --- */

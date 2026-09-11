@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
 import { usersApi } from '../api/auth';
@@ -101,7 +102,7 @@ export default function GlobalSearch() {
 
   return (
     <div className="app-topbar__search" ref={wrapperRef}>
-      <span className="app-topbar__search-icon">🔍</span>
+      <span className="app-topbar__search-icon"><Search size={16} strokeWidth={2} /></span>
       <input
         type="text"
         placeholder="İlan, danışman, müşteri ara…"

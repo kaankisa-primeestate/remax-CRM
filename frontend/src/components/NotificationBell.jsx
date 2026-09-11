@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bell } from 'lucide-react';
 import { notificationsApi } from '../api/notifications';
 import { announcementsApi } from '../api/announcements';
 import { usersApi } from '../api/auth';
@@ -274,7 +275,7 @@ export default function NotificationBell() {
         onClick={handleToggle}
         aria-label="Bildirimler"
       >
-        <span aria-hidden="true">🔔</span>
+        <span aria-hidden="true"><Bell size={19} strokeWidth={1.9} /></span>
         {unreadCount > 0 && (
           <span className="notif-bell__badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
         )}

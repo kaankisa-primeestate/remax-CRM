@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard, Users, UserRound, Building2, Flame, Repeat, Wallet, TrendingUp,
+  BarChart3, FileText, Scale, Megaphone, Settings, Receipt, CreditCard, Calendar,
+  UserPlus, ChevronDown, LogOut, Bell, Search, ShieldCheck,
+} from 'lucide-react';
 import { useAuth } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -40,35 +45,43 @@ import GlobalSearch from './components/GlobalSearch.jsx';
 // birebir uygun (Genel Bakis -> Danisman Yonetimi -> Musteri Havuzu ->
 // Portfoy Havuzu -> Ciro & Komisyon -> ... -> Ofis Ayarlari).
 const BROKER_NAV = [
-  { to: '/dashboard', label: 'Genel Bakış', icon: '📌' },
-  { to: '/danismanlar', label: 'Danışman Yönetimi', icon: '👥' },
-  { to: '/musteriler', label: 'Müşteri Havuzu', icon: '👤' },
-  { to: '/portfoyler', label: 'Portföy Havuzu', icon: '🏠' },
-  { to: '/talepler', label: 'Sıcak Fırsatlar', icon: '🔥' },
-  { to: '/islemler', label: 'İşlemler', icon: '🔄' },
-  { to: '/muhasebe', label: 'Muhasebe', icon: '📒' },
-  { to: '/piyasa', label: 'Piyasa', icon: '💹' },
-  { to: '/degerleme', label: 'Piyasa Değer Analizi', icon: '📊' },
-  { to: '/sozlesmeler', label: 'Sözleşmeler & Tapu', icon: '📄' },
-  { to: '/hukuk', label: 'Hukuk / İhtarname', icon: '⚖️' },
-  { to: '/ilan-entegrasyon', label: 'İlan Entegrasyonu', icon: '📣' },
-  { to: '/ayarlar', label: 'Ofis Ayarları', icon: '⚙️' },
+  { to: '/dashboard', label: 'Genel Bakış', Icon: LayoutDashboard },
+  { to: '/danismanlar', label: 'Danışman Yönetimi', Icon: Users },
+  { to: '/musteriler', label: 'Müşteri Havuzu', Icon: UserRound },
+  { to: '/portfoyler', label: 'Portföy Havuzu', Icon: Building2 },
+  { to: '/talepler', label: 'Sıcak Fırsatlar', Icon: Flame },
+  { to: '/islemler', label: 'İşlemler', Icon: Repeat },
+  { to: '/muhasebe', label: 'Muhasebe', Icon: Wallet },
+  { to: '/piyasa', label: 'Piyasa', Icon: TrendingUp },
+  { to: '/degerleme', label: 'Piyasa Değer Analizi', Icon: BarChart3 },
+  { to: '/sozlesmeler', label: 'Sözleşmeler & Tapu', Icon: FileText },
+  { to: '/hukuk', label: 'Hukuk / İhtarname', Icon: Scale },
+  { to: '/ilan-entegrasyon', label: 'İlan Entegrasyonu', Icon: Megaphone },
+  { to: '/ayarlar', label: 'Ofis Ayarları', Icon: Settings },
 ];
 
 // Danışman sol menusu -- mevcut, onaylanmis yapi korunuyor.
 const AGENT_NAV = [
-  { to: '/panelim', label: 'Panelim', icon: '🏡' },
-  { to: '/musteriler', label: 'Müşteriler', icon: '👥' },
-  { to: '/portfoyler', label: 'Portföyler', icon: '🏠' },
-  { to: '/talepler', label: 'Sıcak Fırsatlar', icon: '🔥' },
-  { to: '/islemler', label: 'İşlemler', icon: '🔄' },
-  { to: '/komisyonlar', label: 'Komisyonlar', icon: '💰' },
-  { to: '/aidatlar', label: 'Aidatlarım', icon: '🧾' },
-  { to: '/cari-hesabim', label: 'Cari Hesabım', icon: '💳' },
-  { to: '/takvim', label: 'Takvim', icon: '📅' },
-  { to: '/piyasa', label: 'Piyasa', icon: '💹' },
-  { to: '/degerleme', label: 'Piyasa Değer Analizi', icon: '📊' },
+  { to: '/panelim', label: 'Panelim', Icon: LayoutDashboard },
+  { to: '/musteriler', label: 'Müşteriler', Icon: Users },
+  { to: '/portfoyler', label: 'Portföyler', Icon: Building2 },
+  { to: '/talepler', label: 'Sıcak Fırsatlar', Icon: Flame },
+  { to: '/islemler', label: 'İşlemler', Icon: Repeat },
+  { to: '/komisyonlar', label: 'Komisyonlar', Icon: Wallet },
+  { to: '/aidatlar', label: 'Aidatlarım', Icon: Receipt },
+  { to: '/cari-hesabim', label: 'Cari Hesabım', Icon: CreditCard },
+  { to: '/takvim', label: 'Takvim', Icon: Calendar },
+  { to: '/piyasa', label: 'Piyasa', Icon: TrendingUp },
+  { to: '/degerleme', label: 'Piyasa Değer Analizi', Icon: BarChart3 },
 ];
+
+function getInitials(name) {
+  if (!name) return '';
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] || '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toLocaleUpperCase('tr-TR');
+}
 
 function Sidebar({ open, onClose }) {
   const { user, logout, isBroker } = useAuth();
@@ -89,16 +102,21 @@ function Sidebar({ open, onClose }) {
       <aside className={`sidebar${open ? ' is-open' : ''}`}>
         <div className="sidebar__brand">
           <Link to={isBroker ? '/dashboard' : '/panelim'} className="sidebar__brand-link" onClick={onClose}>
-            <span className="sidebar__brand-title">PrimeCRM</span>
+            <span className="sidebar__brand-mark"><Building2 size={18} strokeWidth={2} /></span>
+            <span className="sidebar__brand-text">
+              <span className="sidebar__brand-title">PrimeCRM</span>
+              <span className="sidebar__brand-subtitle">Emlakta Daha Fazlası</span>
+            </span>
           </Link>
         </div>
         <nav className="sidebar__nav">
           {visibleItems.map((item) => {
             const isActive = location.pathname.startsWith(item.to);
+            const { Icon } = item;
             if (item.disabled) {
               return (
                 <span key={item.to} className="sidebar__link is-disabled" title="Yakında">
-                  <span className="sidebar__icon">{item.icon}</span>
+                  <span className="sidebar__icon"><Icon size={18} strokeWidth={1.75} /></span>
                   {item.label}
                 </span>
               );
@@ -110,18 +128,25 @@ function Sidebar({ open, onClose }) {
                 className={`sidebar__link${isActive ? ' is-active' : ''}`}
                 onClick={onClose}
               >
-                <span className="sidebar__icon">{item.icon}</span>
+                <span className="sidebar__icon"><Icon size={18} strokeWidth={1.75} /></span>
                 {item.label}
               </Link>
             );
           })}
         </nav>
+        <div className="sidebar__promo">
+          <span className="sidebar__promo-icon"><ShieldCheck size={16} strokeWidth={2} /></span>
+          <div className="sidebar__promo-title">Güçlü Ekip, Güçlü Sonuçlar</div>
+          <div className="sidebar__promo-text">Emlak işinizi bir üst seviyeye taşıyın.</div>
+        </div>
         <div className="sidebar__footer">
           <Link to="/sifre-degistir" className="sidebar__account" onClick={onClose}>
             <span className="sidebar__account-name">{user?.name}</span>
             <span className="sidebar__account-role">{isBroker ? 'Broker' : 'Danışman'}</span>
           </Link>
-          <button type="button" onClick={handleLogout} className="sidebar__logout">Çıkış</button>
+          <button type="button" onClick={handleLogout} className="sidebar__logout">
+            <LogOut size={15} strokeWidth={2} /> Çıkış
+          </button>
         </div>
       </aside>
     </>
@@ -133,14 +158,14 @@ function QuickAddMenu() {
   return (
     <div className="quickadd-menu">
       <button type="button" className="quickadd-menu__button" onClick={() => setOpen((v) => !v)}>
-        + Hızlı Ekle <span style={{ fontSize: 10 }}>▾</span>
+        Hızlı Ekle <ChevronDown size={14} strokeWidth={2.25} />
       </button>
       {open && (
         <>
           <div className="quickadd-menu__backdrop" onClick={() => setOpen(false)} />
           <div className="quickadd-menu__panel">
-            <Link to="/musteriler" state={{ openQuickAdd: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}>👤 Yeni Müşteri</Link>
-            <Link to="/portfoyler" state={{ openPropertyWizard: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}>🏠 Yeni Portföy</Link>
+            <Link to="/musteriler" state={{ openQuickAdd: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}><UserPlus size={15} strokeWidth={2} /> Yeni Müşteri</Link>
+            <Link to="/portfoyler" state={{ openPropertyWizard: true }} className="quickadd-menu__item" onClick={() => setOpen(false)}><Building2 size={15} strokeWidth={2} /> Yeni Portföy</Link>
           </div>
         </>
       )}
@@ -167,8 +192,12 @@ function TopBar({ onToggleSidebar }) {
       <QuickAddMenu />
       <NotificationBell />
       <Link to="/sifre-degistir" className="app-topbar__profile">
-        <span className="app-topbar__profile-name">{user?.name}</span>
-        <span className="app-topbar__profile-role">{isBroker ? 'Broker' : 'Danışman'}</span>
+        <span className="app-topbar__profile-avatar">{getInitials(user?.name)}</span>
+        <span className="app-topbar__profile-text">
+          <span className="app-topbar__profile-name">{user?.name}</span>
+          <span className="app-topbar__profile-role">{isBroker ? 'Broker' : 'Danışman'}</span>
+        </span>
+        <span className="app-topbar__profile-chevron"><ChevronDown size={15} strokeWidth={2.25} /></span>
       </Link>
     </header>
   );
