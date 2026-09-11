@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { CreditCard, X } from 'lucide-react';
 import { commissionsApi, COMMISSION_STATUSES } from '../api/commissions';
 import { usersApi } from '../api/auth';
 import { agentLedgerApi } from '../api/agentLedger';
@@ -24,21 +25,23 @@ function SummaryCard({ label, value, accent }) {
   return (
     <div
       style={{
-        background: 'var(--paper-raised, #ece8da)',
-        border: '1px solid var(--ink-navy-light, #cfc9b8)',
-        borderRadius: 4,
+        background: 'var(--cl-surface)',
+        border: '1px solid var(--cl-border)',
+        borderRadius: 12,
         padding: '14px 18px',
         minWidth: 160,
         flex: 1,
+        boxShadow: '0 1px 2px rgba(16, 35, 61, 0.04)',
       }}
     >
       <div
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
+          fontWeight: 600,
           fontSize: 11,
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           marginBottom: 6,
         }}
       >
@@ -46,9 +49,10 @@ function SummaryCard({ label, value, accent }) {
       </div>
       <div
         style={{
-          fontFamily: 'var(--font-display, var(--font-body))',
+          fontFamily: 'var(--cl-font-heading)',
+          fontWeight: 800,
           fontSize: 22,
-          color: accent || 'var(--ink-navy)',
+          color: accent || 'var(--cl-primary-800)',
         }}
       >
         {value}
@@ -223,9 +227,9 @@ export default function CommissionsPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           background: 'transparent',
           border: 'none',
           padding: 0,
@@ -269,8 +273,8 @@ export default function CommissionsPage() {
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
             <SummaryCard label="Toplam Brüt Komisyon" value={formatMoney(summary.totalGross)} />
             <SummaryCard label="Toplam Net (Danışman)" value={formatMoney(summary.totalNetPayable)} />
-            <SummaryCard label="Ödenen" value={formatMoney(summary.totalPaid)} accent="var(--success)" />
-            <SummaryCard label="Bekleyen" value={formatMoney(summary.totalPending)} accent="var(--danger)" />
+            <SummaryCard label="Ödenen" value={formatMoney(summary.totalPaid)} accent="var(--cl-success)" />
+            <SummaryCard label="Bekleyen" value={formatMoney(summary.totalPending)} accent="var(--cl-danger)" />
           </div>
         )}
 
@@ -317,7 +321,7 @@ export default function CommissionsPage() {
                     {agentName(c.agentId)}
                   </span>
                 )}
-                <span style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+                <span style={{ flex: 1, fontFamily: 'var(--font-body)', fontSize: 13 }}>
                   Vade: {formatDate(c.dueDate)}
                 </span>
                 <span className="record-row__budget" style={{ flex: 1 }}>
@@ -339,10 +343,10 @@ export default function CommissionsPage() {
                   {isBroker && c.status === 'approved' && (
                     <button
                       className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: 12 }}
+                      style={{ padding: '4px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                       onClick={() => togglePayments(c.id)}
                     >
-                      {expandedPaymentsId === c.id ? 'Kapat' : '💳 Ödeme Ekle'}
+                      {expandedPaymentsId === c.id ? 'Kapat' : (<><CreditCard size={13} /> Ödeme Ekle</>)}
                     </button>
                   )}
                   {c.status === 'paid' && (
@@ -357,7 +361,7 @@ export default function CommissionsPage() {
                   {isBroker && (
                     <button
                       className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: 12, color: 'var(--danger)' }}
+                      style={{ padding: '4px 10px', fontSize: 12, color: 'var(--cl-danger)' }}
                       onClick={() => handleDelete(c)}
                     >
                       Sil
@@ -419,14 +423,14 @@ export default function CommissionsPage() {
                     </div>
                   )}
                   {commissionPayments.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>Henüz ödeme yapılmamış.</div>
+                    <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Henüz ödeme yapılmamış.</div>
                   ) : (
                     commissionPayments.map((p) => (
                       <div key={p.id} className="commission-payment-item">
                         <span>{formatDate(p.date)}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{formatMoney(p.amount)}</span>
+                        <span style={{ fontFamily: 'var(--font-body)', color: 'var(--cl-success)' }}>{formatMoney(p.amount)}</span>
                         {isBroker && (
-                          <button type="button" className="task-row__delete" onClick={() => handleDeletePayment(c.id, p.id)} title="Sil">✕</button>
+                          <button type="button" className="task-row__delete" onClick={() => handleDeletePayment(c.id, p.id)} title="Sil"><X size={13} /></button>
                         )}
                       </div>
                     ))
