@@ -325,7 +325,7 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
                         height: 84,
                         objectFit: 'cover',
                         borderRadius: 6,
-                        border: '1px solid var(--ink-navy-light, #cfc9b8)',
+                        border: '1px solid var(--cl-border)',
                         opacity: p.uploading ? 0.5 : 1,
                       }}
                     />
@@ -338,7 +338,7 @@ export default function PropertyFormModal({ initialValues, onSubmit, onClose }) 
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: 11,
-                          color: 'var(--ink-navy)',
+                          color: 'var(--cl-primary-800)',
                         }}
                       >
                         Yükleniyor…

@@ -35,7 +35,7 @@ export default function PhotoLightbox({ photos, index, onClose, onNavigate }) {
       )}
 
       {photos.length > 1 && (
-        <div style={{ position: 'absolute', bottom: 24, color: 'white', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+        <div style={{ position: 'absolute', bottom: 24, color: 'white', fontFamily: 'var(--font-body)', fontSize: 13 }}>
           {index + 1} / {photos.length}
         </div>
       )}
