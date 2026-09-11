@@ -1056,23 +1056,24 @@ button {
 /* --- Hızlı Müşteri Kaydı sihirbazı --- */
 .quickadd__progress {
   height: 4px;
-  background: var(--paper-line);
+  background: var(--cl-border);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 16px;
 }
 .quickadd__progress-bar {
   height: 100%;
-  background: var(--brass);
+  background: var(--cl-gold);
   transition: width 0.2s ease;
 }
 .quickadd__q-label {
   display: block;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin: 16px 0 8px;
 }
 .quickadd__grid-2,
@@ -1095,27 +1096,28 @@ button {
   justify-content: center;
   gap: 4px;
   padding: 16px 8px;
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
-  background: var(--paper-raised);
+  border: 1px solid var(--cl-border);
+  border-radius: 10px;
+  background: var(--cl-surface);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
-  color: var(--slate);
+  color: var(--cl-text);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .quickadd__choice:hover {
-  border-color: var(--brass);
+  border-color: var(--cl-gold);
 }
 .quickadd__choice.is-selected {
-  border-color: var(--brass);
-  background: #fbf3e6;
-  color: var(--ink-navy);
+  border-color: var(--cl-gold);
+  background: rgba(196, 154, 85, 0.1);
+  color: var(--cl-primary-800);
 }
 .quickadd__choice-icon {
-  font-size: 22px;
   line-height: 1;
+  display: flex;
+  color: var(--cl-primary-800);
 }
 .quickadd__chips {
   display: flex;
@@ -1124,17 +1126,17 @@ button {
 }
 .quickadd__chip {
   padding: 8px 14px;
-  border: 1px solid var(--paper-line);
+  border: 1px solid var(--cl-border);
   border-radius: 999px;
-  background: var(--paper-raised);
+  background: var(--cl-surface);
   font-family: var(--font-body);
   font-size: 13px;
-  color: var(--slate);
+  color: var(--cl-text);
   cursor: pointer;
 }
 .quickadd__chip.is-selected {
-  border-color: var(--brass);
-  background: var(--ink-navy);
+  border-color: var(--cl-primary-800);
+  background: var(--cl-primary-800);
   color: white;
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Zap, ClipboardList, Check, User, KeyRound, Tag, TrendingUp, Home, Building2, Trees, Store, Package, Circle } from 'lucide-react';
 import MoneyInput from './MoneyInput.jsx';
 
 // "Detayli veri topla ama kullaniciya detayli form doldurtma" prensibi:
@@ -6,18 +7,18 @@ import MoneyInput from './MoneyInput.jsx';
 // "Hizli Kaydet" diyip cikabilir -- kalan bilgiler sonra tamamlanabilir.
 
 const TYPES = [
-  { value: 'buyer', label: 'Alıcı', icon: '🔵' },
-  { value: 'tenant', label: 'Kiracı', icon: '🟢' },
-  { value: 'seller', label: 'Satıcı', icon: '🟠' },
-  { value: 'investor', label: 'Yatırımcı', icon: '📈' },
+  { value: 'buyer', label: 'Alıcı', Icon: User },
+  { value: 'tenant', label: 'Kiracı', Icon: KeyRound },
+  { value: 'seller', label: 'Satıcı', Icon: Tag },
+  { value: 'investor', label: 'Yatırımcı', Icon: TrendingUp },
 ];
 
 const INTEREST_OPTIONS = [
-  { value: 'Daire', icon: '🏠' },
-  { value: 'Villa', icon: '🏡' },
-  { value: 'Arsa', icon: '🌳' },
-  { value: 'İş Yeri', icon: '🏢' },
-  { value: 'Diğer', icon: '📦' },
+  { value: 'Daire', Icon: Home },
+  { value: 'Villa', Icon: Building2 },
+  { value: 'Arsa', Icon: Trees },
+  { value: 'İş Yeri', Icon: Store },
+  { value: 'Diğer', Icon: Package },
 ];
 
 const SALE_BUDGET_PRESETS = [5_000_000, 10_000_000, 15_000_000, 20_000_000, 25_000_000];
@@ -26,10 +27,10 @@ const RENT_BUDGET_PRESETS = [20_000, 30_000, 50_000, 75_000, 100_000];
 const DISTRICT_PRESETS = ['Kadıköy', 'Ataşehir', 'Maltepe', 'Üsküdar', 'Kartal', 'Beşiktaş', 'Şişli'];
 
 const TIMELINE_OPTIONS = [
-  { value: 'immediate', label: 'Hemen', icon: '🔴' },
-  { value: '1_3_months', label: '1–3 ay', icon: '🟠' },
-  { value: '3_6_months', label: '3–6 ay', icon: '🟡' },
-  { value: 'later', label: 'Daha sonra', icon: '🔵' },
+  { value: 'immediate', label: 'Hemen', color: 'var(--cl-danger)' },
+  { value: '1_3_months', label: '1–3 ay', color: 'var(--cl-warning)' },
+  { value: '3_6_months', label: '3–6 ay', color: 'var(--cl-gold)' },
+  { value: 'later', label: 'Daha sonra', color: 'var(--cl-primary-800)' },
 ];
 
 function formatMoneyShort(n) {
@@ -136,7 +137,7 @@ export default function QuickAddCustomerModal({ onSubmit, onClose, onSwitchToDet
 
         {step === 0 && (
           <div>
-            <h2>⚡ Hızlı Müşteri Kaydı</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Zap size={18} style={{ color: 'var(--cl-gold)' }} /> Hızlı Müşteri Kaydı</h2>
             <div className="form-grid" style={{ marginTop: 16 }}>
               <div className="form-field">
                 <label>Ad *</label>
@@ -161,7 +162,7 @@ export default function QuickAddCustomerModal({ onSubmit, onClose, onSwitchToDet
                     className={`quickadd__choice${draft.type === t.value ? ' is-selected' : ''}`}
                     onClick={() => update({ type: t.value })}
                   >
-                    <div className="quickadd__choice-icon">{t.icon}</div>
+                    <div className="quickadd__choice-icon"><t.Icon size={22} /></div>
                     {t.label}
                   </button>
                 ))}
@@ -169,7 +170,9 @@ export default function QuickAddCustomerModal({ onSubmit, onClose, onSwitchToDet
             </div>
             {error && <div className="form-error">{error}</div>}
             <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
-              <button type="button" className="btn btn-secondary" onClick={onSwitchToDetailed}>📋 Detaylı Kayıt</button>
+              <button type="button" className="btn btn-secondary" onClick={onSwitchToDetailed} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <ClipboardList size={14} /> Detaylı Kayıt
+              </button>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" className="btn btn-secondary" disabled={!isStep0Valid || saving} onClick={handleSave}>
                   {saving ? 'Kaydediliyor…' : 'Hızlı Kaydet'}
@@ -193,7 +196,7 @@ export default function QuickAddCustomerModal({ onSubmit, onClose, onSwitchToDet
                   className={`quickadd__choice${draft.propertyInterest === opt.value ? ' is-selected' : ''}`}
                   onClick={() => update({ propertyInterest: opt.value })}
                 >
-                  <div className="quickadd__choice-icon">{opt.icon}</div>
+                  <div className="quickadd__choice-icon"><opt.Icon size={22} /></div>
                   {opt.value}
                 </button>
               ))}
@@ -304,7 +307,7 @@ export default function QuickAddCustomerModal({ onSubmit, onClose, onSwitchToDet
                   className={`quickadd__choice${draft.purchaseTimeline === opt.value ? ' is-selected' : ''}`}
                   onClick={() => update({ purchaseTimeline: opt.value })}
                 >
-                  <div className="quickadd__choice-icon">{opt.icon}</div>
+                  <div className="quickadd__choice-icon"><Circle size={14} fill={opt.color} style={{ color: opt.color }} /></div>
                   {opt.label}
                 </button>
               ))}
@@ -312,8 +315,8 @@ export default function QuickAddCustomerModal({ onSubmit, onClose, onSwitchToDet
             {error && <div className="form-error">{error}</div>}
             <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setStep(3)}>← Geri</button>
-              <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave}>
-                {saving ? 'Kaydediliyor…' : '✓ Kaydet'}
+              <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {saving ? 'Kaydediliyor…' : (<><Check size={14} /> Kaydet</>)}
               </button>
             </div>
           </div>
