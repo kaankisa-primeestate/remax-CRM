@@ -2340,34 +2340,36 @@ button.metric-card--clickable {
 
 /* --- Panelim: Revizyon uyarı bandı (göze çarpan, en üstte) --- */
 .revision-alert {
-  background: #fbe0dc;
-  border: 1px solid var(--danger);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-left: 3px solid var(--cl-danger);
   border-radius: 10px;
   padding: 14px 18px;
   margin-bottom: 20px;
+  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.04);
 }
 .revision-alert__title {
   font-weight: 700;
-  color: var(--danger);
+  color: var(--cl-danger);
   font-size: 14px;
   margin-bottom: 8px;
 }
 .revision-alert__item {
   display: block;
   text-decoration: none;
-  color: var(--slate);
+  color: var(--cl-text);
   font-size: 13px;
   padding: 6px 0;
-  border-top: 1px solid rgba(168, 65, 44, 0.2);
+  border-top: 1px solid var(--cl-border);
 }
 .revision-alert__item:first-of-type {
   border-top: none;
 }
 .revision-alert__item strong {
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
 }
 .revision-alert__arrow {
-  color: var(--danger);
+  color: var(--cl-danger);
   font-weight: 700;
 }
 
@@ -2385,11 +2387,11 @@ button.metric-card--clickable {
   max-width: 85%;
 }
 .comment-bubble--broker {
-  background: #eef2f8;
+  background: var(--cl-bg);
   align-self: flex-start;
 }
 .comment-bubble--agent {
-  background: #fbf3e6;
+  background: rgba(196, 154, 85, 0.12);
   align-self: flex-end;
 }
 .comment-bubble__header {
@@ -2401,21 +2403,21 @@ button.metric-card--clickable {
 .comment-bubble__author {
   font-size: 12px;
   font-weight: 700;
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
 }
 .comment-bubble__role {
   font-weight: 400;
-  color: var(--muted);
+  color: var(--cl-muted);
 }
 .comment-bubble__time {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
-  color: var(--muted);
+  color: var(--cl-muted);
   white-space: nowrap;
 }
 .comment-bubble__text {
   font-size: 13px;
-  color: var(--slate);
+  color: var(--cl-text);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -2428,44 +2430,45 @@ button.metric-card--clickable {
   gap: 16px;
   flex-wrap: wrap;
   padding: 14px 16px;
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 8px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 10px;
   margin-bottom: 10px;
   text-decoration: none;
   color: inherit;
   transition: border-color 0.15s ease;
 }
 .request-card:hover {
-  border-color: var(--brass);
+  border-color: var(--cl-gold);
 }
 .request-card__main {
   flex: 1;
   min-width: 200px;
 }
 .request-card__name {
-  font-family: var(--font-display);
+  font-family: var(--cl-font-heading);
   font-size: 16px;
-  font-weight: 600;
-  color: var(--ink-navy);
+  font-weight: 700;
+  color: var(--cl-text);
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 .request-card__type {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  background: var(--paper-line);
-  color: var(--muted);
+  background: var(--cl-bg);
+  color: var(--cl-muted);
   padding: 2px 8px;
   border-radius: 4px;
 }
 .request-card__meta {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-top: 4px;
 }
 .request-card__side {
@@ -2476,32 +2479,32 @@ button.metric-card--clickable {
   font-size: 12px;
 }
 .request-card__urgency {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   padding: 3px 8px;
   border-radius: 4px;
-  background: var(--paper-line);
-  color: var(--slate);
+  background: var(--cl-bg);
+  color: var(--cl-text);
 }
 .request-card__urgency.is-urgent {
-  background: #fbe0dc;
-  color: var(--danger);
+  background: rgba(214, 69, 69, 0.1);
+  color: var(--cl-danger);
   font-weight: 700;
 }
 .request-card__stage {
-  font-family: var(--font-mono);
-  color: var(--muted);
+  font-family: var(--font-body);
+  color: var(--cl-muted);
 }
 .request-card__matches {
-  font-family: var(--font-mono);
-  color: var(--muted);
+  font-family: var(--font-body);
+  color: var(--cl-muted);
 }
 .request-card__matches.has-matches {
-  color: var(--success);
+  color: var(--cl-success);
   font-weight: 700;
 }
 .request-card__updated {
-  font-family: var(--font-mono);
-  color: var(--muted);
+  font-family: var(--font-body);
+  color: var(--cl-muted);
   white-space: nowrap;
 }
 
@@ -2511,14 +2514,15 @@ button.metric-card--clickable {
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 4px;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 10px;
-  background: #fdf1d6;
-  color: #8a5a00;
+  background: rgba(196, 154, 85, 0.15);
+  color: #8a6420;
 }
 .disclosure-badge--ok {
-  background: #dfeee2;
-  color: var(--success);
+  background: rgba(21, 154, 99, 0.12);
+  color: var(--cl-success);
 }
 
 /* --- Sözleşmeler & Tapu: Yer Gösterme kayıt satırı --- */
@@ -2527,7 +2531,7 @@ button.metric-card--clickable {
   align-items: flex-start;
   gap: 14px;
   padding: 12px 0;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
 }
 .disclosure-row:last-child {
   border-bottom: none;
@@ -2541,7 +2545,7 @@ button.metric-card--clickable {
   font-weight: 600;
 }
 .disclosure-row__title a {
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
   text-decoration: none;
 }
 .disclosure-row__title a:hover {
@@ -2549,11 +2553,11 @@ button.metric-card--clickable {
 }
 .disclosure-row__meta {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-top: 4px;
 }
 .disclosure-row__meta a {
-  color: var(--slate);
+  color: var(--cl-text);
 }
 
 /* --- Duyuru gönderme paneli (Danışman Yönetimi) --- */
@@ -2586,8 +2590,8 @@ button.metric-card--clickable {
 
 /* --- Panelim: Broker'dan duyuru akışı --- */
 .announcement-feed {
-  background: #eef2f8;
-  border: 1px solid var(--ink-navy-light, #c7d2e0);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
   border-radius: 10px;
   padding: 14px 18px;
   margin-bottom: 20px;
@@ -2599,13 +2603,13 @@ button.metric-card--clickable {
 }
 .announcement-feed__title {
   font-weight: 700;
-  color: var(--ink-navy);
+  color: var(--cl-text);
   font-size: 14px;
   margin-bottom: 8px;
 }
 .announcement-feed__item {
   padding: 8px 0;
-  border-top: 1px solid rgba(20, 40, 80, 0.12);
+  border-top: 1px solid var(--cl-border);
 }
 .announcement-feed__item:first-of-type {
   border-top: none;
@@ -2613,18 +2617,18 @@ button.metric-card--clickable {
 .announcement-feed__item-title {
   font-weight: 700;
   font-size: 13px;
-  color: var(--ink-navy);
+  color: var(--cl-text);
 }
 .announcement-feed__item-message {
   font-size: 13px;
-  color: var(--slate);
+  color: var(--cl-text);
   margin-top: 2px;
   white-space: pre-wrap;
 }
 .announcement-feed__item-date {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-top: 4px;
 }
 
@@ -2637,15 +2641,15 @@ button.metric-card--clickable {
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 999px;
 }
 .announcement-feed__response-badge--yes {
-  background: #dfeee2;
-  color: var(--success);
+  background: rgba(21, 154, 99, 0.12);
+  color: var(--cl-success);
 }
 .announcement-feed__response-badge--no {
-  background: #fbe0dc;
-  color: var(--danger);
+  background: rgba(214, 69, 69, 0.1);
+  color: var(--cl-danger);
 }
 
 /* --- Danışman Yönetimi: gönderilen duyuru yanıt özeti --- */
@@ -2693,45 +2697,46 @@ button.metric-card--clickable {
   align-items: center;
   gap: 10px;
   width: 100%;
-  background: #eef2f8;
-  border: 1px solid var(--ink-navy-light, #c7d2e0);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 20px;
   cursor: pointer;
   text-align: left;
   font-family: var(--font-body);
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 .office-trigger:hover {
-  background: #e2e9f4;
+  border-color: var(--cl-gold);
 }
 .office-trigger--celebration {
-  background: linear-gradient(90deg, #fdf1d6, #fbe8f0);
-  border-color: var(--brass);
+  background: linear-gradient(90deg, rgba(196, 154, 85, 0.12), rgba(196, 154, 85, 0.04));
+  border-color: var(--cl-gold);
   animation: office-trigger-pulse 2s ease-in-out infinite;
 }
 @keyframes office-trigger-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(190, 145, 60, 0.25); }
-  50% { box-shadow: 0 0 0 6px rgba(190, 145, 60, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(196, 154, 85, 0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(196, 154, 85, 0); }
 }
 .office-trigger__icon {
-  font-size: 20px;
+  display: inline-flex;
+  color: var(--cl-primary-800);
 }
 .office-trigger__label {
   font-weight: 700;
-  color: var(--ink-navy);
+  color: var(--cl-text);
   font-size: 14px;
 }
 .office-trigger__hint {
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 13px;
   flex: 1;
 }
 .office-trigger__badge {
-  background: var(--danger);
+  background: var(--cl-danger);
   color: white;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
   font-weight: 700;
   min-width: 20px;
@@ -2759,13 +2764,13 @@ button.metric-card--clickable {
 .office-modal__close {
   background: transparent;
   border: none;
-  font-size: 18px;
-  color: var(--muted);
+  color: var(--cl-muted);
   cursor: pointer;
   padding: 4px 8px;
+  display: inline-flex;
 }
 .office-modal__close:hover {
-  color: var(--danger);
+  color: var(--cl-danger);
 }
 .office-modal__scroll {
   overflow-y: auto;
@@ -2775,7 +2780,7 @@ button.metric-card--clickable {
 /* --- Kutlama mesajı özel görünümü --- */
 .announcement-feed__item--celebration {
   position: relative;
-  background: linear-gradient(135deg, #fdf1d6, #fbe8f0);
+  background: linear-gradient(135deg, rgba(196, 154, 85, 0.14), rgba(196, 154, 85, 0.04));
   border-radius: 10px;
   padding: 14px !important;
   margin: 4px 0;
@@ -2793,14 +2798,17 @@ button.metric-card--clickable {
 .confetti span {
   position: absolute;
   top: -20px;
-  font-size: 18px;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--cl-gold);
   animation: confetti-fall 3s ease-in infinite;
   opacity: 0.85;
 }
 .confetti span:nth-child(1) { left: 8%; animation-delay: 0s; }
-.confetti span:nth-child(2) { left: 28%; animation-delay: 0.5s; }
+.confetti span:nth-child(2) { left: 28%; animation-delay: 0.5s; background: var(--cl-primary-700); }
 .confetti span:nth-child(3) { left: 50%; animation-delay: 1s; }
-.confetti span:nth-child(4) { left: 72%; animation-delay: 1.5s; }
+.confetti span:nth-child(4) { left: 72%; animation-delay: 1.5s; background: var(--cl-primary-700); }
 .confetti span:nth-child(5) { left: 90%; animation-delay: 0.3s; }
 @keyframes confetti-fall {
   0% { transform: translateY(-20px) rotate(0deg); opacity: 0.9; }

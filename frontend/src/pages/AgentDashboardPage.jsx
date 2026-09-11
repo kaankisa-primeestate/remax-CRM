@@ -1,5 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Building2,
+  PartyPopper,
+  X,
+  Trash2,
+  AlertTriangle,
+  CalendarClock,
+  AlertCircle,
+  Clock,
+  Flame,
+  Repeat,
+  Trophy,
+  Medal,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { propertiesApi } from '../api/properties';
 import { customersApi } from '../api/customers';
@@ -182,9 +196,9 @@ export default function AgentDashboardPage() {
   return (
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 4 }}>
-        Merhaba{firstName ? `, ${firstName}` : ''} 👋
+        Merhaba{firstName ? `, ${firstName}` : ''}
       </h2>
-      <p style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 13, marginBottom: 12 }}>
+      <p style={{ color: 'var(--cl-muted)', fontSize: 13, marginBottom: 12 }}>
         {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       </p>
 
@@ -214,10 +228,10 @@ export default function AgentDashboardPage() {
               });
             }}
           >
-            <span className="office-trigger__icon">🏢</span>
+            <span className="office-trigger__icon"><Building2 size={20} strokeWidth={1.8} /></span>
             <span className="office-trigger__label">Merkez Ofis</span>
             <span className="office-trigger__hint">
-              {hasCelebration ? '🎉 Yeni kutlama mesajı var!' : `${announcements.length} duyuru`}
+              {hasCelebration ? 'Yeni kutlama mesajı var!' : `${announcements.length} duyuru`}
             </span>
             {pendingCount > 0 && <span className="office-trigger__badge">{pendingCount}</span>}
           </button>
@@ -228,33 +242,40 @@ export default function AgentDashboardPage() {
         <div className="modal-backdrop" onClick={() => setOfficeModalOpen(false)}>
           <div className="modal office-modal" onClick={(e) => e.stopPropagation()}>
             <div className="office-modal__header">
-              <h2 style={{ margin: 0 }}>🏢 Merkez Ofis</h2>
-              <button type="button" className="office-modal__close" onClick={() => setOfficeModalOpen(false)}>✕</button>
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Building2 size={20} strokeWidth={1.8} /> Merkez Ofis
+              </h2>
+              <button type="button" className="office-modal__close" onClick={() => setOfficeModalOpen(false)}>
+                <X size={18} />
+              </button>
             </div>
             <div className="office-modal__scroll">
               {announcements.map((a) => (
                 <div key={a.id} className={`announcement-feed__item${a.type === 'celebration' ? ' announcement-feed__item--celebration' : ''}`}>
                   {a.type === 'celebration' && (
                     <div className="confetti">
-                      <span>🎉</span><span>🎊</span><span>✨</span><span>🎉</span><span>🎊</span>
+                      <span></span><span></span><span></span><span></span><span></span>
                     </div>
                   )}
-                  <div className="announcement-feed__item-title">{a.type === 'celebration' ? '🎉 ' : ''}{a.title}</div>
+                  <div className="announcement-feed__item-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {a.type === 'celebration' && <PartyPopper size={14} style={{ color: 'var(--cl-gold)' }} />}
+                    {a.title}
+                  </div>
                   <div className="announcement-feed__item-message">{a.message}</div>
                   <div className="announcement-feed__item-date">{new Date(a.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</div>
                   {a.type === 'meeting' && (
                     <div className="announcement-feed__response">
                       {a.myResponse ? (
                         <span className={`announcement-feed__response-badge announcement-feed__response-badge--${a.myResponse.status}`}>
-                          {a.myResponse.status === 'yes' ? '✓ Katılacağım olarak yanıtladınız' : '✕ Katılamayacağım olarak yanıtladınız'}
+                          {a.myResponse.status === 'yes' ? 'Katılacağım olarak yanıtladınız' : 'Katılamayacağım olarak yanıtladınız'}
                         </span>
                       ) : (
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => handleRespondAnnouncement(a.id, 'yes')}>
-                            ✓ Katılacağım
+                            Katılacağım
                           </button>
                           <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => handleRespondAnnouncement(a.id, 'no')}>
-                            ✕ Katılamayacağım
+                            Katılamayacağım
                           </button>
                         </div>
                       )}
@@ -263,10 +284,10 @@ export default function AgentDashboardPage() {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    style={{ fontSize: 11, padding: '4px 10px', marginTop: 10, color: 'var(--danger)' }}
+                    style={{ fontSize: 11, padding: '4px 10px', marginTop: 10, color: 'var(--cl-danger)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                     onClick={() => handleDismissAnnouncement(a.id)}
                   >
-                    🗑 Sil
+                    <Trash2 size={12} /> Sil
                   </button>
                 </div>
               ))}
@@ -277,8 +298,8 @@ export default function AgentDashboardPage() {
 
       {needsRevisionProperties.length > 0 && (
         <div className="revision-alert">
-          <div className="revision-alert__title">
-            ⚠️ {needsRevisionProperties.length} ilanınız için Broker revizyon istedi
+          <div className="revision-alert__title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertTriangle size={15} /> {needsRevisionProperties.length} ilanınız için Broker revizyon istedi
           </div>
           {needsRevisionProperties.map((p) => (
             <Link to={`/portfoyler/${p.id}`} className="revision-alert__item" key={p.id}>
@@ -306,23 +327,23 @@ export default function AgentDashboardPage() {
           {myTarget?.monthlyTarget ? (
             <>
               <div className="metric-card__value">
-                %{myTarget.percentage} <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}>
+                %{myTarget.percentage} <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--cl-muted)' }}>
                   ({money(myTarget.currentMonthSales)} / {money(myTarget.monthlyTarget)})
                 </span>
               </div>
               <div className="metric-card__delta is-up">
-                {myTarget.percentage >= 100 ? 'Hedef tamamlandı! 🎉' : `Hedefe ${100 - myTarget.percentage}% kaldı`}
+                {myTarget.percentage >= 100 ? 'Hedef tamamlandı!' : `Hedefe ${100 - myTarget.percentage}% kaldı`}
               </div>
-              <div style={{ height: 4, background: 'var(--paper-line)', borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${myTarget.percentage}%`, background: 'var(--brass)' }} />
+              <div style={{ height: 4, background: 'var(--cl-border)', borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${myTarget.percentage}%`, background: 'var(--cl-gold)' }} />
               </div>
             </>
           ) : (
-            <div className="metric-card__value" style={{ color: 'var(--muted)', fontSize: 16 }}>Hedef belirlenmedi</div>
+            <div className="metric-card__value" style={{ color: 'var(--cl-muted)', fontSize: 16 }}>Hedef belirlenmedi</div>
           )}
         </Link>
         <Link to="/musteriler" state={{ presetHotOnly: true }} className="metric-card metric-card--clickable">
-          <div className="metric-card__label">⚡ Acil Talepler</div>
+          <div className="metric-card__label">Acil Talepler</div>
           <div className="metric-card__value">{loading ? '…' : hotOpportunitiesCount} Müşteri</div>
           <div className="metric-card__delta is-muted">"Hemen" almak/kiralamak isteyen</div>
         </Link>
@@ -347,11 +368,11 @@ export default function AgentDashboardPage() {
                 const typeInfo = APPOINTMENT_TYPES.find((t) => t.value === appt.type);
                 return (
                   <Link to="/takvim" className="action-item action-item--clickable" key={`appt-${appt.id}`}>
-                    <span className="action-item__dot">{typeInfo?.icon || '📌'}</span>
+                    <span className="action-item__dot"><CalendarClock size={14} style={{ color: 'var(--cl-primary-800)' }} /></span>
                     <div className="action-item__body">
                       <div className="action-item__title">{appt.title}</div>
                       <div className="action-item__meta">
-                        {appt.time ? `🕒 ${appt.time}` : 'Saat belirtilmedi'} · {typeInfo?.label}
+                        {appt.time ? appt.time : 'Saat belirtilmedi'} · {typeInfo?.label}
                       </div>
                     </div>
                   </Link>
@@ -359,7 +380,13 @@ export default function AgentDashboardPage() {
               })}
               {todayTasks.map((task) => (
                 <Link to="/gorevler" className="action-item action-item--clickable" key={`task-${task.id}`}>
-                  <span className="action-item__dot">{task.dueDate < new Date().toISOString().slice(0, 10) ? '🔴' : '🟡'}</span>
+                  <span className="action-item__dot">
+                    {task.dueDate < new Date().toISOString().slice(0, 10) ? (
+                      <AlertCircle size={14} style={{ color: 'var(--cl-danger)' }} />
+                    ) : (
+                      <Clock size={14} style={{ color: 'var(--cl-warning)' }} />
+                    )}
+                  </span>
                   <div className="action-item__body">
                     <div className="action-item__title">{task.title}</div>
                     <div className="action-item__meta">
@@ -370,19 +397,21 @@ export default function AgentDashboardPage() {
               ))}
             </>
           )}
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--paper-line)', display: 'flex', gap: 14 }}>
-            <Link to="/takvim" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-navy)' }}>
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--cl-border)', display: 'flex', gap: 14 }}>
+            <Link to="/takvim" style={{ fontSize: 12, fontWeight: 600, color: 'var(--cl-primary-800)' }}>
               Takvimi gör →
             </Link>
-            <Link to="/gorevler" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-navy)' }}>
+            <Link to="/gorevler" style={{ fontSize: 12, fontWeight: 600, color: 'var(--cl-primary-800)' }}>
               Tüm görevleri gör →
             </Link>
           </div>
         </div>
         <div className="panel">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 className="panel__title" style={{ margin: 0 }}>🔥 Sıcak Fırsatlar</h3>
-            <Link to="/talepler" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-navy)' }}>
+            <h3 className="panel__title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Flame size={16} style={{ color: 'var(--cl-danger)' }} /> Sıcak Fırsatlar
+            </h3>
+            <Link to="/talepler" style={{ fontSize: 11, fontWeight: 600, color: 'var(--cl-primary-800)' }}>
               Tümünü Gör →
             </Link>
           </div>
@@ -409,8 +438,10 @@ export default function AgentDashboardPage() {
       {/* --- İşlemler Özet Panosu: Talep/Gösterme/Teklif/Tapu/Kapanış --- */}
       <div className="panel" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 className="panel__title" style={{ margin: 0 }}>🔄 İşlemlerim</h3>
-          <Link to="/islemler" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-navy)' }}>
+          <h3 className="panel__title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Repeat size={16} style={{ color: 'var(--cl-primary-800)' }} /> İşlemlerim
+          </h3>
+          <Link to="/islemler" style={{ fontSize: 11, fontWeight: 600, color: 'var(--cl-primary-800)' }}>
             Tümünü Gör →
           </Link>
         </div>
@@ -440,14 +471,14 @@ export default function AgentDashboardPage() {
                           </div>
                           <div className="kanban-card__meta">
                             {customer ? `${customer.firstName} ${customer.lastName}` : t.externalCustomerLabel || 'Müşteri belirtilmedi'}
-                            {isStale && <span style={{ color: 'var(--danger)' }}> · ⏱ {days} gün</span>}
+                            {isStale && <span style={{ color: 'var(--cl-danger)' }}> · {days} gün</span>}
                           </div>
                         </Link>
                       );
                     })
                   )}
                   {stageTransactions.length > 5 && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 4 }}>
+                    <div style={{ fontSize: 11, color: 'var(--cl-muted)', textAlign: 'center', marginTop: 4 }}>
                       +{stageTransactions.length - 5} tane daha
                     </div>
                   )}
@@ -461,7 +492,9 @@ export default function AgentDashboardPage() {
       {/* --- Liderlik Tablosu (gamification) --- */}
       <div className="folder-panel" style={{ marginTop: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>🏆 Liderlik Tablosu</h3>
+          <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Trophy size={17} style={{ color: 'var(--cl-gold)' }} /> Liderlik Tablosu
+          </h3>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
               type="button"
@@ -490,7 +523,7 @@ export default function AgentDashboardPage() {
             <div className="table-scroll">
               <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                  <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase' }}>
                     <th style={{ padding: '6px 8px' }}>#</th>
                     <th style={{ padding: '6px 8px' }}>Danışman</th>
                     <th style={{ padding: '6px 8px' }}>Portföy</th>
@@ -500,23 +533,29 @@ export default function AgentDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, i) => (
-                    <tr
-                      key={row.agentId}
-                      style={{
-                        borderTop: '1px solid var(--paper-line)',
-                        background: row.agentId === user?.id ? 'var(--paper-line)' : 'transparent',
-                        fontWeight: row.agentId === user?.id ? 700 : 400,
-                      }}
-                    >
-                      <td style={{ padding: '8px' }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
-                      <td style={{ padding: '8px' }}>{row.agentName}{row.agentId === user?.id ? ' (Siz)' : ''}</td>
-                      <td style={{ padding: '8px' }}>{row.propertiesCount}</td>
-                      <td style={{ padding: '8px' }}>{row.customersCount}</td>
-                      <td style={{ padding: '8px' }}>{row.interactionsCount}</td>
-                      <td style={{ padding: '8px', fontFamily: 'var(--font-mono)' }}>{money(row.salesValue)}</td>
-                    </tr>
-                  ))}
+                  {rows.map((row, i) => {
+                    const medalColor = i === 0 ? '#C49A55' : i === 1 ? '#9AA3AE' : i === 2 ? '#B08055' : null;
+                    return (
+                      <tr
+                        key={row.agentId}
+                        style={{
+                          borderTop: '1px solid var(--cl-border)',
+                          background: row.agentId === user?.id ? 'var(--cl-bg)' : 'transparent',
+                          fontWeight: row.agentId === user?.id ? 700 : 400,
+                          color: 'var(--cl-text)',
+                        }}
+                      >
+                        <td style={{ padding: '8px' }}>
+                          {medalColor ? <Medal size={15} style={{ color: medalColor }} /> : i + 1}
+                        </td>
+                        <td style={{ padding: '8px' }}>{row.agentName}{row.agentId === user?.id ? ' (Siz)' : ''}</td>
+                        <td style={{ padding: '8px' }}>{row.propertiesCount}</td>
+                        <td style={{ padding: '8px' }}>{row.customersCount}</td>
+                        <td style={{ padding: '8px' }}>{row.interactionsCount}</td>
+                        <td style={{ padding: '8px' }}>{money(row.salesValue)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
