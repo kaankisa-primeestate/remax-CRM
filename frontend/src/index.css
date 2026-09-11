@@ -53,15 +53,11 @@ body,
 }
 
 body {
-  background: var(--paper);
-  color: var(--slate);
+  background: var(--cl-bg);
+  color: var(--cl-text);
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.5;
-  background-image:
-    linear-gradient(var(--paper-line) 1px, transparent 1px);
-  background-size: 100% 32px;
-  background-attachment: local;
   overflow-x: hidden;
 }
 html {
@@ -279,14 +275,14 @@ button {
   box-sizing: border-box;
 }
 
-/* --- Dosya sekmesi (folder-tab) filtreler: imza öğesi --- */
+/* --- Sekmeler (Corporate Luxury) — .cl-tabs/.cl-tab ile aynı görünüm;
+   henüz .cl-tabs'a taşınmamış sayfalar hâlâ bu sınıfları kullanıyor,
+   böylece tüm uygulama tek elden aynı sekme görünümüne kavuşuyor. --- */
 .folder-tabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 0;
-  /* Mobilde sekme sayisi ekran genisligini astiginda TASMA yerine
-     yatay KAYDIRMA -- daha once hicbir tasma onleme mekanizmasi yoktu,
-     dar ekranlarda sag taraftaki sekmeler tamamen kesiliyordu. */
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--cl-border);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -294,34 +290,38 @@ button {
 
 .folder-tab {
   flex-shrink: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 11px 14px;
+  margin-bottom: -1px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cl-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
-.folder-tab {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  background: var(--paper-line);
-  color: var(--muted);
-  border: none;
-  padding: 10px 18px 8px;
-  border-radius: 8px 8px 0 0;
-  position: relative;
-  top: 1px;
+.folder-tab:hover {
+  color: var(--cl-text);
 }
 
 .folder-tab.active {
-  background: var(--paper-raised);
-  color: var(--ink-navy);
+  background: transparent;
+  color: var(--cl-primary-800);
   font-weight: 600;
-  box-shadow: 0 -1px 0 var(--brass) inset;
+  box-shadow: none;
+  border-bottom-color: var(--cl-gold);
 }
 
 .folder-panel {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 0 8px 8px 8px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 14px;
   padding: 20px;
+  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
 }
 
 /* --- Araç çubuğu --- */
@@ -336,9 +336,10 @@ button {
 .search-input {
   flex: 1;
   padding: 10px 14px;
-  border: 1px solid var(--paper-line);
-  border-radius: 6px;
-  background: white;
+  border: 1px solid var(--cl-border);
+  border-radius: 9px;
+  background: var(--cl-surface);
+  color: var(--cl-text);
   font-family: var(--font-body);
   font-size: 14px;
 }
@@ -348,29 +349,34 @@ button {
   font-weight: 600;
   font-size: 13px;
   padding: 10px 18px;
-  border-radius: 6px;
+  border-radius: 9px;
   border: none;
+  cursor: pointer;
 }
 
 .btn-primary {
-  background: var(--ink-navy);
+  background: var(--cl-primary-800);
   color: white;
 }
 
 .btn-primary:hover {
-  background: var(--ink-navy-light);
+  background: var(--cl-primary-700);
 }
 
 .btn-secondary {
-  background: transparent;
-  color: var(--ink-navy);
-  border: 1px solid var(--paper-line);
+  background: var(--cl-surface);
+  color: var(--cl-primary-800);
+  border: 1px solid var(--cl-border);
+}
+
+.btn-secondary:hover {
+  background: var(--cl-bg);
 }
 
 .btn-danger {
   background: transparent;
-  color: var(--danger);
-  border: 1px solid var(--danger);
+  color: var(--cl-danger);
+  border: 1px solid var(--cl-danger);
 }
 
 /* --- Müşteri kayıt satırı --- */
@@ -380,7 +386,7 @@ button {
   flex-wrap: wrap;
   gap: 8px 16px;
   padding: 14px 12px;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
   text-decoration: none;
   color: inherit;
   border-left: 3px solid transparent;
@@ -388,8 +394,8 @@ button {
 }
 
 .record-row:hover {
-  border-left-color: var(--brass);
-  background: var(--paper);
+  border-left-color: var(--cl-gold);
+  background: var(--cl-bg);
 }
 
 /* --- Eşleşme Güveni rozeti (bilgi tamlığına göre) --- */
@@ -405,36 +411,36 @@ button {
   cursor: help;
 }
 .match-confidence--high {
-  background: #e6f4ea;
-  color: #1e7a3d;
+  background: rgba(21, 154, 99, 0.12);
+  color: var(--cl-success);
 }
 .match-confidence--medium {
-  background: #fdf3e0;
-  color: #8a6100;
+  background: rgba(184, 134, 46, 0.14);
+  color: var(--cl-warning);
 }
 .match-confidence--low {
-  background: #fbeeeb;
-  color: var(--danger);
+  background: rgba(214, 69, 69, 0.1);
+  color: var(--cl-danger);
 }
 
 .record-row__name {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 500;
+  font-family: var(--cl-font-heading);
+  font-size: 15.5px;
+  font-weight: 700;
   flex: 1 1 160px;
   min-width: 0;
 }
 
 .record-row__phone {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 13px;
-  color: var(--muted);
+  color: var(--cl-muted);
   width: auto;
   min-width: 100px;
 }
 
 .record-row__budget {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 13px;
   width: auto;
   min-width: 90px;
@@ -443,29 +449,29 @@ button {
 
 /* --- Durum rozeti --- */
 .status-badge {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   padding: 4px 9px;
-  border-radius: 4px;
+  border-radius: 999px;
   white-space: nowrap;
 }
 
-.status-badge--buyer { background: #dfe7f3; color: var(--ink-navy); }
-.status-badge--seller { background: #f3e6d2; color: #6b4a1c; }
-.status-badge--tenant { background: #dfeee2; color: var(--success); }
-.status-badge--landlord { background: #f1dcd6; color: var(--danger); }
+.status-badge--buyer { background: rgba(53, 106, 230, 0.1); color: var(--cl-info); }
+.status-badge--seller { background: rgba(184, 134, 46, 0.14); color: var(--cl-warning); }
+.status-badge--tenant { background: rgba(21, 154, 99, 0.12); color: var(--cl-success); }
+.status-badge--landlord { background: rgba(214, 69, 69, 0.1); color: var(--cl-danger); }
 
 /* Portföy durumu */
-.status-badge--active { background: #dfeee2; color: var(--success); }
-.status-badge--passive { background: #eceae1; color: var(--muted); }
-.status-badge--sold { background: #f1dcd6; color: var(--danger); }
-.status-badge--rented { background: #dfe7f3; color: var(--ink-navy); }
+.status-badge--active { background: rgba(21, 154, 99, 0.12); color: var(--cl-success); }
+.status-badge--passive { background: var(--cl-bg); color: var(--cl-muted); }
+.status-badge--sold { background: rgba(214, 69, 69, 0.1); color: var(--cl-danger); }
+.status-badge--rented { background: rgba(53, 106, 230, 0.1); color: var(--cl-info); }
 
 /* Satılık / Kiralık */
-.status-badge--sale { background: #f3e6d2; color: #6b4a1c; }
-.status-badge--rent { background: #dfe7f3; color: var(--ink-navy); }
+.status-badge--sale { background: rgba(184, 134, 46, 0.14); color: var(--cl-warning); }
+.status-badge--rent { background: rgba(53, 106, 230, 0.1); color: var(--cl-info); }
 
 /* Hızlı durum değiştirme (liste satırı üzerinde) */
 .status-badge--select {
@@ -491,9 +497,9 @@ button {
 
 /* --- Müşteri detay: açık dosya görünümü --- */
 .dossier {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 10px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 14px;
   padding: 28px;
 }
 
@@ -503,13 +509,14 @@ button {
   align-items: flex-start;
   margin-bottom: 20px;
   padding-bottom: 20px;
-  border-bottom: 1px dashed var(--paper-line);
+  border-bottom: 1px dashed var(--cl-border);
 }
 
 .dossier__name {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 600;
+  font-family: var(--cl-font-heading);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--cl-text);
   margin: 0 0 4px;
 }
 
@@ -522,16 +529,16 @@ button {
 
 .dossier__field label {
   display: block;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin-bottom: 3px;
 }
 
 .dossier__field div {
   font-size: 14px;
+  color: var(--cl-text);
 }
 
 /* --- Görüşme zaman çizelgesi: defter kaydı stili (imza öğesi) --- */
@@ -543,7 +550,7 @@ button {
   display: flex;
   gap: 16px;
   padding: 14px 0;
-  border-left: 2px solid var(--paper-line);
+  border-left: 2px solid var(--cl-border);
   padding-left: 20px;
   position: relative;
   margin-left: 6px;
@@ -557,14 +564,14 @@ button {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--brass);
-  border: 2px solid var(--paper-raised);
+  background: var(--cl-gold);
+  border: 2px solid var(--cl-surface);
 }
 
 .ledger__timestamp {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 12px;
-  color: var(--muted);
+  color: var(--cl-muted);
   width: 130px;
   flex-shrink: 0;
   padding-top: 2px;
@@ -575,11 +582,11 @@ button {
 }
 
 .ledger__type {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
   text-transform: uppercase;
-  color: var(--brass);
-  font-weight: 600;
+  color: #a9793c;
+  font-weight: 700;
   letter-spacing: 0.05em;
   margin-bottom: 3px;
 }
@@ -587,20 +594,22 @@ button {
 .ledger__notes {
   font-size: 14px;
   margin-bottom: 4px;
+  color: var(--cl-text);
 }
 
 .ledger__action-items {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--cl-muted);
   font-style: italic;
 }
 
 .empty-state {
   text-align: center;
   padding: 48px 20px;
-  color: var(--muted);
-  font-family: var(--font-display);
-  font-size: 16px;
+  color: var(--cl-muted);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 15px;
 }
 
 /* --- Giriş sayfası --- */
@@ -610,28 +619,30 @@ button {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background: var(--cl-bg);
 }
 
 .login-card {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 10px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 16px;
   padding: 36px;
   max-width: 380px;
   width: 100%;
+  box-shadow: 0 4px 24px rgba(16, 35, 61, 0.08);
 }
 
 .login-card__title {
-  font-family: var(--font-display);
+  font-family: var(--cl-font-heading);
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 800;
   margin: 0 0 4px;
-  color: var(--ink-navy);
+  color: var(--cl-text);
 }
 
 .login-card__subtitle {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--cl-muted);
   margin: 0 0 24px;
 }
 
@@ -648,17 +659,19 @@ button {
 }
 
 .modal {
-  background: var(--paper-raised);
-  border-radius: 10px;
+  background: var(--cl-surface);
+  border-radius: 16px;
   padding: 28px;
   max-width: 560px;
   width: 100%;
   max-height: 85vh;
   overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(16, 35, 61, 0.18);
 }
 
 .modal h2 {
-  font-family: var(--font-display);
+  font-family: var(--cl-font-heading);
+  color: var(--cl-text);
   margin-top: 0;
 }
 
@@ -710,22 +723,31 @@ button {
 }
 
 .form-field label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--cl-text);
 }
 
 .form-field input,
 .form-field select,
 .form-field textarea {
   padding: 9px 12px;
-  border: 1px solid var(--paper-line);
-  border-radius: 6px;
+  min-height: 40px;
+  border: 1px solid var(--cl-border);
+  border-radius: 9px;
   font-family: var(--font-body);
   font-size: 14px;
-  background: white;
+  background: var(--cl-surface);
+  color: var(--cl-text);
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--cl-gold);
+  box-shadow: 0 0 0 3px rgba(196, 154, 85, 0.18);
 }
 
 .form-field textarea {
@@ -1552,10 +1574,11 @@ button {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
 }
 .metric-card {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 10px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 14px;
   padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
 }
 /* Metrik kartlari tiklanabilir Link olarak kullanildiginda (bkz.
    AgentDashboardPage) -- varsayilan link stillerini sifirlar ve hover'da
@@ -1568,9 +1591,9 @@ button {
   transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 .metric-card--clickable:hover {
-  border-color: var(--brass);
+  border-color: var(--cl-gold);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(16, 35, 61, 0.08);
 }
 button.metric-card--clickable {
   width: 100%;
@@ -1710,27 +1733,27 @@ button.metric-card--clickable {
   font-weight: 600;
 }
 .metric-card__label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--cl-muted);
   margin-bottom: 8px;
 }
 .metric-card__value {
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--ink-navy);
+  font-family: var(--cl-font-heading);
+  font-size: 23px;
+  font-weight: 800;
+  color: var(--cl-text);
   line-height: 1.1;
 }
 .metric-card__delta {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 12px;
   margin-top: 6px;
 }
-.metric-card__delta.is-up { color: var(--success); }
-.metric-card__delta.is-muted { color: var(--muted); }
+.metric-card__delta.is-up { color: var(--cl-success); }
+.metric-card__delta.is-muted { color: var(--cl-muted); }
 
 .panel-grid-2 {
   display: grid;
@@ -1743,20 +1766,21 @@ button.metric-card--clickable {
   .panel-grid-2 { grid-template-columns: 1fr; }
 }
 .panel {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 10px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 14px;
   padding: 18px;
+  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
 }
 .panel__title {
-  font-family: var(--font-display);
+  font-family: var(--cl-font-heading);
   font-size: 16px;
   font-weight: 700;
-  color: var(--ink-navy);
+  color: var(--cl-text);
   margin: 0 0 14px;
 }
 .panel__empty {
-  color: var(--muted);
+  color: var(--cl-muted);
   font-size: 13px;
   padding: 20px 0;
   text-align: center;
@@ -1768,24 +1792,24 @@ button.metric-card--clickable {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
 }
 .action-item:last-child { border-bottom: none; }
 .action-item--clickable {
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 8px;
   margin: 0 -8px;
   padding: 10px 8px;
 }
 .action-item--clickable:hover {
-  background: var(--paper);
+  background: var(--cl-bg);
 }
 .action-item__dot { font-size: 12px; margin-top: 3px; }
 .action-item__body { flex: 1; min-width: 0; }
-.action-item__title { font-size: 13px; font-weight: 600; color: var(--slate); }
-.action-item__meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.action-item__title { font-size: 13px; font-weight: 600; color: var(--cl-text); }
+.action-item__meta { font-size: 12px; color: var(--cl-muted); margin-top: 2px; }
 .action-item__buttons { display: flex; gap: 6px; margin-top: 8px; }
 .action-item__buttons .btn { padding: 4px 10px; font-size: 12px; }
 
@@ -1795,24 +1819,24 @@ button.metric-card--clickable {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--cl-border);
 }
 .match-card--clickable {
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 8px;
   margin: 0 -8px;
   padding: 10px 8px;
 }
 .match-card--clickable:hover {
-  background: var(--paper);
+  background: var(--cl-bg);
 }
 .match-card:last-child { border-bottom: none; }
 .match-card__pct {
-  background: #eef4ea;
-  color: var(--success);
-  font-family: var(--font-mono);
+  background: rgba(21, 154, 99, 0.12);
+  color: var(--cl-success);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 12px;
   border-radius: 6px;
@@ -1820,8 +1844,8 @@ button.metric-card--clickable {
   flex-shrink: 0;
 }
 .match-card__body { flex: 1; min-width: 0; font-size: 13px; }
-.match-card__title { font-weight: 600; color: var(--slate); }
-.match-card__meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.match-card__title { font-weight: 600; color: var(--cl-text); }
+.match-card__meta { font-size: 12px; color: var(--cl-muted); margin-top: 2px; }
 
 /* --- Kanban panosu --- */
 .kanban-board {

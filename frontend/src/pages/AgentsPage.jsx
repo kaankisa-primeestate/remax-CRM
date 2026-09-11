@@ -728,7 +728,7 @@ export default function AgentsPage() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="cl-panel" style={{ borderRadius: '0 8px 8px 8px', marginTop: -1 }}>
+        <form onSubmit={handleSubmit} style={{ marginTop: 18 }}>
           {addAgentTab === 'personal' && (
             <div className="form-grid">
               <div className="form-field">
