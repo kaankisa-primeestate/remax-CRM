@@ -231,7 +231,7 @@ function buildStatementRows(entries) {
 
 function EmptyTab({ title, description }) {
   return (
-    <div className="acc-panel" style={{ padding: 28, textAlign: 'center' }}>
+    <div className="cl-panel" style={{ padding: 28, textAlign: 'center' }}>
       <div style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 20, color: 'var(--cl-primary-800)', marginBottom: 8 }}>
         {title}
       </div>
@@ -259,19 +259,19 @@ function KpiCard({ variant, Icon, label, valueDisplay, changePercent, trendNote 
   const trendDirection = !hasTrend ? 'flat' : changePercent > 0.5 ? 'up' : changePercent < -0.5 ? 'down' : 'flat';
   const TrendIcon = trendDirection === 'up' ? ArrowUpRight : trendDirection === 'down' ? ArrowDownRight : Minus;
   return (
-    <div className={`acc-kpi-card acc-kpi-card--${variant}`}>
-      <span className="acc-kpi-card__icon"><Icon size={18} strokeWidth={2} /></span>
-      <div className="acc-kpi-card__label">{label}</div>
-      <div className="acc-kpi-card__value">{valueDisplay}</div>
-      <div className={`acc-kpi-card__trend acc-kpi-card__trend--${trendDirection}`}>
+    <div className={`cl-kpi-card cl-kpi-card--${variant}`}>
+      <span className="cl-kpi-card__icon"><Icon size={18} strokeWidth={2} /></span>
+      <div className="cl-kpi-card__label">{label}</div>
+      <div className="cl-kpi-card__value">{valueDisplay}</div>
+      <div className={`cl-kpi-card__trend cl-kpi-card__trend--${trendDirection}`}>
         {hasTrend ? (
           <>
             <TrendIcon size={13} strokeWidth={2.5} />
             {Math.abs(changePercent).toFixed(0)}%
-            <span className="acc-kpi-card__trend-note">geçen aya göre</span>
+            <span className="cl-kpi-card__trend-note">geçen aya göre</span>
           </>
         ) : (
-          <span className="acc-kpi-card__trend-note">{trendNote || 'geçen ay veri yok'}</span>
+          <span className="cl-kpi-card__trend-note">{trendNote || 'geçen ay veri yok'}</span>
         )}
       </div>
     </div>
@@ -1474,16 +1474,16 @@ export default function AccountingPage() {
 
   return (
     <div className="accounting-page">
-      <div className="acc-page-header">
+      <div className="cl-page-header">
         <div>
-          <h2 className="acc-page-title">Muhasebe</h2>
-          <p className="acc-page-subtitle">
+          <h2 className="cl-page-title">Muhasebe</h2>
+          <p className="cl-page-subtitle">
             Finansal hareketlerinizi kolayca yönetin, takip edin ve raporlayın.
           </p>
         </div>
-        <div className="acc-page-controls">
+        <div className="cl-page-controls">
           {activeTab !== 'reports' && (
-            <div className="acc-control">
+            <div className="cl-control">
               <label htmlFor="accounting-period">Dönem</label>
               <input
                 id="accounting-period"
@@ -1494,7 +1494,7 @@ export default function AccountingPage() {
               />
             </div>
           )}
-          <div className="acc-control">
+          <div className="cl-control">
             <label htmlFor="accounting-currency">Para birimi</label>
             <select id="accounting-currency" value={currency} onChange={(event) => setCurrency(event.target.value)}>
               {ACCOUNTING_CURRENCIES.map((item) => (
@@ -1502,14 +1502,14 @@ export default function AccountingPage() {
               ))}
             </select>
           </div>
-          <button type="button" className="acc-report-btn" onClick={() => setActiveTab('reports')}>
+          <button type="button" className="cl-header-action-btn" onClick={() => setActiveTab('reports')}>
             <FileBarChart2 size={16} strokeWidth={2} /> Rapor Görüntüle
           </button>
         </div>
       </div>
 
       {activeTab !== 'reports' && (
-        <div className="acc-kpi-row">
+        <div className="cl-kpi-row">
           <KpiCard
             variant="income"
             Icon={TrendingUp}
@@ -1543,17 +1543,17 @@ export default function AccountingPage() {
       )}
 
       {error && (
-        <div className="acc-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-danger)', color: 'var(--cl-danger)' }}>
+        <div className="cl-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-danger)', color: 'var(--cl-danger)' }}>
           {error}
         </div>
       )}
 
-      <div className="acc-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
+      <div className="cl-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
         {ACCOUNTING_TABS.map((tab) => (
           <button
             type="button"
             key={tab.key}
-            className={`acc-tab${activeTab === tab.key ? ' active' : ''}`}
+            className={`cl-tab${activeTab === tab.key ? ' active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -1563,7 +1563,7 @@ export default function AccountingPage() {
 
       {activeTab === 'entries' && (
         <>
-          <div className="acc-panel" style={{ marginBottom: 20 }}>
+          <div className="cl-panel" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
               <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 19, color: 'var(--cl-primary-800)' }}>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
               {editingEntry && (
@@ -1647,7 +1647,7 @@ export default function AccountingPage() {
             )}
           </div>
 
-          <div className="acc-panel">
+          <div className="cl-panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Hareket listesi</h3>
@@ -1700,7 +1700,7 @@ export default function AccountingPage() {
             )}
           </div>
           {auditTarget && (
-            <div className="acc-panel" style={{ marginTop: 20 }}>
+            <div className="cl-panel" style={{ marginTop: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
                   <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Kayıt geçmişi</h3>
@@ -1719,17 +1719,17 @@ export default function AccountingPage() {
       )}
 
       {activeTab === 'accounts' && (
-        <div className="acc-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
+        <div className="cl-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
           <button
             type="button"
-            className={`acc-tab${accountSubTab === 'bank' ? ' active' : ''}`}
+            className={`cl-tab${accountSubTab === 'bank' ? ' active' : ''}`}
             onClick={() => setAccountSubTab('bank')}
           >
             Banka / Kasa
           </button>
           <button
             type="button"
-            className={`acc-tab${accountSubTab === 'partners' ? ' active' : ''}`}
+            className={`cl-tab${accountSubTab === 'partners' ? ' active' : ''}`}
             onClick={() => setAccountSubTab('partners')}
           >
             Ortaklar
@@ -1739,7 +1739,7 @@ export default function AccountingPage() {
 
       {activeTab === 'accounts' && accountSubTab === 'bank' && (
         <>
-          <div className="acc-panel" style={{ marginBottom: 20 }}>
+          <div className="cl-panel" style={{ marginBottom: 20 }}>
             <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 14px', fontSize: 18 }}>Yeni muhasebe hesabı</h3>
             <form onSubmit={handleCreateAccount} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <FormField label="Hesap türü">
@@ -1775,7 +1775,7 @@ export default function AccountingPage() {
             <SavedRecordNotice notice={accountSaveNotice} />
           </div>
 
-          <div className="acc-panel">
+          <div className="cl-panel">
             <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 14px', fontSize: 18 }}>Hesaplar ve bakiyeler</h3>
             {loading ? (
               <div className="empty-state">Yükleniyor…</div>
@@ -1821,7 +1821,7 @@ export default function AccountingPage() {
 
       {activeTab === 'ledgers' && (
         <>
-          <div className="acc-panel" style={{ marginBottom: 20, display: partyStatement ? 'none' : undefined }}>
+          <div className="cl-panel" style={{ marginBottom: 20, display: partyStatement ? 'none' : undefined }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Yeni cari kart</h3>
@@ -1868,7 +1868,7 @@ export default function AccountingPage() {
             <SavedRecordNotice notice={partySaveNotice} />
           </div>
 
-          <div className="acc-panel" style={{ display: partyStatement ? 'none' : undefined }}>
+          <div className="cl-panel" style={{ display: partyStatement ? 'none' : undefined }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Cari kartlar ve bakiyeler</h3>
@@ -1948,7 +1948,7 @@ export default function AccountingPage() {
           </div>
 
           {partyStatement && (
-            <div className="acc-panel" style={{ marginTop: 20 }}>
+            <div className="cl-panel" style={{ marginTop: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                 <div>
                   <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>{partyStatement.party?.name || 'Cari'} · Cari Ekstresi</h3>
@@ -2023,7 +2023,7 @@ export default function AccountingPage() {
       )}
       {activeTab === 'commissions' && (
         <>
-          <div className="acc-panel" style={{ marginBottom: 20 }}>
+          <div className="cl-panel" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Yeni komisyon kapaması</h3>
@@ -2069,7 +2069,7 @@ export default function AccountingPage() {
             <SavedRecordNotice notice={commissionSaveNotice} />
           </div>
 
-          <div className="acc-panel">
+          <div className="cl-panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Komisyon ve hakediş listesi</h3>
@@ -2158,7 +2158,7 @@ export default function AccountingPage() {
       )}
       {activeTab === 'dues' && (
         <>
-          <div className="acc-panel" style={{ marginBottom: 20 }}>
+          <div className="cl-panel" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Danışman kira tahakkukları</h3>
@@ -2182,7 +2182,7 @@ export default function AccountingPage() {
             )}
           </div>
 
-          <div className="acc-panel">
+          <div className="cl-panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Kira listesi</h3>
@@ -2251,7 +2251,7 @@ export default function AccountingPage() {
       )}
       {activeTab === 'accounts' && accountSubTab === 'partners' && (
         <>
-          <div className="acc-panel" style={{ marginBottom: 20 }}>
+          <div className="cl-panel" style={{ marginBottom: 20 }}>
             <div style={{ marginBottom: 14 }}>
               <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Yeni ortak hareketi</h3>
               <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>
@@ -2305,7 +2305,7 @@ export default function AccountingPage() {
             )}
           </div>
 
-          <div className="acc-panel">
+          <div className="cl-panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Ortak cari bakiyeleri</h3>
@@ -2351,7 +2351,7 @@ export default function AccountingPage() {
       )}
       {activeTab === 'reports' && (
         <>
-          <div className="acc-panel accounting-report-filter" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
+          <div className="cl-panel accounting-report-filter" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
             <div ref={reportBoxRef} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
               {/* 1. buton: Rapor Türü */}
               <div style={{ position: 'relative' }}>
@@ -2649,7 +2649,7 @@ export default function AccountingPage() {
           </div>
 
           {managementReport && !managementReportLoading && (
-            <div className="acc-panel" style={{ marginTop: 20 }}>
+            <div className="cl-panel" style={{ marginTop: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
                   <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Bekleyen cari yükümlülükler</h3>
@@ -2669,7 +2669,7 @@ export default function AccountingPage() {
 
       {activeTab === 'migration' && (
         <>
-          <div className="acc-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
+          <div className="cl-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 19 }}>Finans Aktarım Önizlemesi</h3>
@@ -2689,9 +2689,9 @@ export default function AccountingPage() {
           </div>
 
           {migrationLoading ? (
-            <div className="acc-panel"><div className="empty-state">Eski Finans tabloları okunuyor…</div></div>
+            <div className="cl-panel"><div className="empty-state">Eski Finans tabloları okunuyor…</div></div>
           ) : !migrationPreview ? (
-            <div className="acc-panel"><div className="empty-state">Önizlemeyi başlatmak için yukarıdaki düğmeye basın.</div></div>
+            <div className="cl-panel"><div className="empty-state">Önizlemeyi başlatmak için yukarıdaki düğmeye basın.</div></div>
           ) : (
             <>
               <div className="metric-grid">
@@ -2701,7 +2701,7 @@ export default function AccountingPage() {
                 <div className="metric-card"><div className="metric-card__label">Eski komisyon</div><div className="metric-card__value">{migrationPreview.sourceCounts?.commissions || 0}</div><div className="metric-card__delta is-muted">Tahakkuk kayıtları</div></div>
               </div>
 
-              <div className="acc-panel" style={{ marginTop: 20 }}>
+              <div className="cl-panel" style={{ marginTop: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                   <div>
                     <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Para hareketi toplamları</h3>
@@ -2717,7 +2717,7 @@ export default function AccountingPage() {
               </div>
 
               <div className="panel-grid-2" style={{ marginTop: 20 }}>
-                <div className="acc-panel">
+                <div className="cl-panel">
                   <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 12px', fontSize: 18 }}>Kaynak kayıt sayıları</h3>
                   <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                     {[
@@ -2732,7 +2732,7 @@ export default function AccountingPage() {
                     ].map(([label, count]) => <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, borderBottom: '1px solid var(--cl-border)', paddingBottom: 6 }}><span>{label}</span><strong>{count || 0}</strong></div>)}
                   </div>
                 </div>
-                <div className="acc-panel">
+                <div className="cl-panel">
                   <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 12px', fontSize: 18 }}>Aktarım kalite kontrolü</h3>
                   <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Hesapsız banka hareketi</span><strong style={{ color: migrationPreview.qualityChecks?.transactionsWithoutAccount ? 'var(--cl-danger)' : 'var(--cl-success)' }}>{migrationPreview.qualityChecks?.transactionsWithoutAccount || 0}</strong></div>
@@ -2744,7 +2744,7 @@ export default function AccountingPage() {
                 </div>
               </div>
 
-              <div className="acc-panel" style={{ marginTop: 20 }}>
+              <div className="cl-panel" style={{ marginTop: 20 }}>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 12px', fontSize: 18 }}>Aktarım eşleştirme özeti</h3>
                 <div className="panel-grid-2" style={{ marginBottom: 0 }}>
                   {Object.entries(migrationPreview.mapping || {}).map(([source, target]) => <div key={source} style={{ border: '1px solid var(--cl-border)', borderRadius: 6, padding: 10, background: 'var(--cl-bg)' }}><div style={{ color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 10, textTransform: 'uppercase', marginBottom: 4 }}>{source}</div><div style={{ fontSize: 13 }}>{target}</div></div>)}
@@ -2755,7 +2755,7 @@ export default function AccountingPage() {
             </>
           )}
 
-          <div className="acc-panel" style={{ marginTop: 24, border: '1px solid #d38b7c', background: '#fffaf8' }}>
+          <div className="cl-panel" style={{ marginTop: 24, border: '1px solid #d38b7c', background: '#fffaf8' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 19 }}>Muhasebe Temiz Başlangıç</h3>
