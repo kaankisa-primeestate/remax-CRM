@@ -3302,6 +3302,10 @@ button.metric-card--clickable {
     min-height: 40px;
   }
 
+  .accounting-page .accounting-entry-form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .accounting-page .accounting-report-filter {
     padding: 12px !important;
   }
@@ -3349,6 +3353,10 @@ button.metric-card--clickable {
 
   .accounting-page .table-scroll table {
     max-width: 100%;
+  }
+
+  .accounting-page .accounting-entry-form-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .accounting-page .accounting-report-filter > div {
