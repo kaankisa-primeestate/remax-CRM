@@ -1,6 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Landmark, Banknote, CreditCard, ChevronUp, ChevronDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { bankAccountsApi, CURRENCIES, ACCOUNT_TYPES, formatMoney } from '../../api/bankAccounts';
 import ReceiptUploader from '../ReceiptUploader.jsx';
+
+const ACCOUNT_TYPE_ICONS = {
+  bank: Landmark,
+  cash: Banknote,
+  credit_card: CreditCard,
+};
 
 // Banka Hesaplari sekmesi -- kendi verisini kendi yukler, disaridan prop
 // almaz. Boylece bagimsiz/tek basina test edilebilir/kullanilabilir bir
@@ -145,7 +152,7 @@ export default function BankAccountsTab() {
   return (
     <>
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Banka Hesabı Ekle</h3>
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yeni Banka Hesabı Ekle</h3>
         <form onSubmit={handleAddAccount} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
             <label>Hesap Türü</label>
@@ -201,24 +208,27 @@ export default function BankAccountsTab() {
               onClick={() => toggleExpand(acc.id)}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>
-                  {ACCOUNT_TYPES.find((t) => t.value === (acc.type || 'bank'))?.icon || '🏦'}{' '}
+                <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {(() => {
+                    const TypeIcon = ACCOUNT_TYPE_ICONS[acc.type || 'bank'] || Landmark;
+                    return <TypeIcon size={16} style={{ color: 'var(--cl-primary-800)' }} />;
+                  })()}
                   {acc.bankName ? `${acc.bankName} — ${acc.accountName}` : acc.accountName}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: 12, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)' }}>
                   {acc.iban || 'IBAN belirtilmedi'} · {acc.currency}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 18, color: acc.balance >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 18, color: acc.balance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                   {formatMoney(acc.balance, acc.currency)}
                 </div>
-                <span style={{ color: 'var(--muted)' }}>{expandedId === acc.id ? '▲' : '▼'}</span>
+                <span style={{ color: 'var(--cl-muted)', display: 'inline-flex' }}>{expandedId === acc.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
               </div>
             </div>
 
             {expandedId === acc.id && (
-              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed var(--paper-line)' }}>
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed var(--cl-border)' }}>
                 <form onSubmit={(e) => handleAddTransaction(e, acc.id)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
                   <div className="form-field" style={{ margin: 0 }}>
                     <label>Tür</label>
@@ -280,7 +290,7 @@ export default function BankAccountsTab() {
                   <div className="table-scroll">
                     <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                        <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
                           <th style={{ padding: '6px 8px' }}>Tarih</th>
                           <th style={{ padding: '6px 8px' }}>Tür</th>
                           <th style={{ padding: '6px 8px' }}>Tutar</th>
@@ -291,16 +301,18 @@ export default function BankAccountsTab() {
                       </thead>
                       <tbody>
                         {transactions[acc.id].map((t) => (
-                          <tr key={t.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                          <tr key={t.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
                             <td style={{ padding: '8px' }}>{new Date(t.date).toLocaleDateString('tr-TR')}</td>
-                            <td style={{ padding: '8px' }}>{t.type === 'deposit' ? '↑ Giriş' : '↓ Çıkış'}</td>
-                            <td style={{ padding: '8px', fontFamily: 'var(--font-mono)', color: t.type === 'deposit' ? 'var(--success)' : 'var(--danger)' }}>
+                            <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              {t.type === 'deposit' ? (<><ArrowUp size={12} style={{ color: 'var(--cl-success)' }} /> Giriş</>) : (<><ArrowDown size={12} style={{ color: 'var(--cl-danger)' }} /> Çıkış</>)}
+                            </td>
+                            <td style={{ padding: '8px', fontFamily: 'var(--font-body)', color: t.type === 'deposit' ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                               {formatMoney(t.amount, acc.currency)}
                             </td>
                             <td style={{ padding: '8px' }}>{t.description || '—'}</td>
-                            <td style={{ padding: '8px', fontFamily: 'var(--font-mono)' }}>{t.referenceNo || '—'}</td>
+                            <td style={{ padding: '8px', fontFamily: 'var(--font-body)' }}>{t.referenceNo || '—'}</td>
                             <td style={{ padding: '8px' }}>
-                              <button type="button" className="task-row__delete" onClick={() => handleDeleteTransaction(acc.id, t.id)} title="Sil">✕</button>
+                              <button type="button" className="task-row__delete" onClick={() => handleDeleteTransaction(acc.id, t.id)} title="Sil"><X size={13} /></button>
                             </td>
                           </tr>
                         ))}

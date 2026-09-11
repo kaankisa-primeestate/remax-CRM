@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Wallet, Receipt, BarChart3, ArrowDownToLine, ArrowUpFromLine, Lightbulb } from 'lucide-react';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 import { expensesApi } from '../../api/expenses';
 
@@ -122,35 +123,35 @@ export default function SummaryTab() {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 20 }}>
-            <div className="folder-panel" style={{ borderLeft: '4px solid var(--success)' }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-                💰 Toplam Kasaya Giren Para
+            <div className="folder-panel" style={{ borderLeft: '4px solid var(--cl-success)' }}>
+              <div style={{ fontSize: 12, color: 'var(--cl-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Wallet size={12} /> Toplam Kasaya Giren Para
               </div>
-              <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: 4, color: 'var(--success)' }}>
+              <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: 'var(--font-body)', marginTop: 4, color: 'var(--cl-success)' }}>
                 {formatMoney(summary?.totalIncome || 0)}
               </div>
             </div>
 
-            <div className="folder-panel" style={{ borderLeft: '4px solid var(--danger)' }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-                🧾 Toplam Kasadan Çıkan Para
+            <div className="folder-panel" style={{ borderLeft: '4px solid var(--cl-danger)' }}>
+              <div style={{ fontSize: 12, color: 'var(--cl-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Receipt size={12} /> Toplam Kasadan Çıkan Para
               </div>
-              <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: 4, color: 'var(--danger)' }}>
+              <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: 'var(--font-body)', marginTop: 4, color: 'var(--cl-danger)' }}>
                 {formatMoney(summary?.totalExpense || 0)}
               </div>
             </div>
 
-            <div className="folder-panel" style={{ borderLeft: `4px solid ${(summary?.netBalance || 0) >= 0 ? '#2563eb' : 'var(--danger)'}` }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-                📊 Dönem İçi Net Bakiye Değişimi
+            <div className="folder-panel" style={{ borderLeft: `4px solid ${(summary?.netBalance || 0) >= 0 ? 'var(--cl-primary-800)' : 'var(--cl-danger)'}` }}>
+              <div style={{ fontSize: 12, color: 'var(--cl-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <BarChart3 size={12} /> Dönem İçi Net Bakiye Değişimi
               </div>
               <div
                 style={{
                   fontSize: 22,
                   fontWeight: 'bold',
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-body)',
                   marginTop: 4,
-                  color: (summary?.netBalance || 0) >= 0 ? '#2563eb' : 'var(--danger)',
+                  color: (summary?.netBalance || 0) >= 0 ? 'var(--cl-primary-800)' : 'var(--cl-danger)',
                 }}
               >
                 {formatMoney(summary?.netBalance || 0)}
@@ -158,25 +159,25 @@ export default function SummaryTab() {
             </div>
           </div>
 
-          <div className="folder-panel" style={{ marginBottom: 20, background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8 }}>
-            <p style={{ margin: 0, fontSize: 12, color: '#b45309' }}>
-              💡 <strong>Not:</strong> Komisyon kayıtlarındaki "Ofis Payı" tahsilatı henüz doğrudan kasa/banka girişine otomatik bağlanmadığı için bu rapordaki giren tutara sadece kasaya fiziken işlenen tahsilatlar dahildir.
+          <div className="folder-panel" style={{ marginBottom: 20, background: 'rgba(196, 154, 85, 0.1)', border: '1px solid rgba(196, 154, 85, 0.35)', borderRadius: 10 }}>
+            <p style={{ margin: 0, fontSize: 12, color: '#8a6420', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+              <Lightbulb size={13} style={{ flexShrink: 0, marginTop: 2 }} /> <span><strong>Not:</strong> Komisyon kayıtlarındaki "Ofis Payı" tahsilatı henüz doğrudan kasa/banka girişine otomatik bağlanmadığı için bu rapordaki giren tutara sadece kasaya fiziken işlenen tahsilatlar dahildir.</span>
             </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
             <div className="folder-panel">
-              <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 15, color: 'var(--success)' }}>
-                📥 Şirkete Giren Para Kaynakları
+              <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 15, color: 'var(--cl-success)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ArrowDownToLine size={16} /> Şirkete Giren Para Kaynakları
               </h3>
               {!summary?.incomeBySource || Object.keys(summary.incomeBySource).length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Bu dönemde kasaya giriş kaydı yok.</div>
+                <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Bu dönemde kasaya giriş kaydı yok.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
                   {Object.entries(summary.incomeBySource).map(([src, amt]) => (
-                    <div key={src} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: '#f8fafc', borderRadius: 6, fontSize: 13 }}>
+                    <div key={src} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: 'var(--cl-bg)', borderRadius: 8, fontSize: 13 }}>
                       <span>{SOURCE_LABELS[src] || src}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', color: 'var(--success)' }}>
+                      <span style={{ fontFamily: 'var(--font-body)', fontWeight: 'bold', color: 'var(--cl-success)' }}>
                         +{formatMoney(amt)}
                       </span>
                     </div>
@@ -186,17 +187,17 @@ export default function SummaryTab() {
             </div>
 
             <div className="folder-panel">
-              <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 15, color: 'var(--danger)' }}>
-                📤 Yapılan Masraf ve Çıkış Ödemeleri
+              <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 15, color: 'var(--cl-danger)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ArrowUpFromLine size={16} /> Yapılan Masraf ve Çıkış Ödemeleri
               </h3>
               {!expenseSummary?.byCategory || expenseSummary.byCategory.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Bu dönemde masraf/çıkış kaydı yok.</div>
+                <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Bu dönemde masraf/çıkış kaydı yok.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
                   {expenseSummary.byCategory.map((item) => (
-                    <div key={item.category} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: '#f8fafc', borderRadius: 6, fontSize: 13 }}>
+                    <div key={item.category} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: 'var(--cl-bg)', borderRadius: 8, fontSize: 13 }}>
                       <span>{item.categoryLabel || item.category}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', color: 'var(--danger)' }}>
+                      <span style={{ fontFamily: 'var(--font-body)', fontWeight: 'bold', color: 'var(--cl-danger)' }}>
                         -{formatMoney(item.total)}
                       </span>
                     </div>

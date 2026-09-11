@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { FileStack, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import { chequeNotesApi, CHEQUE_NOTE_TYPES, CHEQUE_NOTE_STATUSES } from '../../api/chequeNotes';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 
@@ -74,10 +75,10 @@ export default function ChequeNotesTab() {
 
   return (
     <div className="folder-panel">
-      <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>
-        📑 Çek/Senet Takibi {pendingCount > 0 && <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 400 }}>({pendingCount} bekliyor)</span>}
+      <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <FileStack size={17} /> Çek/Senet Takibi {pendingCount > 0 && <span style={{ fontSize: 12, color: 'var(--cl-muted)', fontWeight: 400 }}>({pendingCount} bekliyor)</span>}
       </h3>
-      <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: -6, marginBottom: 16 }}>
+      <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: -6, marginBottom: 16 }}>
         Kayıtlar otomatik oluşur — bir Gider, Komisyon Ödemesi veya Banka Hareketi girişinde "Ödeme Yöntemi: Çek/Senet" seçildiğinde burada görünür.
       </p>
       {loading ? (
@@ -96,29 +97,29 @@ export default function ChequeNotesTab() {
               className="ledger-history-item"
               style={{
                 flexWrap: 'wrap',
-                background: isOverdue ? '#fbeeeb' : isNearDue ? '#fdf3e0' : undefined,
+                background: isOverdue ? 'rgba(214, 69, 69, 0.06)' : isNearDue ? 'rgba(196, 154, 85, 0.1)' : undefined,
                 opacity: item.status === 'portfolio' ? 1 : 0.7,
               }}
             >
-              <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--muted)', minWidth: 40 }}>
+              <span style={{ fontSize: 11, fontFamily: 'var(--font-body)', color: 'var(--cl-muted)', minWidth: 40 }}>
                 {CHEQUE_NOTE_TYPES.find((t) => t.value === item.type)?.label}
               </span>
               <span style={{ flex: 1, minWidth: 160 }}>
                 {item.drawerName}
-                {item.referenceNo && <span style={{ color: 'var(--muted)', fontSize: 11 }}> · {item.referenceNo}</span>}
-                {item.notes && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{item.notes}</div>}
+                {item.referenceNo && <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}> · {item.referenceNo}</span>}
+                {item.notes && <div style={{ fontSize: 11, color: 'var(--cl-muted)' }}>{item.notes}</div>}
               </span>
-              <span style={{ fontSize: 12, color: item.direction === 'receivable' ? 'var(--success)' : 'var(--danger)' }}>
-                {item.direction === 'receivable' ? '↑ Alacak' : '↓ Borç'}
+              <span style={{ fontSize: 12, color: item.direction === 'receivable' ? 'var(--cl-success)' : 'var(--cl-danger)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                {item.direction === 'receivable' ? (<><ArrowUp size={11} /> Alacak</>) : (<><ArrowDown size={11} /> Borç</>)}
               </span>
-              <span style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(item.amount)}</span>
-              <span style={{ fontSize: 12, color: isOverdue ? 'var(--danger)' : isNearDue ? '#8a6100' : 'var(--muted)' }}>
-                {(isOverdue || isNearDue) && '⚠ '}
+              <span style={{ fontFamily: 'var(--font-body)' }}>{formatMoney(item.amount)}</span>
+              <span style={{ fontSize: 12, color: isOverdue ? 'var(--cl-danger)' : isNearDue ? '#8a6420' : 'var(--cl-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                {(isOverdue || isNearDue) && <AlertTriangle size={11} />}
                 {new Date(item.dueDate).toLocaleDateString('tr-TR')}
                 {isPending && isOverdue && ' (gecikti)'}
                 {isPending && isNearDue && ` (${days} gün kaldı)`}
               </span>
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+              <span style={{ fontSize: 11, color: 'var(--cl-muted)' }}>
                 {CHEQUE_NOTE_STATUSES.find((s) => s.value === item.status)?.label}
               </span>
 

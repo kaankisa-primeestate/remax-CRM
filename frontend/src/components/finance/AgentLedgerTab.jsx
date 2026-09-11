@@ -34,7 +34,7 @@ export default function AgentLedgerTab() {
 
   return (
     <div className="folder-panel">
-      <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+      <p style={{ color: 'var(--cl-muted)', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
         Detaylı ekstreyi (tarih/açıklama/borç/alacak/yürüyen bakiye) görmek için bir danışmana tıkla.
       </p>
       {loading ? (
@@ -54,10 +54,10 @@ export default function AgentLedgerTab() {
               <span className="record-row__name">{agent.name}</span>
               <span
                 style={{
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-body)',
                   fontWeight: 700,
                   fontSize: 13,
-                  color: balance > 0 ? '#1e7a3d' : balance < 0 ? 'var(--danger)' : 'var(--muted)',
+                  color: balance > 0 ? 'var(--cl-success)' : balance < 0 ? 'var(--cl-danger)' : 'var(--cl-muted)',
                 }}
               >
                 {balance > 0 && `Ofis Borçlu: ${money(balance)}`}
