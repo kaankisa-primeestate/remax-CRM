@@ -68,6 +68,7 @@ const REPORT_TYPES = [
   { value: 'summary', label: 'Genel Özet', description: 'Seçilen dönemdeki tüm gelir, gider ve ortak hareketlerini tek listede gösterir.' },
   { value: 'commission', label: 'Komisyon Gelirleri', description: 'Satış ve kiralama işlemlerinden elde edilen komisyon tahsilatları.' },
   { value: 'dues', label: 'Danışman Aidat / Masa Kirası', description: 'Danışmanlardan tahsil edilen aidat ve masa kirası gelirleri.' },
+  { value: 'other_income', label: 'Diğer Gelirler', description: 'Manuel olarak kaydedilen diğer gelir kaynakları (ek hizmet ücretleri, faiz vb.).' },
   { value: 'expenses', label: 'Ofis Masraf ve Giderleri', description: 'Kira, fatura, pazarlama gibi şirket giderleri, kategoriye göre gruplanmış.' },
   { value: 'partners', label: 'Ortak Cari Hareketleri', description: 'Ortakların şirkete koyduğu sermaye/borç ile şirketten çektiği tutarlar.' },
 ];
@@ -76,6 +77,7 @@ const REPORT_TYPES = [
 // (bkz. accounting.service.ts: 'Komisyon Tahsilatı', 'Danışman Kirası Tahsilatı').
 const COMMISSION_INCOME_CATEGORIES = new Set(['Komisyon Tahsilatı']);
 const DUES_INCOME_CATEGORIES = new Set(['Danışman Kirası Tahsilatı']);
+const OTHER_INCOME_CATEGORIES = new Set(['Diğer Gelir']);
 const RESET_COUNT_LABELS = {
   accounts: 'Muhasebe hesapları',
   entries: 'Para hareketleri',
@@ -773,6 +775,14 @@ export default function AccountingPage() {
         .sort((left, right) => (left.name || '').localeCompare(right.name || '', 'tr-TR', { sensitivity: 'base' }))
         .map((agent) => ({ value: agent.id, label: agent.name }));
     }
+    // Diğer gelirler manuel kayıtlardır; anlamlı alt kırılımı "hangi cariden
+    // geldiği"dir, o yüzden danışman değil cari listesinden beslenir.
+    if (reportType === 'other_income') {
+      return parties
+        .slice()
+        .sort((left, right) => (left.name || '').localeCompare(right.name || '', 'tr-TR', { sensitivity: 'base' }))
+        .map((party) => ({ value: party.id, label: party.name }));
+    }
     if (reportType === 'partners') {
       return parties
         .filter((party) => party.type === 'partner')
@@ -792,6 +802,7 @@ export default function AccountingPage() {
       let matchesType;
       if (appliedReportType === 'commission') matchesType = classification === 'income' && COMMISSION_INCOME_CATEGORIES.has(entry.category);
       else if (appliedReportType === 'dues') matchesType = classification === 'income' && DUES_INCOME_CATEGORIES.has(entry.category);
+      else if (appliedReportType === 'other_income') matchesType = classification === 'income' && OTHER_INCOME_CATEGORIES.has(entry.category);
       else if (appliedReportType === 'expenses') matchesType = classification === 'expense';
       else if (appliedReportType === 'partners') matchesType = classification === 'partner_in' || classification === 'partner_out';
       else matchesType = classification !== 'transfer'; // summary: transferler haricinde tüm gelir/gider/ortak hareketleri
@@ -799,7 +810,7 @@ export default function AccountingPage() {
       if (appliedReportSubFilter && appliedReportSubFilter !== 'ALL') {
         if (appliedReportType === 'expenses') {
           if (entry.category !== appliedReportSubFilter) return false;
-        } else if (appliedReportType === 'commission' || appliedReportType === 'dues' || appliedReportType === 'partners') {
+        } else if (appliedReportType === 'commission' || appliedReportType === 'dues' || appliedReportType === 'other_income' || appliedReportType === 'partners') {
           if (entry.partyId !== appliedReportSubFilter) return false;
         }
       }
