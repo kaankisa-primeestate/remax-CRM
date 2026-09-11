@@ -1514,12 +1514,12 @@ export default function AccountingPage() {
                 <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
               <div style={{ gridColumn: 'span 4', display: 'flex', gap: 16 }}>
-                <FormField label="Para birimi" style={{ minWidth: 0, width: 100, flex: '0 0 auto' }}>
+                <FormField label="Para birimi" style={{ width: 100, flex: '0 0 auto' }}>
                   <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
                     {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Açıklama" style={{ minWidth: 0, flex: '1 1 auto' }}>
+                <FormField label="Açıklama" style={{ flex: '1 1 auto' }}>
                   <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
                 </FormField>
               </div>
@@ -1644,7 +1644,7 @@ export default function AccountingPage() {
                   {ACCOUNTING_ACCOUNT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Hesap adı" style={{ minWidth: 190 }}>
+              <FormField label="Hesap adı">
                 <input value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} placeholder="Örn. Ana Banka Hesabı" required />
               </FormField>
               {accountForm.type !== 'cash' && (
@@ -1734,10 +1734,10 @@ export default function AccountingPage() {
                   {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Ad / unvan" style={{ minWidth: 210 }}>
+              <FormField label="Ad / unvan">
                 <input value={partyForm.name} onChange={(event) => setPartyForm({ ...partyForm, name: event.target.value })} placeholder="Örn. ABC Elektrik" required />
               </FormField>
-              <FormField label="Şirket adı" style={{ minWidth: 190 }}>
+              <FormField label="Şirket adı">
                 <input value={partyForm.companyName} onChange={(event) => setPartyForm({ ...partyForm, companyName: event.target.value })} placeholder="Opsiyonel" />
               </FormField>
               <FormField label="Telefon">
@@ -1748,7 +1748,7 @@ export default function AccountingPage() {
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Açılış bakiyesi" style={{ minWidth: 150 }}>
+              <FormField label="Açılış bakiyesi">
                                   <AmountInput id="accounting-party-opening-balance" value={partyForm.openingBalance} currency={partyForm.currency} onChange={(event) => setPartyForm({ ...partyForm, openingBalance: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" />
 
               </FormField>
@@ -1774,10 +1774,10 @@ export default function AccountingPage() {
               <span style={{ color: 'var(--muted)', fontSize: 12 }}>{filteredParties.length} / {parties.length} kart · Sayfa {partyPage} / {partyPageCount}</span>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
-              <FormField label="Cari ara" style={{ minWidth: 250, flex: '1 1 250px' }}>
+              <FormField label="Cari ara" style={{ flex: '1 1 250px' }}>
                 <input value={partySearch} onChange={(event) => setPartySearch(event.target.value)} placeholder="Ad, şirket, telefon veya vergi no" />
               </FormField>
-              <FormField label="Kart türü" style={{ minWidth: 170 }}>
+              <FormField label="Kart türü">
                 <select value={partyTypeFilter} onChange={(event) => setPartyTypeFilter(event.target.value)}>
                   <option value="all">Tüm kartlar</option>
                   {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
@@ -1931,7 +1931,7 @@ export default function AccountingPage() {
               <span style={{ color: 'var(--brass)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>Oran otomatik alınır</span>
             </div>
             <form onSubmit={handleCreateCommission} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <FormField label="Danışman" style={{ minWidth: 210 }}>
+              <FormField label="Danışman">
                 <select value={commissionForm.agentId} onChange={(event) => setCommissionForm({ ...commissionForm, agentId: event.target.value })} required>
                   <option value="">Danışman seçin</option>
                   {agents.map((agent) => (
@@ -1948,7 +1948,7 @@ export default function AccountingPage() {
               <FormField label="Kapama tarihi">
                 <input type="date" value={commissionForm.date} onChange={(event) => setCommissionForm({ ...commissionForm, date: event.target.value })} required />
               </FormField>
-              <FormField label="Brüt komisyon" style={{ minWidth: 170 }}>
+              <FormField label="Brüt komisyon">
                 <AmountInput id="accounting-commission-gross-amount" value={commissionForm.grossAmount} currency={commissionForm.currency} onChange={(event) => setCommissionForm({ ...commissionForm, grossAmount: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
               <FormField label="Para birimi">
@@ -1956,7 +1956,7 @@ export default function AccountingPage() {
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Portföy / açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+              <FormField label="Portföy / açıklama" style={{ flex: '1 1 220px' }}>
                 <input value={commissionForm.propertyTitle} onChange={(event) => setCommissionForm({ ...commissionForm, propertyTitle: event.target.value })} placeholder="Opsiyonel" />
               </FormField>
               <button type="submit" className="btn btn-primary" disabled={commissionSaving || commissionLoading}>
@@ -2162,13 +2162,13 @@ export default function AccountingPage() {
             ) : (
               <>
                 <form onSubmit={handleCreatePartnerMovement} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <FormField label="Ortak" style={{ minWidth: 210 }}>
+                <FormField label="Ortak">
                   <select value={partnerMovementForm.partyId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, partyId: event.target.value })} required>
                     <option value="">Ortak seçin</option>
                     {parties.filter((party) => party.type === 'partner').map((party) => <option value={party.id} key={party.id}>{party.name} · {party.currency}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Hareket türü" style={{ minWidth: 240 }}>
+                <FormField label="Hareket türü">
                   <select value={partnerMovementForm.movementType} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, movementType: event.target.value })}>
                     {PARTNER_MOVEMENT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
@@ -2176,7 +2176,7 @@ export default function AccountingPage() {
                 <FormField label="Tarih">
                   <input type="date" value={partnerMovementForm.date} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, date: event.target.value })} required />
                 </FormField>
-                <FormField label="Tutar" style={{ minWidth: 150 }}>
+                <FormField label="Tutar">
                   <AmountInput id="accounting-partner-movement-amount" value={partnerMovementForm.amount} currency={partnerMovementForm.currency} onChange={(event) => { setPartnerSaveNotice(null); setPartnerMovementForm({ ...partnerMovementForm, amount: event.target.value }); }} placeholder="Örn. 170000 veya 170.000,00" required />
                 </FormField>
                 <FormField label="Para birimi">
@@ -2184,13 +2184,13 @@ export default function AccountingPage() {
                     {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Para hesabı" style={{ minWidth: 210 }}>
+                <FormField label="Para hesabı">
                   <select value={partnerMovementForm.accountId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, accountId: event.target.value })} required>
                     <option value="">Hesap seçin</option>
                     {accounts.filter((account) => account.currency === partnerMovementForm.currency && account.isActive !== false).map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+                <FormField label="Açıklama" style={{ flex: '1 1 220px' }}>
                   <input value={partnerMovementForm.description} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, description: event.target.value })} placeholder="Opsiyonel" />
                 </FormField>
                 <button type="submit" className="btn btn-primary" disabled={partnerSaving}>
