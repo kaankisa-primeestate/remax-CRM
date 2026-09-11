@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { FileText, Check } from 'lucide-react';
 import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
 import { apiClient } from '../api/client.js';
 import { buildWhatsappUrl } from '../utils/contact.js';
@@ -118,9 +119,9 @@ export default function PropertyDetailPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           background: 'transparent',
           border: 'none',
           padding: 0,
@@ -139,11 +140,11 @@ export default function PropertyDetailPage() {
               {canEdit ? (
                 <QuickStatusSelect status={property.status} onChange={handleStatusChange} />
               ) : (
-                <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--muted)' }}>
+                <span className="status-badge" style={{ background: 'var(--cl-border)', color: 'var(--cl-muted)' }}>
                   {property.status === 'active' ? 'Aktif' : property.status}
                 </span>
               )}
-              <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--slate)' }}>
+              <span className="status-badge" style={{ background: 'var(--cl-border)', color: 'var(--cl-text)' }}>
                 {typeLabel}
               </span>
             </div>
@@ -151,8 +152,8 @@ export default function PropertyDetailPage() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => setShowShare(true)}>Paylaş</button>
             {canEdit && property.ownerPhone && (
-              <button className="btn btn-secondary" onClick={handleSendAuthorization} disabled={sendingAuth}>
-                {sendingAuth ? 'Hazırlanıyor…' : '📄 Yetkilendirme Sözleşmesi Gönder'}
+              <button className="btn btn-secondary" onClick={handleSendAuthorization} disabled={sendingAuth} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {sendingAuth ? 'Hazırlanıyor…' : (<><FileText size={14} /> Yetkilendirme Sözleşmesi Gönder</>)}
               </button>
             )}
             {canEdit && (
@@ -177,7 +178,7 @@ export default function PropertyDetailPage() {
           </div>
           <div className="dossier__field">
             <label>Fiyat</label>
-            <div style={{ fontFamily: 'var(--font-mono)' }}>{priceLabel}</div>
+            <div style={{ fontFamily: 'var(--font-body)' }}>{priceLabel}</div>
           </div>
           <div className="dossier__field">
             <label>Metrekare</label>
@@ -217,8 +218,8 @@ export default function PropertyDetailPage() {
               {activeFeatures.length ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                   {activeFeatures.map((f) => (
-                    <span key={f.key} className="status-badge" style={{ background: '#eef4ea', color: 'var(--success)' }}>
-                      ✓ {f.label}
+                    <span key={f.key} className="status-badge" style={{ background: 'rgba(21, 154, 99, 0.12)', color: 'var(--cl-success)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Check size={12} /> {f.label}
                     </span>
                   ))}
                 </div>
@@ -235,14 +236,14 @@ export default function PropertyDetailPage() {
 
         {property.photoUrls && property.photoUrls.length > 0 && (
           <>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12 }}>Fotoğraflar</h3>
+            <h3 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 18, marginBottom: 12 }}>Fotoğraflar</h3>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {property.photoUrls.map((url, i) => (
                 <img
                   key={i}
                   src={url}
                   alt={`${property.title} fotoğraf ${i + 1}`}
-                  style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--paper-line)', cursor: 'pointer' }}
+                  style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--cl-border)', cursor: 'pointer' }}
                   onError={(e) => { e.target.style.display = 'none'; }}
                   onClick={() => setLightboxIndex(i)}
                 />
@@ -253,7 +254,7 @@ export default function PropertyDetailPage() {
 
         {matches.length > 0 && (
           <>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12, marginTop: 24 }}>
+            <h3 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 18, marginBottom: 12, marginTop: 24 }}>
               Uygun Müşteriler
             </h3>
             <div>
@@ -269,7 +270,7 @@ export default function PropertyDetailPage() {
                     {m.agentName ? ` (${m.agentName})` : ''}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)' }}>
                       {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
                     </span>
                     <MatchConfidenceBadge match={m} />

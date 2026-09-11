@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { User, Building2, ChevronUp, ChevronDown } from 'lucide-react';
 import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -10,8 +11,8 @@ import MoneyInput from '../components/MoneyInput.jsx';
 import QuickStatusSelect from '../components/QuickStatusSelect.jsx';
 
 const filterCardStyle = {
-  background: 'var(--paper-raised, #fbfaf5)',
-  border: '1px solid var(--ink-navy-light, #cfc9b8)',
+  background: 'var(--cl-surface)',
+  border: '1px solid var(--cl-border)',
   borderRadius: 8,
   padding: 16,
   marginBottom: 16,
@@ -27,11 +28,11 @@ const filterGridStyle = {
 };
 
 const filterLabelStyle = {
-  fontFamily: 'var(--font-mono)',
+  fontFamily: 'var(--font-body)',
   fontSize: 11,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: 'var(--muted)',
+  color: 'var(--cl-muted)',
   marginBottom: 4,
   display: 'block',
 };
@@ -185,9 +186,9 @@ export default function PropertyListPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           background: 'transparent',
           border: 'none',
           padding: 0,
@@ -203,14 +204,16 @@ export default function PropertyListPage() {
           <button
             className={`folder-tab ${scope === 'mine' ? 'active' : ''}`}
             onClick={() => setScope('mine')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            👤 Portföylerim
+            <User size={14} /> Portföylerim
           </button>
           <button
             className={`folder-tab ${scope === 'office' ? 'active' : ''}`}
             onClick={() => setScope('office')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            🏢 Ofis Portföyü
+            <Building2 size={14} /> Ofis Portföyü
           </button>
         </div>
       )}
@@ -239,8 +242,8 @@ export default function PropertyListPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)}>
-            Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? '▲' : '▼'}
+          <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </div>
 
@@ -331,7 +334,7 @@ export default function PropertyListPage() {
             {activeFilterCount > 0 && (
               <button
                 className="btn btn-secondary"
-                style={{ marginTop: 14, color: 'var(--danger)' }}
+                style={{ marginTop: 14, color: 'var(--cl-danger)' }}
                 onClick={clearFilters}
               >
                 Filtreleri Temizle
@@ -356,7 +359,7 @@ export default function PropertyListPage() {
                 <Link to={`/portfoyler/${p.id}`} className="record-row" key={p.id}>
                   <ListingTypeBadge listingType={p.listingType} />
                   {isOfficeView && !isOwnListing ? (
-                    <span className="status-badge" style={{ background: 'var(--paper-line)', color: 'var(--muted)' }}>
+                    <span className="status-badge" style={{ background: 'var(--cl-border)', color: 'var(--cl-muted)' }}>
                       {PROPERTY_STATUSES.find((s) => s.value === p.status)?.label}
                     </span>
                   ) : (
@@ -368,7 +371,7 @@ export default function PropertyListPage() {
                   <span className="record-row__name">{p.title}</span>
                   <span className="record-row__phone">
                     {p.district}
-                    {isOfficeView && ownerName && ` · 👤 ${ownerName}`}
+                    {isOfficeView && ownerName && ` · ${ownerName}`}
                   </span>
                   <span className="record-row__budget">{formatPrice(p)}</span>
                 </Link>

@@ -2334,13 +2334,13 @@ button.metric-card--clickable {
 
 /* --- Revizyon bandı (portföy detay sayfası) --- */
 .revision-banner {
-  background: #fbe0dc;
-  border: 1px solid var(--danger);
-  border-radius: 8px;
+  background: rgba(214, 69, 69, 0.08);
+  border: 1px solid rgba(214, 69, 69, 0.35);
+  border-radius: 10px;
   padding: 12px 16px;
   margin-top: 14px;
   font-size: 13px;
-  color: var(--danger);
+  color: var(--cl-danger);
 }
 
 /* --- Panelim: Revizyon uyarı bandı (göze çarpan, en üstte) --- */
