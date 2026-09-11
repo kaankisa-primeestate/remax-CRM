@@ -35,10 +35,10 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <h1 className="login-card__title">PrimeCRM</h1>
-        <p className="login-card__subtitle">Müşteri Kayıt Defteri'ne giriş yapın</p>
+        <p className="login-card__subtitle">Hesabınıza giriş yapın</p>
 
         {location.state?.message && (
-          <div style={{ background: '#eef3f9', color: 'var(--ink-navy)', fontSize: 13, padding: '10px 14px', borderRadius: 6, marginBottom: 14 }}>
+          <div style={{ background: 'rgba(16, 35, 61, 0.06)', color: 'var(--cl-primary-800)', fontSize: 13, padding: '10px 14px', borderRadius: 8, marginBottom: 14 }}>
             {location.state.message}
           </div>
         )}

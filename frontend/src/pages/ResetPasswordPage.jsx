@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { authApi } from '../api/auth';
 import PasswordInput from '../components/PasswordInput.jsx';
 
@@ -57,7 +58,9 @@ export default function ResetPasswordPage() {
         <p className="login-card__subtitle">{email} için yeni bir şifre girin.</p>
 
         {done ? (
-          <p style={{ fontSize: 14, color: '#1e7a3d' }}>✓ Şifreniz güncellendi. Giriş sayfasına yönlendiriliyorsunuz…</p>
+          <p style={{ fontSize: 14, color: 'var(--cl-success)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Check size={15} /> Şifreniz güncellendi. Giriş sayfasına yönlendiriliyorsunuz…
+          </p>
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="form-field" style={{ marginBottom: 14 }}>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check, UserPlus } from 'lucide-react';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import PasswordInput from '../components/PasswordInput.jsx';
@@ -126,8 +127,8 @@ export default function ChangePasswordPage() {
 
         {error && <div className="form-error">{error}</div>}
         {success && (
-          <div style={{ color: 'var(--success)', fontSize: 14, marginBottom: 14 }}>
-            ✓ Şifreniz başarıyla değiştirildi. Güvenlik gereği çıkış yapılıyor, yeni şifrenizle tekrar giriş yapmanız gerekecek…
+          <div style={{ color: 'var(--cl-success)', fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Check size={15} /> Şifreniz başarıyla değiştirildi. Güvenlik gereği çıkış yapılıyor, yeni şifrenizle tekrar giriş yapmanız gerekecek…
           </div>
         )}
 
@@ -138,7 +139,7 @@ export default function ChangePasswordPage() {
 
       {isBroker && (
         <>
-          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--paper-line)' }}>
+          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--cl-border)' }}>
             <h2 style={{ marginBottom: 20 }}>E-posta Adresini Değiştir</h2>
             <form onSubmit={handleEmailSubmit}>
               <div className="form-field" style={{ marginBottom: 14 }}>
@@ -152,8 +153,8 @@ export default function ChangePasswordPage() {
 
               {emailError && <div className="form-error">{emailError}</div>}
               {emailSuccess && (
-                <div style={{ color: 'var(--success)', fontSize: 14, marginBottom: 14 }}>
-                  ✓ E-posta adresiniz başarıyla değiştirildi. Güvenlik gereği çıkış yapılıyor, yeni e-postanızla tekrar giriş yapmanız gerekecek…
+                <div style={{ color: 'var(--cl-success)', fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Check size={15} /> E-posta adresiniz başarıyla değiştirildi. Güvenlik gereği çıkış yapılıyor, yeni e-postanızla tekrar giriş yapmanız gerekecek…
                 </div>
               )}
 
@@ -163,14 +164,14 @@ export default function ChangePasswordPage() {
             </form>
           </div>
 
-          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--paper-line)' }}>
+          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--cl-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showAddBroker ? 20 : 0 }}>
               <h2 style={{ margin: 0 }}>Yeni Yönetici Ekle</h2>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowAddBroker((v) => !v)}>
-                {showAddBroker ? 'Vazgeç' : '+ Yeni Yönetici'}
+              <button type="button" className="btn btn-secondary" onClick={() => setShowAddBroker((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {showAddBroker ? 'Vazgeç' : (<><UserPlus size={14} /> Yeni Yönetici</>)}
               </button>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>
+            <p style={{ fontSize: 13, color: 'var(--cl-muted)', marginTop: 6 }}>
               Bir iş ortağınıza, kendi e-postası ve şifresiyle giriş yapabileceği ayrı bir yönetici hesabı açın.
             </p>
 
@@ -191,8 +192,8 @@ export default function ChangePasswordPage() {
 
                 {brokerError && <div className="form-error">{brokerError}</div>}
                 {brokerSuccess && (
-                  <div style={{ color: 'var(--success)', fontSize: 14, marginBottom: 14 }}>
-                    ✓ Yeni yönetici hesabı oluşturuldu. Bilgileri iş ortağınızla güvenli bir şekilde paylaşabilirsiniz.
+                  <div style={{ color: 'var(--cl-success)', fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Check size={15} /> Yeni yönetici hesabı oluşturuldu. Bilgileri iş ortağınızla güvenli bir şekilde paylaşabilirsiniz.
                   </div>
                 )}
 

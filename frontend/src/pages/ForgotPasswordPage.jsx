@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { authApi } from '../api/auth';
 
 export default function ForgotPasswordPage() {
@@ -32,8 +33,8 @@ export default function ForgotPasswordPage() {
           <div>
             <p style={{ fontSize: 14 }}>{result.message}</p>
             {!result.smtpConfigured && (
-              <p style={{ fontSize: 12.5, color: 'var(--danger)', marginTop: 10 }}>
-                ⚠️ Not: Sistem yöneticisi henüz e-posta gönderimini yapılandırmadı. Lütfen Broker'ınızla iletişime geçip şifrenizi elle sıfırlamasını isteyin.
+              <p style={{ fontSize: 12.5, color: 'var(--cl-danger)', marginTop: 10, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} /> Not: Sistem yöneticisi henüz e-posta gönderimini yapılandırmadı. Lütfen Broker'ınızla iletişime geçip şifrenizi elle sıfırlamasını isteyin.
               </p>
             )}
             <Link to="/login" style={{ display: 'block', textAlign: 'center', marginTop: 16, fontSize: 13 }}>← Girişe dön</Link>
