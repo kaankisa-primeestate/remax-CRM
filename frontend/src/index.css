@@ -3624,8 +3624,12 @@ button.metric-card--clickable {
     min-height: 42px;
   }
 
+  /* Taban stildeki min-width:720px burada kaldırılmazsa kart düzeni
+     görünse de tablo 720px kalıp sayfayı yatay taşırıyordu. */
   .accounting-page .accounting-report-table {
     display: block;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   .accounting-page .accounting-report-table thead {
@@ -3648,9 +3652,35 @@ button.metric-card--clickable {
   }
 
   .accounting-page .accounting-report-table td {
-    padding: 5px 0 !important;
+    display: block;
+    padding: 8px 0 !important;
     border: 0;
+    border-bottom: 1px solid var(--cl-border);
     text-align: left !important;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+
+  .accounting-page .accounting-report-table td:last-child {
+    border-bottom: 0;
+  }
+
+  /* Başlık satırı gizlendiği için her değerin etiketi hücreden gelir --
+     etiketsiz değerlerin hangi sütuna ait olduğu anlaşılmıyordu. */
+  .accounting-page .accounting-report-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--cl-muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .accounting-page .accounting-report-table__amount {
+    font-size: 15px;
+    font-weight: 700;
   }
 
   .accounting-page .accounting-report-actions .btn {
@@ -3670,46 +3700,93 @@ button.metric-card--clickable {
     grid-template-columns: 1fr;
   }
 
+  /* Dar ekranda tabloyu sıkıştırmak yerine yatay kaydırmaya izin veriyoruz:
+     sıkıştırma 9-11px'lik okunmaz sütunlar üretiyordu. Kart düzenine
+     çevrilen tablolar (.accounting-data-table / .accounting-report-table)
+     zaten taşmadığı için bu kaydırma onları etkilemez. */
   .accounting-page .table-scroll {
     width: 100%;
-    overflow-x: hidden;
-  }
-
-  .accounting-page .table-scroll table {
-    width: 100% !important;
-    min-width: 100% !important;
-    table-layout: fixed;
-    font-size: 11px !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .accounting-page .table-scroll th,
   .accounting-page .table-scroll td {
-    padding: 7px 4px !important;
-    overflow-wrap: anywhere;
-    word-break: break-word;
     vertical-align: top;
   }
 
-  .accounting-page .table-scroll th {
-    font-size: 9px !important;
-    line-height: 1.25;
-    letter-spacing: 0;
+  /* --- Mobilde kart düzeni: her satır kendi kartı, her hücre etiketli --- */
+  .accounting-page .accounting-data-table {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
-  .accounting-page .table-scroll td {
-    line-height: 1.35;
+  .accounting-page .accounting-data-table thead {
+    display: none;
   }
 
-  .accounting-page .table-scroll .btn {
+  .accounting-page .accounting-data-table tbody,
+  .accounting-page .accounting-data-table tr,
+  .accounting-page .accounting-data-table td {
+    display: block;
     width: 100%;
-    min-height: 38px;
-    padding: 6px 4px;
-    font-size: 10px;
-    white-space: normal;
   }
 
-  .accounting-page .table-scroll td div {
+  .accounting-page .accounting-data-table tr {
+    border: 1px solid var(--cl-border);
+    border-radius: 10px;
+    background: var(--cl-surface);
+    padding: 6px 12px;
+    margin-bottom: 10px;
+  }
+
+  .accounting-page .accounting-data-table td {
+    display: block;
+    padding: 8px 0 !important;
+    border: 0;
+    border-bottom: 1px solid var(--cl-border);
+    text-align: left !important;
     overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+
+  .accounting-page .accounting-data-table td:last-child {
+    border-bottom: 0;
+  }
+
+  /* Etiket, hücrenin data-label değerinden gelir ve değerin ÜSTÜNDE durur:
+     yan yana düzende uzun değerler küçülemeyip taşıyordu. */
+  .accounting-page .accounting-data-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--cl-muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .accounting-page .accounting-data-table__amount {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  /* İşlem butonları alt alta, tam genişlikte ve dokunulabilir */
+  .accounting-page .accounting-data-table__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .accounting-page .accounting-data-table__actions .btn {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 0 !important;
+    font-size: 13px !important;
+    padding: 8px 10px !important;
   }
 
   .accounting-page .cl-tabs {

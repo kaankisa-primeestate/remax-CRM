@@ -1661,7 +1661,7 @@ export default function AccountingPage() {
               <div className="empty-state">Bu dönem ve para biriminde henüz hareket yok.</div>
             ) : (
               <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="accounting-data-table" style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
                       <th style={{ padding: '7px 8px' }}>Tarih</th>
@@ -1676,17 +1676,17 @@ export default function AccountingPage() {
                   <tbody>
                     {entries.map((entry) => (
                       <tr key={entry.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                        <td style={{ padding: '9px 8px' }}>{formatDate(entry.date)}</td>
-                        <td style={{ padding: '9px 8px' }}>{entryTypeLabel(entry.type)}</td>
-                        <td style={{ padding: '9px 8px' }}>{entry.category}</td>
-                        <td style={{ padding: '9px 8px' }}>
+                        <td data-label="Tarih" style={{ padding: '9px 8px' }}>{formatDate(entry.date)}</td>
+                        <td data-label="Tür" style={{ padding: '9px 8px' }}>{entryTypeLabel(entry.type)}</td>
+                        <td data-label="Kategori" style={{ padding: '9px 8px' }}>{entry.category}</td>
+                        <td data-label="Hesap" style={{ padding: '9px 8px' }}>
                           {entry.type === 'transfer' ? `${entry.accountName || '—'} → ${entry.counterAccountName || '—'}` : entry.accountName || '—'}
                         </td>
-                        <td style={{ padding: '9px 8px' }}>{entry.partyName || entry.description || '—'}</td>
-                        <td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: entry.type === 'expense' ? 'var(--cl-danger)' : 'var(--cl-success)' }}>
+                        <td data-label="Cari / açıklama" style={{ padding: '9px 8px' }}>{entry.partyName || entry.description || '—'}</td>
+                        <td data-label="Tutar" className="accounting-data-table__amount" style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: entry.type === 'expense' ? 'var(--cl-danger)' : 'var(--cl-success)' }}>
                           {formatAccountingMoney(entry.amount, entry.currency)}
                         </td>
-                        <td style={{ padding: '9px 8px' }}>
+                        <td data-label="İşlem" className="accounting-data-table__actions" style={{ padding: '9px 8px' }}>
                           {entry.sourceType === 'manual' && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleStartCorrectEntry(entry)}>Düzelt</button>}
                           {['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleVoidEntry(entry)}>İptal Et</button>}
                           {!['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}>Komisyon/kira kaynağı</span>}
@@ -2605,11 +2605,11 @@ export default function AccountingPage() {
                               : entry.accountName || '—';
                             return (
                               <tr key={entry.id}>
-                                <td>{formatDate(entry.date)}</td>
-                                <td><strong>{entry.category || 'Kategorisiz'}</strong><div className="accounting-report-subtext">{entry.description || 'Açıklama yok'}</div></td>
-                                <td><strong>{accountText}</strong><div className="accounting-report-subtext">{entry.partyName || 'Cari yok'}</div></td>
-                                <td>{reportMovementLabel(classification)}</td>
-                                <td style={{ textAlign: 'right', fontFamily: 'var(--font-body)', color: isInflow ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
+                                <td data-label="Tarih">{formatDate(entry.date)}</td>
+                                <td data-label="Kategori / Açıklama"><strong>{entry.category || 'Kategorisiz'}</strong><div className="accounting-report-subtext">{entry.description || 'Açıklama yok'}</div></td>
+                                <td data-label="Hesap / Cari"><strong>{accountText}</strong><div className="accounting-report-subtext">{entry.partyName || 'Cari yok'}</div></td>
+                                <td data-label="Hareket Türü">{reportMovementLabel(classification)}</td>
+                                <td data-label="Tutar" className="accounting-report-table__amount" style={{ textAlign: 'right', fontFamily: 'var(--font-body)', color: isInflow ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                                   {isInflow ? '+' : '-'}{formatAccountingMoney(entry.amount, entry.currency)}
                                 </td>
                               </tr>
