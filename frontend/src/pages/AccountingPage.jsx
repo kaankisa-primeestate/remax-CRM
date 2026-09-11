@@ -67,14 +67,16 @@ const REPORT_TYPES = [
   { value: 'summary', label: 'Genel Özet', description: 'Seçilen dönemdeki tüm gelir, gider ve ortak hareketlerini tek listede gösterir.' },
   { value: 'commission', label: 'Komisyon Gelirleri', description: 'Satış ve kiralama işlemlerinden elde edilen komisyon tahsilatları.' },
   { value: 'dues', label: 'Danışman Aidat / Masa Kirası', description: 'Danışmanlardan tahsil edilen aidat ve masa kirası gelirleri.' },
+  { value: 'other_income', label: 'Diğer Gelirler', description: 'Manuel olarak kaydedilen diğer gelir kaynakları (ek hizmet ücretleri, faiz vb.).' },
   { value: 'expenses', label: 'Ofis Masraf ve Giderleri', description: 'Kira, fatura, pazarlama gibi şirket giderleri, kategoriye göre gruplanmış.' },
   { value: 'partners', label: 'Ortak Cari Hareketleri', description: 'Ortakların şirkete koyduğu sermaye/borç ile şirketten çektiği tutarlar.' },
 ];
-// Bu iki kategori adı, backend'de komisyon/aidat tahsilatı yapıldığında
+// Bu kategori adları, backend'de komisyon/aidat tahsilatı yapıldığında
 // otomatik olarak yazılan sabit kategori adlarıyla birebir eşleşir
 // (bkz. accounting.service.ts: 'Komisyon Tahsilatı', 'Danışman Kirası Tahsilatı').
 const COMMISSION_INCOME_CATEGORIES = new Set(['Komisyon Tahsilatı']);
 const DUES_INCOME_CATEGORIES = new Set(['Danışman Kirası Tahsilatı']);
+const OTHER_INCOME_CATEGORIES = new Set(['Diğer Gelir']);
 const RESET_COUNT_LABELS = {
   accounts: 'Muhasebe hesapları',
   entries: 'Para hareketleri',
@@ -724,6 +726,7 @@ export default function AccountingPage() {
       let matchesType;
       if (appliedReportType === 'commission') matchesType = classification === 'income' && COMMISSION_INCOME_CATEGORIES.has(entry.category);
       else if (appliedReportType === 'dues') matchesType = classification === 'income' && DUES_INCOME_CATEGORIES.has(entry.category);
+      else if (appliedReportType === 'other_income') matchesType = classification === 'income' && OTHER_INCOME_CATEGORIES.has(entry.category);
       else if (appliedReportType === 'expenses') matchesType = classification === 'expense';
       else if (appliedReportType === 'partners') matchesType = classification === 'partner_in' || classification === 'partner_out';
       else matchesType = classification !== 'transfer'; // summary: transferler haricinde tüm gelir/gider/ortak hareketleri
@@ -731,13 +734,13 @@ export default function AccountingPage() {
       if (appliedReportSubFilter && appliedReportSubFilter !== 'ALL') {
         if (appliedReportType === 'expenses') {
           if (entry.category !== appliedReportSubFilter) return false;
-        } else if (appliedReportType === 'commission' || appliedReportType === 'dues' || appliedReportType === 'partners') {
+        } else if (appliedReportType === 'commission' || appliedReportType === 'dues' || appliedReportType === 'other_income' || appliedReportType === 'partners') {
           if (entry.partyId !== appliedReportSubFilter) return false;
         }
       }
       return true;
     });
-  }, [reportMovements, appliedReportType, appliedReportSubFilter]);
+  }, [reportMovements, appliedReportType, appliedReportSubFilter];
   // Homojen türler (komisyon/aidat/gider) için basit toplam; tüm tutarlar zaten
   // pozitif saklanır, yön "classification" ile belirlenir.
   const reportRowsTotal = useMemo(
@@ -2416,6 +2419,16 @@ export default function AccountingPage() {
                       <div className="metric-card__label">Toplam Aidat / Masa Kirası Geliri</div>
                       <div className="metric-card__value" style={{ color: 'var(--success)' }}>{formatAccountingMoney(reportRowsTotal, currency)}</div>
                       <div className="metric-card__delta is-muted">{reportRows.length} tahsilat</div>
+                    </div>
+                  </div>
+                )}
+
+                {appliedReportType === 'other_income' && (
+                  <div className="metric-grid accounting-report-metrics" style={{ marginBottom: 16 }}>
+                    <div className="metric-card">
+                      <div className="metric-card__label">Toplam Diğer Gelir</div>
+                      <div className="metric-card__value" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(reportRowsTotal, currency)}</div>
+                      <div className="metric-card__delta is-muted">{reportRows.length} gelir kaydı</div>
                     </div>
                   </div>
                 )}
