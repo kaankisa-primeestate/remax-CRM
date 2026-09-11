@@ -3432,6 +3432,99 @@ button.metric-card--clickable {
   min-width: 140px;
 }
 
+/* --- Danışmanlar: dar ekran düzeni ---
+   Kart başlığı foto + bilgi + buton bloğu olarak tek satırdaydı ve buton
+   bloğu flex-shrink:0 olduğu için 390px'e sığmıyor, "Düzenle"/"Sil" ve
+   "Muafiyet Bitişi" ekranın dışında kalıyordu. Dar ekranda bloklar alt
+   alta alınır, alanlar tam genişliğe yayılır. */
+@media (max-width: 600px) {
+  .agents-page .agent-card {
+    padding: 14px;
+  }
+
+  .agents-page .agent-card__header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .agents-page .agent-card__identity {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .agents-page .agent-card__actions {
+    width: 100%;
+    align-items: stretch !important;
+  }
+
+  .agents-page .agent-card__actions > .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  .agents-page .agent-card__actions-row {
+    flex-wrap: wrap;
+  }
+
+  .agents-page .agent-card__actions-row > button {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 38px;
+    white-space: nowrap;
+  }
+
+  /* Aylık hedef / aidat / muafiyet satırları: etiket üstte, alan tam genişlikte */
+  .agents-page .agent-card__fields {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .agents-page .agent-card__field-row {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 6px !important;
+  }
+
+  .agents-page .agent-card__field-row > label {
+    flex: 1 1 100%;
+    margin: 0;
+  }
+
+  .agents-page .agent-card__field-row > input {
+    flex: 1 1 100%;
+    width: 100% !important;
+    min-width: 0;
+    min-height: 40px;
+  }
+
+  .agents-page .agent-card__field-row > .btn {
+    flex: 1 1 100%;
+    min-height: 40px;
+  }
+
+  .agents-page .agent-card__company-edit .form-field {
+    min-width: 0;
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .agents-page .agent-card__company-edit .form-field input {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .agents-page .agent-card__company-edit > .btn {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .agents-page .agent-card__info-group {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
 /* --- Komisyonlar: Danışmanın cari bakiye kartı --- */
 .agent-balance-card {
   background: var(--cl-surface);
@@ -3574,6 +3667,30 @@ button.metric-card--clickable {
 
   .accounting-page form {
     width: 100%;
+  }
+
+  /* Giriş formu dar ekranda tek sütuna iner. Alanlardaki gridColumn:"span 2"
+     / "span 4" değerleri tek sütunlu grid'e örtük sütunlar ekleyip grid'i
+     ~664px'e genişletiyor ve alanlar görünmeden kırpılıyordu; bu yüzden
+     span değerleri de tek sütuna sabitlenir. */
+  .accounting-page .accounting-entry-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .accounting-page .accounting-entry-form-grid > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Para birimi + açıklama gibi yan yana duran ikili satırlar da alt alta */
+  .accounting-page .accounting-entry-form-row {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+
+  .accounting-page .accounting-entry-form-row > .form-field {
+    width: 100% !important;
+    flex: 1 1 100% !important;
   }
 
   .accounting-page .form-field {

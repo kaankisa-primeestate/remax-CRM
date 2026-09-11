@@ -1627,7 +1627,7 @@ export default function AccountingPage() {
               <FormField label="Tutar">
                 <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
-              <div style={{ gridColumn: 'span 4', display: 'flex', gap: 16 }}>
+              <div className="accounting-entry-form-row" style={{ gridColumn: 'span 4', display: 'flex', gap: 16 }}>
                 <FormField label="Para birimi" style={{ minWidth: 0, width: 100, flex: '0 0 auto' }}>
                   <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
                     {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}

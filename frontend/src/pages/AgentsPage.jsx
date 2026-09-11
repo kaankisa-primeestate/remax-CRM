@@ -501,7 +501,7 @@ export default function AgentsPage() {
                     style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                   />
                 )}
-                <div style={{ flex: 1 }}>
+                <div className="agent-card__identity" style={{ flex: 1 }}>
                   <div className="agent-card__name">
                     {agent.name}
                     {agent.isActive === false && (
@@ -525,7 +525,7 @@ export default function AgentsPage() {
                     <div className="agent-card__meta" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Building2 size={12} strokeWidth={2} /> {agent.companyName}{agent.taxId && ` · VKN: ${agent.taxId}`}</div>
                   )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'flex-end' }}>
+                <div className="agent-card__actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'flex-end' }}>
                   <button
                     type="button"
                     className="btn btn-secondary"
@@ -534,7 +534,7 @@ export default function AgentsPage() {
                   >
                     <Pencil size={13} strokeWidth={2} /> Düzenle
                   </button>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div className="agent-card__actions-row" style={{ display: 'flex', gap: 6 }}>
                     <button
                       type="button"
                       title="Danışmana yeni geçici şifre oluştur"
@@ -610,7 +610,7 @@ export default function AgentsPage() {
                 </div>
               )}
               <div className="agent-card__fields">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div className="agent-card__field-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <label style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--cl-muted)', textTransform: 'uppercase' }}>
                     Aylık Hedef (₺)
                   </label>
@@ -631,7 +631,7 @@ export default function AgentsPage() {
                     {savingTargetId === agent.id ? '…' : 'Kaydet'}
                   </button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div className="agent-card__field-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <label style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--cl-muted)', textTransform: 'uppercase' }}>
                     Aylık Aidat (₺)
                   </label>

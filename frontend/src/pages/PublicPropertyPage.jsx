@@ -91,7 +91,7 @@ export default function PublicPropertyPage() {
 
           <div style={{ fontSize: 24, fontFamily: 'var(--cl-font-heading)', fontWeight: 800, color: 'var(--cl-primary-800)', marginBottom: 20 }}>{priceLabel}</div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 20, fontSize: 14, color: 'var(--cl-text)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 12, marginBottom: 20, fontSize: 14, color: 'var(--cl-text)' }}>
             <div><strong>Metrekare:</strong> {property.areaM2} m²</div>
             {isResidential && (
               <>

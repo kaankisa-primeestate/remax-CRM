@@ -676,7 +676,7 @@ export default function TransactionDetailPage() {
                 <h4 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Tag size={16} /> Teklif & Kaparo Yönetimi
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10, marginBottom: 10 }}>
                   <div className="form-field">
                     <label>Teklif Tutarı (TL)</label>
                     <input type="number" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} placeholder="0.00" />
@@ -701,7 +701,7 @@ export default function TransactionDetailPage() {
                 </div>
 
                 <h5 style={{ marginTop: 15, marginBottom: 5 }}>Kaparo / Depozito</h5>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10, marginBottom: 10 }}>
                   <div className="form-field">
                     <label>Kaparo Tutarı (TL)</label>
                     <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="0.00" />
@@ -798,7 +798,7 @@ export default function TransactionDetailPage() {
                   </label>
                   <input type="number" value={totalCommission} onChange={(e) => handleTotalCommissionChange(e.target.value)} placeholder="0.00" />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10, marginBottom: 10 }}>
                   <div className="form-field">
                     <label>
                       Danışman Payı (TL)

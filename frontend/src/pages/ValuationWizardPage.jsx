@@ -348,7 +348,7 @@ export default function ValuationWizardPage() {
         {selectedGroup && (
           <div className="folder-panel">
             <h4 style={{ marginTop: 0 }}>3. Temel Bilgiler</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10 }}>
               <div className="form-field">
                 <label>Başlık *</label>
                 <input value={form.subjectTitle} onChange={(e) => setForm((f) => ({ ...f, subjectTitle: e.target.value }))} placeholder="Örn: Kadıköy Bostancı Camii Sokak 3+1" />
@@ -409,7 +409,7 @@ export default function ValuationWizardPage() {
         {step === 'details' && (
           <div>
             <h4 style={{ marginTop: 0 }}>Mülk Detayları</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10, marginBottom: 16 }}>
               <div className="form-field">
                 <label>Başlık</label>
                 <input value={form.subjectTitle} onChange={(e) => setForm((f) => ({ ...f, subjectTitle: e.target.value }))} />
@@ -439,7 +439,7 @@ export default function ValuationWizardPage() {
             {(selectedGroup === 'residential' || selectedGroup === 'mixed') && (
               <>
                 <h5>Konut Özellikleri</h5>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(150px, 30%), 1fr))', gap: 10, marginBottom: 16 }}>
                   <div className="form-field">
                     <label>Oda Sayısı</label>
                     <input value={groupData.rooms || ''} onChange={(e) => setGroupData((g) => ({ ...g, rooms: e.target.value }))} placeholder="3+1" />
@@ -474,7 +474,7 @@ export default function ValuationWizardPage() {
             {(selectedGroup === 'commercial' || selectedGroup === 'mixed') && (
               <>
                 <h5>Gelir Bilgileri</h5>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(150px, 30%), 1fr))', gap: 10, marginBottom: 16 }}>
                   <div className="form-field">
                     <label>Aylık Kira Geliri (TL)</label>
                     <input type="number" value={groupData.monthlyRent || ''} onChange={(e) => setGroupData((g) => ({ ...g, monthlyRent: e.target.value }))} />
@@ -498,7 +498,7 @@ export default function ValuationWizardPage() {
             {selectedGroup === 'land' && (
               <>
                 <h5>Arazi Özellikleri</h5>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(150px, 30%), 1fr))', gap: 10, marginBottom: 16 }}>
                   <div className="form-field">
                     <label>İmar Durumu</label>
                     <input value={groupData.zoningStatus || ''} onChange={(e) => setGroupData((g) => ({ ...g, zoningStatus: e.target.value }))} placeholder="Konut İmarlı" />
@@ -535,7 +535,7 @@ export default function ValuationWizardPage() {
             )}
 
             <h5>Tapu Bilgileri</h5>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(150px, 30%), 1fr))', gap: 10, marginBottom: 16 }}>
               <div className="form-field">
                 <label>Ada / Parsel No</label>
                 <input value={form.subjectParcelNo} onChange={(e) => setForm((f) => ({ ...f, subjectParcelNo: e.target.value }))} />
@@ -641,7 +641,7 @@ export default function ValuationWizardPage() {
         {step === 'result' && (
           <div>
             <h4 style={{ marginTop: 0 }}>SWOT Analizi</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10, marginBottom: 20 }}>
               <div className="form-field">
                 <label>Güçlü Yönler (+)</label>
                 <textarea rows={2} value={swot.swotStrengths} onChange={(e) => setSwot((s) => ({ ...s, swotStrengths: e.target.value }))} style={{ width: '100%', padding: 8 }} />
@@ -679,7 +679,7 @@ export default function ValuationWizardPage() {
                 </div>
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(150px, 30%), 1fr))', gap: 10, marginBottom: 16 }}>
               <div className="form-field">
                 <label>Hızlı Satış Taban Fiyatı</label>
                 <input type="number" value={prices.estimatedValueMin} onChange={(e) => setPrices((p) => ({ ...p, estimatedValueMin: e.target.value }))} />
