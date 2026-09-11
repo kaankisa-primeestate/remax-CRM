@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Wallet } from 'lucide-react';
 import { partnersApi } from '../../api/partners';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
 import ReceiptUploader from '../ReceiptUploader.jsx';
@@ -159,7 +160,7 @@ export default function PartnersTab() {
   return (
     <>
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Ortak Ekle</h3>
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yeni Ortak Ekle</h3>
         <form onSubmit={handleAddPartner} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
             <label>Ad Soyad</label>
@@ -174,7 +175,7 @@ export default function PartnersTab() {
           </button>
         </form>
         {partners.length > 0 && (
-          <p style={{ fontSize: 12, color: Math.abs(totalShare - 100) > 0.01 ? 'var(--danger)' : 'var(--muted)', marginTop: 10, marginBottom: 0 }}>
+          <p style={{ fontSize: 12, color: Math.abs(totalShare - 100) > 0.01 ? 'var(--cl-danger)' : 'var(--cl-muted)', marginTop: 10, marginBottom: 0 }}>
             Aktif ortakların hisse toplamı: %{totalShare.toFixed(2)} {Math.abs(totalShare - 100) > 0.01 && '— kâr dağıtımı için %100 olmalı!'}
           </p>
         )}
@@ -182,14 +183,14 @@ export default function PartnersTab() {
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>Kâr Dağıtımı</h3>
-          <button type="button" className="btn btn-primary" onClick={() => setShowDistribute((v) => !v)}>
-            {showDistribute ? 'Vazgeç' : '💰 Bu Ayın Kârını Dağıt'}
+          <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16 }}>Kâr Dağıtımı</h3>
+          <button type="button" className="btn btn-primary" onClick={() => setShowDistribute((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {showDistribute ? 'Vazgeç' : (<><Wallet size={14} /> Bu Ayın Kârını Dağıt</>)}
           </button>
         </div>
         {showDistribute && (
-          <div style={{ marginTop: 14, padding: 14, background: 'var(--paper)', borderRadius: 8 }}>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 0 }}>
+          <div style={{ marginTop: 14, padding: 14, background: 'var(--cl-bg)', borderRadius: 8 }}>
+            <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: 0 }}>
               Net kârı kendi muhasebenden hesaplayıp buraya tek bir rakam olarak gir — sistem bunu otomatik hesaplamaya çalışmaz, sadece aktif ortakların hisselerine göre doğru şekilde bölüştürür.
             </p>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -206,7 +207,7 @@ export default function PartnersTab() {
               </button>
             </div>
             {distributeAmount && partners.filter((p) => p.isActive).length > 0 && (
-              <div style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)' }}>
+              <div style={{ marginTop: 10, fontSize: 12, color: 'var(--cl-muted)' }}>
                 {partners.filter((p) => p.isActive).map((p) => (
                   <div key={p.id}>{p.name}: {formatMoney((Number(distributeAmount) * Number(p.sharePercentage)) / 100)} (%{p.sharePercentage})</div>
                 ))}
@@ -239,7 +240,7 @@ export default function PartnersTab() {
                       {balance < 0 && `Ortak borçlu: ${formatMoney(Math.abs(balance))}`}
                       {balance === 0 && 'Bakiye: —'}
                     </div>
-                    <span style={{ color: 'var(--muted)' }}>{expandedId === partner.id ? '▲' : '▼'}</span>
+                    <span style={{ color: 'var(--cl-muted)' }}>{expandedId === partner.id ? '▲' : '▼'}</span>
                   </div>
                 </div>
 
@@ -249,12 +250,12 @@ export default function PartnersTab() {
                       <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => handleToggleActive(partner)}>
                         {partner.isActive ? 'Pasifleştir' : 'Aktifleştir'}
                       </button>
-                      <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--danger)' }} onClick={() => handleDelete(partner.id)}>
+                      <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--cl-danger)' }} onClick={() => handleDelete(partner.id)}>
                         Ortağı Sil
                       </button>
                     </div>
 
-                    <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 14, margin: '0 0 10px' }}>Manuel Kayıt Ekle</h4>
+                    <h4 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 14, margin: '0 0 10px' }}>Manuel Kayıt Ekle</h4>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
                       <div className="form-field" style={{ margin: 0 }}>
                         <label>Tür</label>
@@ -289,15 +290,15 @@ export default function PartnersTab() {
                       </button>
                     </div>
 
-                    <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 14, margin: '0 0 10px' }}>Hareket Geçmişi</h4>
+                    <h4 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 14, margin: '0 0 10px' }}>Hareket Geçmişi</h4>
                     {partnerHistory.length === 0 ? (
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>Henüz hareket yok.</div>
+                      <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Henüz hareket yok.</div>
                     ) : (
                       partnerHistory.map((item) => (
                         <div key={item.id} className="ledger-history-item">
-                          <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{new Date(item.date).toLocaleDateString('tr-TR')}</span>
+                          <span style={{ color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 12 }}>{new Date(item.date).toLocaleDateString('tr-TR')}</span>
                           <span style={{ flex: 1 }}>{item.description}</span>
-                          <span style={{ fontFamily: 'var(--font-mono)', color: item.type === 'credit' ? 'var(--success)' : 'var(--danger)' }}>
+                          <span style={{ fontFamily: 'var(--font-body)', color: item.type === 'credit' ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                             {item.type === 'credit' ? '+' : '−'}{formatMoney(item.amount)}
                           </span>
                         </div>

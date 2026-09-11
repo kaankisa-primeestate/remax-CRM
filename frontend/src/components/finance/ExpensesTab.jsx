@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BarChart3, AlertTriangle, Repeat, Users, Search, ChevronDown, X, Settings } from 'lucide-react';
 import { expensesApi } from '../../api/expenses';
 import { recurringExpensesApi } from '../../api/recurringExpenses';
 import { bankAccountsApi, formatMoney } from '../../api/bankAccounts';
@@ -337,7 +338,9 @@ export default function ExpensesTab() {
     <>
       <div className="folder-panel" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', margin: 0, fontSize: 16 }}>📊 Kategori Özeti — Nereye Ne Harcadım?</h3>
+          <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BarChart3 size={17} /> Kategori Özeti — Nereye Ne Harcadım?
+          </h3>
           <div style={{ display: 'flex', gap: 6 }}>
             {PERIODS.map((p) => (
               <button
@@ -345,10 +348,10 @@ export default function ExpensesTab() {
                 type="button"
                 onClick={() => setSummaryPeriod(p.value)}
                 style={{
-                  fontSize: 11, fontFamily: 'var(--font-mono)', padding: '4px 10px', borderRadius: 999,
-                  border: '1px solid var(--paper-line)', cursor: 'pointer',
-                  background: summaryPeriod === p.value ? 'var(--ink-navy)' : 'transparent',
-                  color: summaryPeriod === p.value ? 'white' : 'var(--muted)',
+                  fontSize: 11, fontFamily: 'var(--font-body)', padding: '4px 10px', borderRadius: 999,
+                  border: '1px solid var(--cl-border)', cursor: 'pointer',
+                  background: summaryPeriod === p.value ? 'var(--cl-primary-800)' : 'transparent',
+                  color: summaryPeriod === p.value ? 'white' : 'var(--cl-muted)',
                 }}
               >
                 {p.label}
@@ -372,18 +375,18 @@ export default function ExpensesTab() {
                   onClick={() => navigate(`/giderler/${s.categoryId}?period=${summaryPeriod}`)}
                   style={{
                     textAlign: 'left', padding: 14, borderRadius: 8, cursor: 'pointer',
-                    border: isSpike ? '1px solid var(--danger)' : '1px solid var(--paper-line)',
-                    background: isSpike ? '#fbeeeb' : 'white',
+                    border: isSpike ? '1px solid var(--cl-danger)' : '1px solid var(--cl-border)',
+                    background: isSpike ? 'rgba(214, 69, 69, 0.06)' : 'var(--cl-surface)',
                   }}
                 >
-                  <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
-                    {s.label} {isSpike && '⚠️'}
+                  <div style={{ fontSize: 12, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {s.label} {isSpike && <AlertTriangle size={12} style={{ color: 'var(--cl-danger)' }} />}
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{formatMoney(s.total)}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--cl-muted)', marginTop: 2 }}>
                     {s.count} kalem
                     {changePercent != null && (
-                      <span style={{ color: isSpike ? 'var(--danger)' : 'inherit' }}> · {changePercent >= 0 ? '+' : ''}{changePercent}% önceki döneme göre</span>
+                      <span style={{ color: isSpike ? 'var(--cl-danger)' : 'inherit' }}> · {changePercent >= 0 ? '+' : ''}{changePercent}% önceki döneme göre</span>
                     )}
                   </div>
                 </button>
@@ -394,11 +397,11 @@ export default function ExpensesTab() {
       </div>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yeni Gider Ekle</h3>
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yeni Gider Ekle</h3>
 
         {pendingRecurring.length > 0 && (
-          <div style={{ background: '#fdf3e0', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12 }}>
-            ⚠ Bu ay <strong>{pendingRecurring.length}</strong> sabit gider henüz ödenmedi: {pendingRecurring.map((p) => p.template.title).join(', ')}
+          <div style={{ background: 'rgba(196, 154, 85, 0.1)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertTriangle size={13} /> Bu ay <strong>{pendingRecurring.length}</strong> sabit gider henüz ödenmedi: {pendingRecurring.map((p) => p.template.title).join(', ')}
           </div>
         )}
 
@@ -406,8 +409,8 @@ export default function ExpensesTab() {
           <button type="button" className={expenseMode === 'single' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => handleModeChange('single')}>
             Tek Seferlik Gider
           </button>
-          <button type="button" className={expenseMode === 'recurring' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => handleModeChange('recurring')} disabled={recurringTemplates.length === 0}>
-            🔁 Sabit Gider (Şablondan)
+          <button type="button" className={expenseMode === 'recurring' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => handleModeChange('recurring')} disabled={recurringTemplates.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Repeat size={14} /> Sabit Gider (Şablondan)
           </button>
         </div>
 
@@ -512,22 +515,24 @@ export default function ExpensesTab() {
           {expenseMode === 'single' && (
           <>
           {/* ARAMALI VE AÇILIR MENÜLÜ ÇOKLU DANIŞMAN YANSITMA ALANI */}
-          <div className="form-field full" ref={menuRef} style={{ marginTop: 10, padding: 12, border: '1px solid var(--paper-line, #e2e8f0)', borderRadius: 6, background: '#f8fafc', position: 'relative' }}>
-            <label style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'block' }}>👥 Danışmanlara Masraf Yansıt (Opsiyonel)</label>
-            
+          <div className="form-field full" ref={menuRef} style={{ marginTop: 10, padding: 12, border: '1px solid var(--cl-border)', borderRadius: 10, background: 'var(--cl-bg)', position: 'relative' }}>
+            <label style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Users size={14} /> Danışmanlara Masraf Yansıt (Opsiyonel)
+            </label>
+
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setIsAgentMenuOpen(!isAgentMenuOpen)}
-                style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: 4, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                style={{ background: 'var(--cl-surface)', border: '1px solid var(--cl-border)', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
               >
-                <span>🔍 Danışman Seç / Ara</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Search size={12} /> Danışman Seç / Ara</span>
                 {selectedAgentIds.length > 0 && (
-                  <span style={{ background: '#2563eb', color: '#fff', padding: '1px 6px', borderRadius: 10, fontSize: 11, fontWeight: 'bold' }}>
+                  <span style={{ background: 'var(--cl-primary-800)', color: '#fff', padding: '1px 6px', borderRadius: 10, fontSize: 11, fontWeight: 'bold' }}>
                     {selectedAgentIds.length} Seçildi
                   </span>
                 )}
-                <span style={{ fontSize: 10 }}>▼</span>
+                <ChevronDown size={12} />
               </button>
 
               {/* Seçilen Danışmanların Rozetleri */}
@@ -535,9 +540,9 @@ export default function ExpensesTab() {
                 {selectedAgentIds.map((id) => {
                   const ag = agents.find((a) => a.id === id);
                   return (
-                    <span key={id} style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 4, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span key={id} style={{ background: 'rgba(16, 35, 61, 0.08)', color: 'var(--cl-primary-800)', padding: '2px 8px', borderRadius: 4, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
                       {ag?.name}
-                      <b onClick={() => handleAgentToggle(id)} style={{ cursor: 'pointer', marginLeft: 2, color: '#ef4444' }}>✕</b>
+                      <X size={11} onClick={() => handleAgentToggle(id)} style={{ cursor: 'pointer', marginLeft: 2, color: 'var(--cl-danger)' }} />
                     </span>
                   );
                 })}
@@ -546,24 +551,24 @@ export default function ExpensesTab() {
 
             {/* AÇILIR LİSTE (DROPDOWN MODAL) */}
             {isAgentMenuOpen && (
-              <div style={{ position: 'absolute', top: '100%', left: 12, zIndex: 100, width: 320, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', padding: 10, marginTop: 4 }}>
+              <div style={{ position: 'absolute', top: '100%', left: 12, zIndex: 100, width: 320, background: 'var(--cl-surface)', border: '1px solid var(--cl-border)', borderRadius: 8, boxShadow: '0 10px 25px -5px rgba(16, 35, 61, 0.15)', padding: 10, marginTop: 4 }}>
                 <input
                   type="text"
                   placeholder="Danışman adı ara..."
                   value={agentSearchQuery}
                   onChange={(e) => setAgentSearchQuery(e.target.value)}
-                  style={{ width: '100%', padding: '6px 10px', borderRadius: 4, border: '1px solid #cbd5e1', fontSize: 12, marginBottom: 8 }}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--cl-border)', fontSize: 12, marginBottom: 8 }}
                   autoFocus
                 />
 
                 <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {filteredAgents.length === 0 ? (
-                    <div style={{ fontSize: 12, color: '#94a3b8', padding: 6, textAlign: 'center' }}>Danışman bulunamadı</div>
+                    <div style={{ fontSize: 12, color: 'var(--cl-muted)', padding: 6, textAlign: 'center' }}>Danışman bulunamadı</div>
                   ) : (
                     filteredAgents.map((ag) => {
                       const isSelected = selectedAgentIds.includes(ag.id);
                       return (
-                        <label key={ag.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 4, background: isSelected ? '#f1f5f9' : 'transparent', cursor: 'pointer', fontSize: 13 }}>
+                        <label key={ag.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: isSelected ? 'var(--cl-bg)' : 'transparent', cursor: 'pointer', fontSize: 13 }}>
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -581,7 +586,7 @@ export default function ExpensesTab() {
 
             {/* BÖLÜŞTÜRME HESAPLAMA ALANI */}
             {selectedAgentIds.length > 0 && (
-              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--cl-border)' }}>
                 <div style={{ display: 'flex', gap: 15, marginBottom: 8, fontSize: 12 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
                     <input type="radio" name="splitType" checked={splitType === 'equal'} onChange={() => setSplitType('equal')} style={{ width: 'auto' }} />
@@ -625,12 +630,13 @@ export default function ExpensesTab() {
       </div>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <button type="button" onClick={() => setShowTemplateManager((v) => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
-          {showTemplateManager ? '▼' : '▶'} ⚙️ Sabit Gider Şablonlarını Yönet ({recurringTemplates.length})
+        <button type="button" onClick={() => setShowTemplateManager((v) => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13, color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <ChevronDown size={13} style={{ transform: showTemplateManager ? 'none' : 'rotate(-90deg)', transition: 'transform 0.15s ease' }} />
+          <Settings size={13} /> Sabit Gider Şablonlarını Yönet ({recurringTemplates.length})
         </button>
         {showTemplateManager && (
           <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', background: '#f8fafc', padding: 12, borderRadius: 6, marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', background: 'var(--cl-bg)', padding: 12, borderRadius: 10, marginBottom: 14 }}>
               <div className="form-field" style={{ margin: 0, minWidth: 140 }}>
                 <label>Başlık</label>
                 <input value={newTemplateTitle} onChange={(e) => setNewTemplateTitle(e.target.value)} placeholder="Örn: Ofis Kirası" />
@@ -671,12 +677,12 @@ export default function ExpensesTab() {
               recurringTemplates.map((t) => (
                 <div key={t.id} className="ledger-history-item" style={{ opacity: t.isActive ? 1 : 0.5 }}>
                   <span style={{ flex: 1 }}>{t.title}</span>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{categories.find((c) => c.id === t.categoryId)?.name || '—'} · Her ayın {t.dueDayOfMonth}. günü</span>
-                  <span style={{ fontFamily: 'var(--font-mono)' }}>{formatMoney(t.defaultAmount)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>{categories.find((c) => c.id === t.categoryId)?.name || '—'} · Her ayın {t.dueDayOfMonth}. günü</span>
+                  <span style={{ fontFamily: 'var(--font-body)' }}>{formatMoney(t.defaultAmount)}</span>
                   <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => handleToggleTemplateActive(t)}>
                     {t.isActive ? 'Pasifleştir' : 'Aktifleştir'}
                   </button>
-                  <button type="button" className="task-row__delete" onClick={() => handleDeleteTemplate(t.id)} title="Sil">✕</button>
+                  <button type="button" className="task-row__delete" onClick={() => handleDeleteTemplate(t.id)} title="Sil"><X size={13} /></button>
                 </div>
               ))
             )}
@@ -693,7 +699,7 @@ export default function ExpensesTab() {
           <div className="table-scroll">
             <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
                   <th style={{ padding: '6px 8px' }}>Tarih</th>
                   <th style={{ padding: '6px 8px' }}>Kategori</th>
                   <th style={{ padding: '6px 8px' }}>Açıklama</th>
@@ -706,23 +712,23 @@ export default function ExpensesTab() {
                 {expenses.map((exp) => {
                   const catLabel = categories.find((c) => c.id === exp.categoryId)?.name || exp.category || '—';
                   return (
-                    <tr key={exp.id} style={{ borderTop: '1px solid var(--paper-line)' }}>
+                    <tr key={exp.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
                       <td style={{ padding: '8px' }}>{new Date(exp.date).toLocaleDateString('tr-TR')}</td>
-                      <td style={{ padding: '8px' }}>{catLabel}{exp.isRecurring && ' 🔁'}</td>
+                      <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 4 }}>{catLabel}{exp.isRecurring && <Repeat size={11} style={{ color: 'var(--cl-muted)' }} />}</td>
                       <td style={{ padding: '8px' }}>
                         {exp.title}
-                        {exp.referenceNo && <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11 }}> · {exp.referenceNo}</span>}
+                        {exp.referenceNo && <span style={{ color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11 }}> · {exp.referenceNo}</span>}
                       </td>
-                      <td style={{ padding: '8px', fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>
+                      <td style={{ padding: '8px', fontFamily: 'var(--font-body)', color: 'var(--cl-danger)' }}>
                         {formatMoney(exp.amount)}
-                        {exp.vatRate != null && <span style={{ color: 'var(--muted)', fontSize: 11 }}> (KDV %{exp.vatRate})</span>}
+                        {exp.vatRate != null && <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}> (KDV %{exp.vatRate})</span>}
                       </td>
                       <td style={{ padding: '8px' }}>
                         {exp.chargebacks && exp.chargebacks.length > 0 ? (
                           exp.chargebacks.map((cb, idx) => {
                             const ag = agents.find((a) => a.id === cb.agentId);
                             return (
-                              <span key={idx} style={{ display: 'inline-block', background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: 3, fontSize: 11, marginRight: 4 }}>
+                              <span key={idx} style={{ display: 'inline-block', background: 'rgba(16, 35, 61, 0.08)', color: 'var(--cl-primary-800)', padding: '1px 5px', borderRadius: 4, fontSize: 11, marginRight: 4 }}>
                                 {ag ? ag.name : 'Danışman'}: {formatMoney(cb.amount)}
                               </span>
                             );
@@ -730,14 +736,14 @@ export default function ExpensesTab() {
                         ) : exp.agentId ? (
                           <span>
                             {agents.find((a) => a.id === exp.agentId)?.name || 'Danışman'}
-                            {exp.chargebackPercentage > 0 && <span style={{ color: 'var(--muted)', fontSize: 11 }}> (%{exp.chargebackPercentage})</span>}
+                            {exp.chargebackPercentage > 0 && <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}> (%{exp.chargebackPercentage})</span>}
                           </span>
                         ) : (
                           '—'
                         )}
                       </td>
                       <td style={{ padding: '8px' }}>
-                        <button type="button" className="task-row__delete" onClick={() => handleDelete(exp.id)} title="Sil">✕</button>
+                        <button type="button" className="task-row__delete" onClick={() => handleDelete(exp.id)} title="Sil"><X size={13} /></button>
                       </td>
                     </tr>
                   );
