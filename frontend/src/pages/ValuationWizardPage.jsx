@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Check, X, FileText } from 'lucide-react';
 import { valuationsApi, PROPERTY_GROUPS, PROPERTY_TYPE_LABELS, COMP_TYPES } from '../api/valuations';
 import { propertiesApi } from '../api/properties';
 
@@ -277,7 +278,7 @@ export default function ValuationWizardPage() {
   if (isNew && !sourceStepDone) {
     return (
       <div>
-        <button type="button" onClick={() => navigate('/degerleme')} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}>
+        <button type="button" onClick={() => navigate('/degerleme')} style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}>
           ← Analizler Listesine Dön
         </button>
         <h2 className="dossier__name" style={{ marginBottom: 16 }}>Yeni Piyasa Değer Analizi</h2>
@@ -302,7 +303,11 @@ export default function ValuationWizardPage() {
                   <option key={p.id} value={p.id}>{p.title}</option>
                 ))}
               </select>
-              {selectedGroup && <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>✓ Bilgiler otomatik dolduruldu, türü: {groupInfo?.label}</p>}
+              {selectedGroup && (
+                <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Check size={13} style={{ color: 'var(--cl-success)' }} /> Bilgiler otomatik dolduruldu, türü: {groupInfo?.label}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -318,12 +323,12 @@ export default function ValuationWizardPage() {
                   onClick={() => handleStartExternal(g.value)}
                   style={{
                     textAlign: 'left', padding: 16, borderRadius: 8, cursor: 'pointer',
-                    border: selectedGroup === g.value ? '2px solid var(--ink-navy)' : '1px solid var(--paper-line)',
-                    background: selectedGroup === g.value ? '#eef3f9' : 'white',
+                    border: selectedGroup === g.value ? '2px solid var(--cl-primary-800)' : '1px solid var(--cl-border)',
+                    background: selectedGroup === g.value ? 'rgba(16, 35, 61, 0.06)' : 'var(--cl-surface)',
                   }}
                 >
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{g.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>{g.description}</div>
+                  <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>{g.description}</div>
                 </button>
               ))}
             </div>
@@ -380,13 +385,13 @@ export default function ValuationWizardPage() {
 
   return (
     <div>
-      <button type="button" onClick={() => navigate('/degerleme')} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}>
+      <button type="button" onClick={() => navigate('/degerleme')} style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}>
         ← Analizler Listesine Dön
       </button>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h2 className="dossier__name" style={{ margin: 0 }}>{form.subjectTitle}</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--muted)' }}>
+          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--cl-muted)' }}>
             {PROPERTY_TYPE_LABELS[selectedType] || selectedType} · {form.subjectDistrict}, {form.subjectProvince}
           </p>
         </div>
@@ -559,31 +564,31 @@ export default function ValuationWizardPage() {
         {step === 'comps' && (
           <div>
             <h4 style={{ marginTop: 0 }}>{selectedGroup === 'commercial' ? 'Emsal Kira / Gelir Karşılaştırması' : 'Emsal Karşılaştırma Tablosu'}</h4>
-            <p style={{ fontSize: 12, color: 'var(--muted)' }}>
+            <p style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
               En az 3 emsal eklemeniz önerilir — en yakın 3-6 ay içindeki satışlar/kiralar en güvenilir sonucu verir.
             </p>
 
             {comps.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 {comps.map((c) => (
-                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #e2e8f0', opacity: c.includedInAnalysis ? 1 : 0.5 }}>
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--cl-border)', opacity: c.includedInAnalysis ? 1 : 0.5 }}>
                     <input type="checkbox" checked={c.includedInAnalysis} onChange={() => handleToggleCompIncluded(c)} title="Analize dahil et/çıkar" />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 600 }}>{c.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                      <div style={{ fontSize: 11, color: 'var(--cl-muted)' }}>
                         {c.areaM2 ? `${c.areaM2} m² · ` : ''}{c.rooms ? `${c.rooms} · ` : ''}{COMP_TYPES.find((t) => t.value === c.compType)?.label}
                       </div>
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 600 }}>
                       {selectedGroup === 'commercial' ? (c.monthlyRent ? `${money(c.monthlyRent)}/ay` : '—') : money(c.price)}
                     </div>
-                    <button type="button" className="task-row__delete" onClick={() => handleRemoveComp(c.id)}>✕</button>
+                    <button type="button" className="task-row__delete" onClick={() => handleRemoveComp(c.id)}><X size={13} /></button>
                   </div>
                 ))}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', background: '#f8fafc', padding: 12, borderRadius: 6 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', background: 'var(--cl-bg)', padding: 12, borderRadius: 8 }}>
               <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
                 <label>Emsal Adı / Konumu</label>
                 <input value={newComp.title} onChange={(e) => setNewComp((c) => ({ ...c, title: e.target.value }))} placeholder="Örn: Aynı sokakta 3+1" />
@@ -657,7 +662,7 @@ export default function ValuationWizardPage() {
 
             <h4>Sonuç ve Fiyat Tavsiyesi</h4>
             {computeSuggestedAverage() && (
-              <div style={{ background: '#eef3f9', borderRadius: 6, padding: '10px 14px', marginBottom: 14, fontSize: 13 }}>
+              <div style={{ background: 'rgba(16, 35, 61, 0.06)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13 }}>
                 {typeof computeSuggestedAverage() === 'string' ? (
                   computeSuggestedAverage()
                 ) : (
@@ -669,7 +674,7 @@ export default function ValuationWizardPage() {
                     </button>
                   </>
                 )}
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: 'var(--cl-muted)', marginTop: 4 }}>
                   Bu sadece bir öneridir — aşağıdaki tüm değerleri kendi profesyonel değerlendirmenize göre değiştirebilirsiniz.
                 </div>
               </div>
@@ -698,11 +703,11 @@ export default function ValuationWizardPage() {
               <button type="button" className="btn btn-secondary" onClick={() => handleSaveSwotAndFinish(false)} disabled={saving}>
                 Taslak Olarak Kaydet
               </button>
-              <button type="button" className="btn btn-primary" onClick={() => handleSaveSwotAndFinish(true)} disabled={saving}>
-                ✓ Analizi Tamamla
+              <button type="button" className="btn btn-primary" onClick={() => handleSaveSwotAndFinish(true)} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Check size={14} /> Analizi Tamamla
               </button>
-              <button type="button" className="btn btn-primary" onClick={handleDownloadPdf} disabled={pdfDownloading}>
-                {pdfDownloading ? 'Hazırlanıyor…' : '📄 PDF Raporu İndir'}
+              <button type="button" className="btn btn-primary" onClick={handleDownloadPdf} disabled={pdfDownloading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {pdfDownloading ? 'Hazırlanıyor…' : (<><FileText size={14} /> PDF Raporu İndir</>)}
               </button>
             </div>
           </div>
