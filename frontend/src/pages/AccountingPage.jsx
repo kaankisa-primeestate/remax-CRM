@@ -740,7 +740,7 @@ export default function AccountingPage() {
       }
       return true;
     });
-  }, [reportMovements, appliedReportType, appliedReportSubFilter];
+  }, [reportMovements, appliedReportType, appliedReportSubFilter]);
   // Homojen türler (komisyon/aidat/gider) için basit toplam; tüm tutarlar zaten
   // pozitif saklanır, yön "classification" ile belirlenir.
   const reportRowsTotal = useMemo(
