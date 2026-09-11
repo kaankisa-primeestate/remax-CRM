@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Flame, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -9,8 +10,8 @@ import QuickAddCustomerModal from '../components/QuickAddCustomerModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 
 const filterCardStyle = {
-  background: 'var(--paper-raised, #fbfaf5)',
-  border: '1px solid var(--ink-navy-light, #cfc9b8)',
+  background: 'var(--cl-surface)',
+  border: '1px solid var(--cl-border)',
   borderRadius: 8,
   padding: 16,
   marginBottom: 16,
@@ -26,11 +27,11 @@ const filterGridStyle = {
 };
 
 const filterLabelStyle = {
-  fontFamily: 'var(--font-mono)',
+  fontFamily: 'var(--font-body)',
   fontSize: 11,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: 'var(--muted)',
+  color: 'var(--cl-muted)',
   marginBottom: 4,
   display: 'block',
 };
@@ -137,9 +138,9 @@ export default function CustomerListPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           background: 'transparent',
           border: 'none',
           padding: 0,
@@ -175,8 +176,8 @@ export default function CustomerListPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)}>
-            Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? '▲' : '▼'}
+          <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </div>
 
@@ -184,18 +185,18 @@ export default function CustomerListPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <span
               style={{
-                fontFamily: 'var(--font-mono)', fontSize: 12, background: '#fdf3e0', color: '#8a6100',
+                fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12, background: 'rgba(196, 154, 85, 0.15)', color: '#8a6420',
                 padding: '4px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 6,
               }}
             >
-              🔥 Sıcak Fırsatlar filtresi aktif
+              <Flame size={13} /> Sıcak Fırsatlar filtresi aktif
               <button
                 type="button"
                 onClick={() => setHotOnly(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6100', fontWeight: 700, padding: 0, lineHeight: 1 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6420', display: 'inline-flex', padding: 0, lineHeight: 1 }}
                 aria-label="Filtreyi kaldır"
               >
-                ✕
+                <X size={13} />
               </button>
             </span>
           </div>
@@ -239,7 +240,7 @@ export default function CustomerListPage() {
             {activeFilterCount > 0 && (
               <button
                 className="btn btn-secondary"
-                style={{ marginTop: 14, color: 'var(--danger)' }}
+                style={{ marginTop: 14, color: 'var(--cl-danger)' }}
                 onClick={clearFilters}
               >
                 Filtreleri Temizle

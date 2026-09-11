@@ -1135,9 +1135,9 @@ button {
 
 /* --- Musteri detay: Talep tamamlanma kutusu --- */
 .completion-box {
-  background: #fbf7ec;
-  border: 1px solid var(--brass-light);
-  border-radius: 8px;
+  background: rgba(196, 154, 85, 0.08);
+  border: 1px solid rgba(196, 154, 85, 0.35);
+  border-radius: 10px;
   padding: 14px 16px;
   margin-top: 16px;
   margin-bottom: 16px;
@@ -1149,50 +1149,50 @@ button {
   flex-wrap: wrap;
 }
 .completion-box__label {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
-  color: var(--ink-navy);
+  color: var(--cl-text);
   white-space: nowrap;
 }
 .completion-box__track {
   flex: 1;
   min-width: 100px;
   height: 6px;
-  background: var(--paper-line);
+  background: var(--cl-border);
   border-radius: 3px;
   overflow: hidden;
 }
 .completion-box__fill {
   height: 100%;
-  background: var(--brass);
+  background: var(--cl-gold);
   transition: width 0.2s ease;
 }
 .completion-box__missing {
   margin-top: 10px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--cl-muted);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
 .completion-box__chip {
-  background: white;
-  border: 1px solid var(--paper-line);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
   border-radius: 999px;
   padding: 3px 10px;
   font-size: 12px;
   font-family: var(--font-body);
-  color: var(--ink-navy);
+  color: var(--cl-text);
   cursor: pointer;
 }
 .completion-box__chip:hover {
-  border-color: var(--brass);
+  border-color: var(--cl-gold);
 }
 
 .form-error {
-  color: var(--danger);
+  color: var(--cl-danger);
   font-size: 13px;
   margin-top: 4px;
 }
@@ -1204,11 +1204,11 @@ button {
   margin-top: 20px;
 }
 /* Komisyon durumu */
-.status-badge--pending { background: #f3e6d2; color: #6b4a1c; }
-.status-badge--approved { background: #dfe7f3; color: var(--ink-navy); }
-.status-badge--paid { background: #dfeee2; color: var(--success); }
-.status-badge--pending_approval { background: #fdf1d6; color: #8a5a00; }
-.status-badge--needs_revision { background: #fbe0dc; color: var(--danger); }
+.status-badge--pending { background: rgba(196, 154, 85, 0.15); color: #8a6420; }
+.status-badge--approved { background: rgba(16, 35, 61, 0.08); color: var(--cl-primary-800); }
+.status-badge--paid { background: rgba(21, 154, 99, 0.12); color: var(--cl-success); }
+.status-badge--pending_approval { background: rgba(196, 154, 85, 0.15); color: #8a6420; }
+.status-badge--needs_revision { background: rgba(214, 69, 69, 0.1); color: var(--cl-danger); }
 
 /* --- Mobil responsive düzenlemeler --- */
 @media (max-width: 768px) {
@@ -2183,14 +2183,15 @@ button.metric-card--clickable {
   flex-wrap: wrap;
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px dashed var(--paper-line);
+  border-top: 1px dashed var(--cl-border);
 }
 .stage-picker__label {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--cl-muted);
 }
 .stage-picker__options {
   display: flex;
@@ -2200,17 +2201,21 @@ button.metric-card--clickable {
 .stage-picker__chip {
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid var(--paper-line);
-  background: var(--paper-raised);
+  border: 1px solid var(--cl-border);
+  background: var(--cl-surface);
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--cl-muted);
   cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.stage-picker__chip:hover {
+  border-color: var(--cl-gold);
 }
 .stage-picker__chip.is-active {
-  background: var(--ink-navy);
-  border-color: var(--ink-navy);
+  background: var(--cl-primary-800);
+  border-color: var(--cl-primary-800);
   color: white;
 }
 

@@ -130,9 +130,9 @@ export default function CustomerDetailPage() {
         type="button"
         onClick={() => navigate(-1)}
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-body)',
           fontSize: 12,
-          color: 'var(--muted)',
+          color: 'var(--cl-muted)',
           background: 'transparent',
           border: 'none',
           padding: 0,
@@ -206,7 +206,7 @@ export default function CustomerDetailPage() {
         <div className="dossier__field-grid">
           <div className="dossier__field">
             <label>Telefon</label>
-            <div style={{ fontFamily: 'var(--font-mono)' }}>{customer.phone}</div>
+            <div style={{ fontFamily: 'var(--font-body)' }}>{customer.phone}</div>
           </div>
           <div className="dossier__field">
             <label>E-posta</label>
@@ -218,7 +218,7 @@ export default function CustomerDetailPage() {
           </div>
           <div className="dossier__field">
             <label>Bütçe</label>
-            <div style={{ fontFamily: 'var(--font-mono)' }}>{budgetLabel}</div>
+            <div style={{ fontFamily: 'var(--font-body)' }}>{budgetLabel}</div>
           </div>
           {customer.propertyInterest && (
             <div className="dossier__field">
@@ -256,7 +256,7 @@ export default function CustomerDetailPage() {
 
         {matches.length > 0 && (
           <>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12 }}>
+            <h3 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 18, marginBottom: 12 }}>
               Uygun Portföyler
             </h3>
             <div style={{ marginBottom: 24 }}>
@@ -272,7 +272,7 @@ export default function CustomerDetailPage() {
                     {m.agentName ? ` (${m.agentName})` : ''}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                    <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)' }}>
                       {m.matchedCount}/{m.totalCount} kelime eşleşti (%{m.score})
                     </span>
                     <MatchConfidenceBadge match={m} />
@@ -283,7 +283,7 @@ export default function CustomerDetailPage() {
           </>
         )}
 
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12 }}>
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 18, marginBottom: 12 }}>
           Görüşme Geçmişi
         </h3>
         <AddInteractionForm onSubmit={handleAddInteraction} />
