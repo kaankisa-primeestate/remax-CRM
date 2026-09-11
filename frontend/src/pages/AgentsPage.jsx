@@ -1,13 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
+import {
+  Pencil, Key, Trash2, Play, Pause, Paperclip, CheckCircle2, Circle, Camera,
+  Megaphone, PartyPopper, CalendarCheck, Check, X, Eye, Copy, MapPin, Cake, Building2,
+  ChevronUp, ChevronDown,
+} from 'lucide-react';
 import { usersApi } from '../api/auth';
 import { announcementsApi } from '../api/announcements';
 import { uploadFile } from '../api/client';
 import PasswordInput from '../components/PasswordInput.jsx';
 
 const AGENT_TABS = [
-  { key: 'roster', label: '👥 Danışmanlar' },
-  { key: 'add', label: '➕ Yeni Danışman Ekle' },
-  { key: 'announce', label: '📢 Duyurular' },
+  { key: 'roster', label: 'Danışmanlar' },
+  { key: 'add', label: 'Yeni Danışman Ekle' },
+  { key: 'announce', label: 'Duyurular' },
 ];
 
 // "Yeni Danışman Ekle" şablonundaki 4 sekme (bkz. proje notları) --
@@ -457,15 +462,20 @@ export default function AgentsPage() {
   }
 
   return (
-    <div>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>Danışman Yönetimi</h2>
+    <div className="agents-page">
+      <div className="cl-page-header">
+        <div>
+          <h2 className="cl-page-title">Danışman Yönetimi</h2>
+          <p className="cl-page-subtitle">Ekibinizi yönetin, yeni danışman ekleyin ve duyuru gönderin.</p>
+        </div>
+      </div>
 
-      <div className="folder-tabs" style={{ flexWrap: 'wrap' }}>
+      <div className="cl-tabs">
         {AGENT_TABS.map((tab) => (
           <button
             key={tab.key}
             type="button"
-            className={`folder-tab${activeTab === tab.key ? ' active' : ''}`}
+            className={`cl-tab${activeTab === tab.key ? ' active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -475,7 +485,7 @@ export default function AgentsPage() {
 
       <div className="finance-tab-content">
       {activeTab === 'roster' && (
-      <div className="folder-panel">
+      <div className="cl-panel">
         {loading ? (
           <div className="empty-state">Yükleniyor…</div>
         ) : agents.length === 0 ? (
@@ -495,7 +505,7 @@ export default function AgentsPage() {
                   <div className="agent-card__name">
                     {agent.name}
                     {agent.isActive === false && (
-                      <span style={{ marginLeft: 8, fontSize: 11, fontFamily: 'var(--font-mono)', background: '#eee', color: 'var(--muted)', borderRadius: 999, padding: '2px 8px' }}>
+                      <span style={{ marginLeft: 8, fontSize: 11, fontFamily: 'var(--font-body)', background: '#eee', color: 'var(--cl-muted)', borderRadius: 999, padding: '2px 8px' }}>
                         PASİF
                       </span>
                     )}
@@ -505,49 +515,49 @@ export default function AgentsPage() {
                     {agent.phone && ` · ${agent.phone}`}
                   </div>
                   {(agent.address || agent.birthDate) && (
-                    <div className="agent-card__meta">
-                      {agent.address && `📍 ${agent.address}`}
+                    <div className="agent-card__meta" style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                      {agent.address && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin size={12} strokeWidth={2} /> {agent.address}</span>}
                       {agent.address && agent.birthDate && ' · '}
-                      {agent.birthDate && `🎂 ${new Date(agent.birthDate).toLocaleDateString('tr-TR')}`}
+                      {agent.birthDate && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={12} strokeWidth={2} /> {new Date(agent.birthDate).toLocaleDateString('tr-TR')}</span>}
                     </div>
                   )}
                   {agent.companyName && (
-                    <div className="agent-card__meta">🏢 {agent.companyName}{agent.taxId && ` · VKN: ${agent.taxId}`}</div>
+                    <div className="agent-card__meta" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Building2 size={12} strokeWidth={2} /> {agent.companyName}{agent.taxId && ` · VKN: ${agent.taxId}`}</div>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, alignItems: 'flex-end' }}>
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    style={{ fontSize: 12, padding: '6px 12px' }}
+                    style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     onClick={() => handleEditAgent(agent)}
                   >
-                    ✏️ Düzenle
+                    <Pencil size={13} strokeWidth={2} /> Düzenle
                   </button>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
                       type="button"
                       title="Danışmana yeni geçici şifre oluştur"
-                      style={{ fontSize: 11, background: 'none', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: 'var(--ink-navy)' }}
+                      style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid var(--cl-border)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: 'var(--cl-primary-800)' }}
                       onClick={() => handleBrokerResetPassword(agent)}
                     >
-                      🔑 Şifre Sıfırla
+                      <Key size={12} strokeWidth={2} /> Şifre Sıfırla
                     </button>
                     <button
                       type="button"
                       title={agent.isActive === false ? 'Aktifleştir' : 'Pasife al'}
-                      style={{ fontSize: 11, background: 'none', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: '#8a6100' }}
+                      style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid var(--cl-border)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: '#8a6100' }}
                       onClick={() => handleToggleActive(agent)}
                     >
-                      {agent.isActive === false ? '▶️ Aktifleştir' : '⏸ Pasife Al'}
+                      {agent.isActive === false ? <><Play size={12} strokeWidth={2} /> Aktifleştir</> : <><Pause size={12} strokeWidth={2} /> Pasife Al</>}
                     </button>
                     <button
                       type="button"
                       title="Kalıcı olarak sil (sadece bağlı verisi yoksa)"
-                      style={{ fontSize: 11, background: 'none', border: '1px solid var(--paper-line)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: 'var(--danger)' }}
+                      style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid var(--cl-border)', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: 'var(--cl-danger)' }}
                       onClick={() => handleDeleteAgent(agent)}
                     >
-                      🗑 Sil
+                      <Trash2 size={12} strokeWidth={2} /> Sil
                     </button>
                   </div>
                 </div>
@@ -567,8 +577,8 @@ export default function AgentsPage() {
                         {agent.mykCertificateNo && ` · MYK: ${agent.mykCertificateNo}`}
                       </div>
                       {agent.realEstateLicenseUrl && (
-                        <a href={agent.realEstateLicenseUrl} target="_blank" rel="noreferrer" className="agent-card__doc-link">
-                          📎 Taşınmaz Ticareti Yetki Belgesi
+                        <a href={agent.realEstateLicenseUrl} target="_blank" rel="noreferrer" className="agent-card__doc-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          <Paperclip size={12} strokeWidth={2} /> Taşınmaz Ticareti Yetki Belgesi
                         </a>
                       )}
                     </div>
@@ -588,8 +598,10 @@ export default function AgentsPage() {
                   {(agent.powerStartCompleted || agent.powerStartCertificateNo) && (
                     <div className="agent-card__info-group">
                       <div className="agent-card__info-title">Akademi</div>
-                      <div className="agent-card__info-text">
-                        {agent.powerStartCompleted ? '✅ Power Start Tamamlandı' : '⬜ Power Start Tamamlanmadı'}
+                      <div className="agent-card__info-text" style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                        {agent.powerStartCompleted
+                          ? <><CheckCircle2 size={13} strokeWidth={2} color="var(--cl-success)" /> Power Start Tamamlandı</>
+                          : <><Circle size={13} strokeWidth={2} color="var(--cl-muted)" /> Power Start Tamamlanmadı</>}
                         {agent.powerStartCertificateNo && ` · Sertifika No: ${agent.powerStartCertificateNo}`}
                         {agent.powerStartCertificateDate && ` · ${new Date(agent.powerStartCertificateDate).toLocaleDateString('tr-TR')}`}
                       </div>
@@ -599,7 +611,7 @@ export default function AgentsPage() {
               )}
               <div className="agent-card__fields">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                  <label style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--cl-muted)', textTransform: 'uppercase' }}>
                     Aylık Hedef (₺)
                   </label>
                   <input
@@ -620,7 +632,7 @@ export default function AgentsPage() {
                   </button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                  <label style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--cl-muted)', textTransform: 'uppercase' }}>
                     Aylık Aidat (₺)
                   </label>
                   <input
@@ -630,7 +642,7 @@ export default function AgentsPage() {
                     onChange={(e) => setDuesDrafts((d) => ({ ...d, [agent.id]: e.target.value }))}
                     style={{ width: 130, padding: '6px 8px', fontSize: 13 }}
                   />
-                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                  <label style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--cl-muted)', textTransform: 'uppercase' }}>
                     Muafiyet Bitişi
                   </label>
                   <input
@@ -693,22 +705,22 @@ export default function AgentsPage() {
       )}
 
       {activeTab === 'add' && (
-      <div className="folder-panel">
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>
+      <div className="cl-panel">
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0 }}>
           {editingAgentId ? `Danışmanı Düzenle: ${form.name}` : 'Yeni Danışman Ekle'}
         </h3>
-        <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: -8, marginBottom: 16 }}>
+        <p style={{ color: 'var(--cl-muted)', fontSize: 13, marginTop: -8, marginBottom: 16 }}>
           {editingAgentId
             ? 'Değiştirmek istediğin alanları güncelle ve kaydet — boş bıraktığın alanlar mevcut kayıtlı değerleriyle korunur.'
             : 'Hızlı kayıt: sadece Ad Soyad, Kurumsal E-posta, Cep Telefonu ve Şifre zorunlu — diğer tüm bilgileri (kimlik, mali/yasal, çalışma modeli, akademi) daha sonra "Düzenle" ekranından tamamlayabilirsiniz.'}
         </p>
 
-        <div className="folder-tabs" style={{ flexWrap: 'wrap', marginBottom: 0 }}>
+        <div className="cl-tabs" style={{ flexWrap: 'wrap', marginBottom: 0 }}>
           {ADD_AGENT_TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
-              className={`folder-tab${addAgentTab === tab.key ? ' active' : ''}`}
+              className={`cl-tab${addAgentTab === tab.key ? ' active' : ''}`}
               onClick={() => setAddAgentTab(tab.key)}
             >
               {tab.label}
@@ -716,7 +728,7 @@ export default function AgentsPage() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="folder-panel" style={{ borderRadius: '0 8px 8px 8px', marginTop: -1 }}>
+        <form onSubmit={handleSubmit} className="cl-panel" style={{ borderRadius: '0 8px 8px 8px', marginTop: -1 }}>
           {addAgentTab === 'personal' && (
             <div className="form-grid">
               <div className="form-field">
@@ -748,7 +760,7 @@ export default function AgentsPage() {
                   style={editingAgentId ? { opacity: 0.7, cursor: 'not-allowed' } : undefined}
                 />
                 {editingAgentId && (
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>E-posta değişikliği için ayrı bir işlem gerekir.</span>
+                  <span style={{ fontSize: 11, color: 'var(--cl-muted)' }}>E-posta değişikliği için ayrı bir işlem gerekir.</span>
                 )}
               </div>
               <div className="form-field">
@@ -779,8 +791,8 @@ export default function AgentsPage() {
                     </button>
                   </div>
                 ) : (
-                  <label className="btn btn-secondary" style={{ display: 'inline-flex', width: 'fit-content', cursor: 'pointer', fontSize: 12 }}>
-                    {uploadingPhoto ? 'Yükleniyor…' : '📷 Fotoğraf Yükle'}
+                  <label className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, width: 'fit-content', cursor: 'pointer', fontSize: 12 }}>
+                    {uploadingPhoto ? 'Yükleniyor…' : <><Camera size={14} strokeWidth={2} /> Fotoğraf Yükle</>}
                     <input
                       type="file"
                       accept="image/jpeg,image/png"
@@ -840,14 +852,14 @@ export default function AgentsPage() {
                 <label>Taşınmaz Ticareti Yetki Belgesi (opsiyonel)</label>
                 {form.realEstateLicenseUrl ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <a href={form.realEstateLicenseUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>📎 Belgeyi görüntüle</a>
+                    <a href={form.realEstateLicenseUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Paperclip size={12} strokeWidth={2} /> Belgeyi görüntüle</a>
                     <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => setForm((f) => ({ ...f, realEstateLicenseUrl: '' }))}>
                       Değiştir
                     </button>
                   </div>
                 ) : (
-                  <label className="btn btn-secondary" style={{ display: 'inline-flex', width: 'fit-content', cursor: 'pointer', fontSize: 12 }}>
-                    {uploadingLicense ? 'Yükleniyor…' : '📎 Belge Yükle'}
+                  <label className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, width: 'fit-content', cursor: 'pointer', fontSize: 12 }}>
+                    {uploadingLicense ? 'Yükleniyor…' : <><Paperclip size={14} strokeWidth={2} /> Belge Yükle</>}
                     <input
                       type="file"
                       style={{ display: 'none' }}
@@ -901,7 +913,7 @@ export default function AgentsPage() {
                     </label>
                   ))}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>Anlaşılan oran:</span>
+                    <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Anlaşılan oran:</span>
                     <input
                       type="number"
                       min="0"
@@ -912,10 +924,10 @@ export default function AgentsPage() {
                       style={{ width: 70 }}
                       disabled={!form.commissionShareType}
                     />
-                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>%</span>
+                    <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>%</span>
                   </div>
                 </div>
-                <p style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 0' }}>
+                <p style={{ fontSize: 11, color: 'var(--cl-muted)', margin: '4px 0 0' }}>
                   Tip seçince oran otomatik önerilir, farklı anlaşıldıysa (örn. MAXIMUM ama %75) üzerine tıklayıp değiştirebilirsiniz.
                 </p>
               </div>
@@ -923,12 +935,12 @@ export default function AgentsPage() {
               {editingAgentId && (
                 <div className="form-field full">
                   <label>Kademeli Prim (opsiyonel — yıllık ciroya göre otomatik oran önerisi)</label>
-                  <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 8px' }}>
+                  <p style={{ fontSize: 11, color: 'var(--cl-muted)', margin: '2px 0 8px' }}>
                     Örn: "0 TL üzeri %50, 500.000 TL üzeri %60" gibi eşikler tanımlarsan, komisyon oluştururken sistem danışmanın o yılki toplam cirosuna göre otomatik bir oran önerir (yine de elle değiştirilebilir).
                   </p>
                   {form.tierCommissionRules.map((rule, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>Eşik (TL):</span>
+                      <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Eşik (TL):</span>
                       <input
                         type="number"
                         min="0"
@@ -940,7 +952,7 @@ export default function AgentsPage() {
                         }}
                         style={{ width: 110 }}
                       />
-                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>üzeri oran %:</span>
+                      <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>üzeri oran %:</span>
                       <input
                         type="number"
                         min="0"
@@ -1026,8 +1038,8 @@ export default function AgentsPage() {
       )}
 
       {activeTab === 'announce' && (
-      <div className="folder-panel">
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>📢 Danışmanlara Duyuru Gönder</h3>
+      <div className="cl-panel">
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Megaphone size={18} strokeWidth={2} /> Danışmanlara Duyuru Gönder</h3>
         <form onSubmit={handleSendAnnouncement}>
           <div className="form-field">
             <label>Başlık</label>
@@ -1042,15 +1054,15 @@ export default function AgentsPage() {
             <div style={{ display: 'flex', gap: 14 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400, textTransform: 'none' }}>
                 <input type="radio" checked={announceType === 'general'} onChange={() => setAnnounceType('general')} />
-                📢 Genel Duyuru
+                <Megaphone size={14} strokeWidth={2} /> Genel Duyuru
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400, textTransform: 'none' }}>
                 <input type="radio" checked={announceType === 'celebration'} onChange={() => setAnnounceType('celebration')} />
-                🎉 Kutlama
+                <PartyPopper size={14} strokeWidth={2} /> Kutlama
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 400, textTransform: 'none' }}>
                 <input type="radio" checked={announceType === 'meeting'} onChange={() => setAnnounceType('meeting')} />
-                📅 Toplantı / Anket (katılım onayı istenir)
+                <CalendarCheck size={14} strokeWidth={2} /> Toplantı / Anket (katılım onayı istenir)
               </label>
             </div>
           </div>
@@ -1080,28 +1092,28 @@ export default function AgentsPage() {
         </form>
 
         {recentAnnouncements.length > 0 && (
-          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px dashed var(--paper-line)' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 14, marginTop: 0 }}>Gönderilen Duyurular</h3>
+          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px dashed var(--cl-border)' }}>
+            <h3 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 14, marginTop: 0 }}>Gönderilen Duyurular</h3>
             <div className="announce-sent-scroll">
               {recentAnnouncements.map((a) => (
                 <div key={a.id} className="announce-sent-item-wrapper">
                   <div className="announce-sent-item">
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 13 }}>{a.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
                         {a.targetAgentIds?.length ? `${a.targetAgentIds.length} danışmana` : 'Tüm danışmanlara'} · {new Date(a.createdAt).toLocaleDateString('tr-TR')}
                         {a.responseCounts && (a.responseCounts.yes > 0 || a.responseCounts.no > 0) && (
-                          <> · <span style={{ color: 'var(--success)' }}>✓ {a.responseCounts.yes}</span> <span style={{ color: 'var(--danger)' }}>✕ {a.responseCounts.no}</span></>
+                          <> · <span style={{ color: 'var(--cl-success)', display: 'inline-flex', alignItems: 'center', gap: 2 }}><Check size={12} strokeWidth={2.5} /> {a.responseCounts.yes}</span> <span style={{ color: 'var(--cl-danger)', display: 'inline-flex', alignItems: 'center', gap: 2 }}><X size={12} strokeWidth={2.5} /> {a.responseCounts.no}</span></>
                         )}
                       </div>
                     </div>
-                    <button type="button" className="task-row__delete" onClick={() => handleDeleteAnnouncement(a.id)} title="Sil">✕</button>
+                    <button type="button" className="task-row__delete" onClick={() => handleDeleteAnnouncement(a.id)} title="Sil"><X size={13} strokeWidth={2} /></button>
                   </div>
                   {a.responses?.length > 0 && (
                     <div className="announce-response-list">
                       {a.responses.map((r) => (
-                        <span key={r.agentId} className={`announce-response-chip announce-response-chip--${r.status}`}>
-                          {r.status === 'yes' ? '✓' : '✕'} {r.agentName}
+                        <span key={r.agentId} className={`announce-response-chip announce-response-chip--${r.status}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {r.status === 'yes' ? <Check size={12} strokeWidth={2.5} /> : <X size={12} strokeWidth={2.5} />} {r.agentName}
                         </span>
                       ))}
                     </div>
@@ -1109,24 +1121,24 @@ export default function AgentsPage() {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    style={{ fontSize: 11, padding: '3px 10px', marginTop: 6 }}
+                    style={{ fontSize: 11, padding: '3px 10px', marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                     onClick={() => handleToggleReadStatus(a.id)}
                   >
-                    {readStatusOpenId === a.id ? '▲' : '▼'} 👁 Kim Okudu?
+                    {readStatusOpenId === a.id ? <ChevronUp size={13} strokeWidth={2} /> : <ChevronDown size={13} strokeWidth={2} />} <Eye size={13} strokeWidth={2} /> Kim Okudu?
                   </button>
                   {readStatusOpenId === a.id && (
-                    <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--paper)', borderRadius: 6 }}>
+                    <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--cl-bg)', borderRadius: 6 }}>
                       {readStatusLoading ? (
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>Yükleniyor…</span>
+                        <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>Yükleniyor…</span>
                       ) : (
                         (readStatusById[a.id] || []).map((r) => (
                           <div key={r.agentId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0' }}>
                             <span>{r.agentName}</span>
-                            <span style={{ color: r.dismissedAt ? '#1e7a3d' : r.readAt ? '#8a6100' : 'var(--muted)' }}>
+                            <span style={{ color: r.dismissedAt ? '#1e7a3d' : r.readAt ? '#8a6100' : 'var(--cl-muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                               {r.dismissedAt
-                                ? `✓ Okudu ve kapattı (${new Date(r.dismissedAt).toLocaleDateString('tr-TR')})`
+                                ? <><Check size={12} strokeWidth={2} /> Okudu ve kapattı ({new Date(r.dismissedAt).toLocaleDateString('tr-TR')})</>
                                 : r.readAt
-                                  ? `👁 Sadece okudu (${new Date(r.readAt).toLocaleDateString('tr-TR')})`
+                                  ? <><Eye size={12} strokeWidth={2} /> Sadece okudu ({new Date(r.readAt).toLocaleDateString('tr-TR')})</>
                                   : '— Henüz görmedi'}
                             </span>
                           </div>
@@ -1146,8 +1158,8 @@ export default function AgentsPage() {
       {tempPasswordModal && (
         <div className="modal-backdrop" onClick={() => setTempPasswordModal(null)}>
           <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>🔑 Yeni Geçici Şifre</h2>
-            <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+            <h2 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Key size={18} strokeWidth={2} /> Yeni Geçici Şifre</h2>
+            <p style={{ fontSize: 13, color: 'var(--cl-muted)' }}>
               {tempPasswordModal.agentName} için yeni geçici şifre oluşturuldu. Aşağıdaki kutudan tek tıkla kopyalayıp
               danışmana güvenli bir şekilde (telefon/WhatsApp) iletebilirsin. Danışman giriş yaptıktan sonra kendi
               şifresini değiştirebilir.
@@ -1159,17 +1171,18 @@ export default function AgentsPage() {
                 onFocus={(e) => e.target.select()}
                 style={{
                   flex: 1,
-                  fontFamily: 'var(--font-mono)',
+                  fontFamily: 'var(--font-body)',
                   fontSize: 16,
                   fontWeight: 700,
                   textAlign: 'center',
                   letterSpacing: 1,
-                  background: 'var(--paper)',
+                  background: 'var(--cl-bg)',
                 }}
               />
               <button
                 type="button"
                 className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(tempPasswordModal.password);
@@ -1180,7 +1193,7 @@ export default function AgentsPage() {
                   }
                 }}
               >
-                {copyFeedback ? '✓ Kopyalandı' : '📋 Kopyala'}
+                {copyFeedback ? <><Check size={14} strokeWidth={2.5} /> Kopyalandı</> : <><Copy size={14} strokeWidth={2} /> Kopyala</>}
               </button>
             </div>
             <button type="button" className="btn btn-secondary" style={{ width: '100%' }} onClick={() => setTempPasswordModal(null)}>
