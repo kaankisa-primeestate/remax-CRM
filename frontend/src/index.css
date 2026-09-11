@@ -2156,21 +2156,21 @@ button.metric-card--clickable {
 .revenue-chart__bar {
   width: 60%;
   min-width: 18px;
-  background: var(--brass);
-  border-radius: 4px 4px 0 0;
+  background: var(--cl-gold);
+  border-radius: 6px 6px 0 0;
   transition: height 0.3s ease;
 }
 .revenue-chart__value {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
-  color: var(--ink-navy);
+  color: var(--cl-text);
   font-weight: 700;
   margin-top: 6px;
 }
 .revenue-chart__label {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 11px;
-  color: var(--muted);
+  color: var(--cl-muted);
   text-transform: uppercase;
   margin-top: 2px;
 }
@@ -2914,23 +2914,25 @@ button.metric-card--clickable {
 
 /* --- Piyasa: kompakt kayan şerit (Panelim/Dashboard üstü) --- */
 .market-ticker {
-  background: var(--paper-raised);
-  border: 1px solid var(--paper-line);
-  border-radius: 10px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
   padding: 4px 12px;
   margin-bottom: 18px;
   display: flex;
   align-items: center;
   gap: 10px;
+  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.04);
 }
 .market-ticker .tradingview-widget-container {
   flex: 1;
   min-width: 0;
 }
 .market-ticker__link {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 11px;
-  color: var(--ink-navy);
+  color: var(--cl-primary-800);
   white-space: nowrap;
   text-decoration: none;
   flex-shrink: 0;

@@ -1,5 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  AlertCircle,
+  Handshake,
+  Clock,
+  ClipboardList,
+  Home,
+  User,
+  Phone,
+  Wallet,
+  Circle,
+} from 'lucide-react';
 import { dashboardApi } from '../api/dashboard';
 import { propertiesApi } from '../api/properties';
 import { propertyCommentsApi } from '../api/propertyComments';
@@ -49,10 +61,10 @@ const PERIOD_OPTIONS = [
 ];
 
 const ACTIVITY_ICONS = {
-  property: '🏠',
-  customer: '👤',
-  interaction: '📞',
-  commission: '💰',
+  property: Home,
+  customer: User,
+  interaction: Phone,
+  commission: Wallet,
 };
 
 const money = (n) =>
@@ -195,7 +207,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0 }}>Genel Bakış</h2>
+        <h2 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0 }}>Genel Bakış</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: period === 'custom' ? 12 : 0 }}>
           {PERIOD_OPTIONS.map((opt) => (
             <button key={opt.value} className={period === opt.value ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setPeriod(opt.value)} style={{ fontSize: 13, padding: '6px 14px' }}>
@@ -257,13 +269,13 @@ export default function DashboardPage() {
                 if (p.kind === 'flag') {
                   return (
                     <div className="action-item" key={`flag-${p.noteId}`}>
-                      <span className="action-item__dot">⚠️</span>
+                      <span className="action-item__dot"><AlertTriangle size={14} style={{ color: 'var(--cl-warning)' }} /></span>
                       <div className="action-item__body">
                         <div className="action-item__title">Danışman Bildirimi: {p.title}</div>
                         <div className="action-item__meta">{p.agentName} · {p.text}</div>
                         <div className="action-item__buttons">
                           <button type="button" className="btn btn-primary" onClick={() => handleResolveFlag(p.noteId)}>
-                            ✓ Çözüldü
+                            Çözüldü
                           </button>
                           <Link to={`/islemler/${p.transactionId}`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
                             İşlem Dosyasını Aç
@@ -276,7 +288,7 @@ export default function DashboardPage() {
                 if (p.kind === 'deal') {
                   return (
                     <div className="action-item" key={`deal-${p.transactionId}`}>
-                      <span className="action-item__dot">🔴</span>
+                      <span className="action-item__dot"><AlertCircle size={14} style={{ color: 'var(--cl-danger)' }} /></span>
                       <div className="action-item__body">
                         <div className="action-item__title">Kapanış Onayı Bekliyor: {p.title}</div>
                         <div className="action-item__meta">
@@ -295,7 +307,7 @@ export default function DashboardPage() {
                 if (p.kind === 'split') {
                   return (
                     <div className="action-item" key={`split-${p.transactionId}`}>
-                      <span className="action-item__dot">🤝</span>
+                      <span className="action-item__dot"><Handshake size={14} style={{ color: 'var(--cl-gold)' }} /></span>
                       <div className="action-item__body">
                         <div className="action-item__title">İşbirlikli Paylaşım Onayı Bekliyor: {p.title}</div>
                         <div className="action-item__meta">{p.agentName}</div>
@@ -311,7 +323,7 @@ export default function DashboardPage() {
                 if (p.kind === 'overdue_due') {
                   return (
                     <Link to="/finans" className="action-item action-item--clickable" key={`due-${p.dueId}`}>
-                      <span className="action-item__dot">🔴</span>
+                      <span className="action-item__dot"><AlertCircle size={14} style={{ color: 'var(--cl-danger)' }} /></span>
                       <div className="action-item__body">
                         <div className="action-item__title">{p.title}</div>
                         <div className="action-item__meta">
@@ -324,7 +336,9 @@ export default function DashboardPage() {
                 // kind === 'property' (varsayilan, mevcut davranis)
                 return (
                   <div className="action-item" key={`property-${p.propertyId}`}>
-                    <span className="action-item__dot">{p.status === 'needs_revision' ? '🟠' : '🔴'}</span>
+                    <span className="action-item__dot">
+                      <AlertCircle size={14} style={{ color: p.status === 'needs_revision' ? 'var(--cl-warning)' : 'var(--cl-danger)' }} />
+                    </span>
                     <div className="action-item__body">
                       <div className="action-item__title">
                         {p.status === 'needs_revision' ? 'Revizyon Bekliyor' : 'Onay Bekleyen İlan'}: {p.title}
@@ -352,7 +366,7 @@ export default function DashboardPage() {
               })}
               {(data.expiringContracts || []).map((c) => (
                 <Link to={`/portfoyler/${c.propertyId}`} className="action-item action-item--clickable" key={c.propertyId}>
-                  <span className="action-item__dot">🟡</span>
+                  <span className="action-item__dot"><Clock size={14} style={{ color: 'var(--cl-warning)' }} /></span>
                   <div className="action-item__body">
                     <div className="action-item__title">Sözleşme Bitimi: {c.title}</div>
                     <div className="action-item__meta">
@@ -375,11 +389,13 @@ export default function DashboardPage() {
             ) : (
               agentActivity.map((a, i) => (
                 <Link to={`/islemler/${a.transactionId}`} className="record-row" key={i} style={{ textDecoration: 'none' }}>
-                  <span style={{ marginRight: 10 }}>📋</span>
+                  <span style={{ marginRight: 10, display: 'inline-flex', color: 'var(--cl-muted)' }}>
+                    <ClipboardList size={16} strokeWidth={1.8} />
+                  </span>
                   <span className="record-row__name" style={{ flex: 1 }}>
                     {a.agentName} — {a.title}: {a.text}
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
                     {dateTime(a.createdAt)}
                   </span>
                 </Link>
@@ -390,14 +406,14 @@ export default function DashboardPage() {
           {/* --- Rozetler (gercek veri) --- */}
           {data.badges.length > 0 && (
             <div className="folder-panel" style={{ marginBottom: 20 }}>
-              <h2 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Rozetler</h2>
+              <h2 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Rozetler</h2>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {data.badges.map((b, i) => (
-                  <div key={i} style={{ background: 'var(--paper-raised)', border: '1px solid var(--paper-line)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div key={i} style={{ background: 'var(--cl-bg)', border: '1px solid var(--cl-border)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 22 }}>{b.icon}</span>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{b.agentName}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>{b.label}</div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--cl-text)' }}>{b.agentName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>{b.label}</div>
                     </div>
                   </div>
                 ))}
@@ -414,7 +430,7 @@ export default function DashboardPage() {
               <div className="table-scroll">
                 <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase' }}>
+                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase' }}>
                       <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>#</th>
                       <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Danışman</th>
                       <th style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>Portföy</th>
@@ -426,14 +442,14 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {data.leaderboard.map((row, i) => (
-                      <tr key={row.agentId} style={{ borderTop: '1px solid var(--paper-line)' }}>
-                        <td style={{ padding: '10px 8px', fontWeight: 700 }}>{i + 1}</td>
-                        <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>{row.agentName}</td>
-                        <td style={{ padding: '10px 8px' }}>{row.propertiesCount}</td>
-                        <td style={{ padding: '10px 8px' }}>{row.customersCount}</td>
-                        <td style={{ padding: '10px 8px' }}>{row.interactionsCount}</td>
-                        <td style={{ padding: '10px 8px' }}>{row.commissionsCount}</td>
-                        <td style={{ padding: '10px 8px', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{money(row.salesValue)}</td>
+                      <tr key={row.agentId} style={{ borderTop: '1px solid var(--cl-border)' }}>
+                        <td style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--cl-text)' }}>{i + 1}</td>
+                        <td style={{ padding: '10px 8px', whiteSpace: 'nowrap', color: 'var(--cl-text)' }}>{row.agentName}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--cl-text)' }}>{row.propertiesCount}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--cl-text)' }}>{row.customersCount}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--cl-text)' }}>{row.interactionsCount}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--cl-text)' }}>{row.commissionsCount}</td>
+                        <td style={{ padding: '10px 8px', whiteSpace: 'nowrap', color: 'var(--cl-text)' }}>{money(row.salesValue)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -448,17 +464,22 @@ export default function DashboardPage() {
             {data.activity.length === 0 ? (
               <div className="panel__empty">Bu aralıkta aktivite yok.</div>
             ) : (
-              data.activity.map((item, i) => (
-                <div className="record-row" key={i}>
-                  <span style={{ marginRight: 10 }}>{ACTIVITY_ICONS[item.type] || '•'}</span>
-                  <span className="record-row__name" style={{ flex: 1 }}>
-                    {item.agentName} — {item.title}
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>
-                    {dateTime(item.occurredAt)}
-                  </span>
-                </div>
-              ))
+              data.activity.map((item, i) => {
+                const ActivityIcon = ACTIVITY_ICONS[item.type] || Circle;
+                return (
+                  <div className="record-row" key={i}>
+                    <span style={{ marginRight: 10, display: 'inline-flex', color: 'var(--cl-muted)' }}>
+                      <ActivityIcon size={16} strokeWidth={1.8} />
+                    </span>
+                    <span className="record-row__name" style={{ flex: 1 }}>
+                      {item.agentName} — {item.title}
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
+                      {dateTime(item.occurredAt)}
+                    </span>
+                  </div>
+                );
+              })
             )}
           </div>
         </>
