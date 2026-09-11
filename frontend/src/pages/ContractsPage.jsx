@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Check, AlertTriangle } from 'lucide-react';
 import { appointmentsApi } from '../api/appointments';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
@@ -63,8 +64,8 @@ export default function ContractsPage() {
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>Sözleşmeler & Tapu</h2>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', marginTop: 0, fontSize: 16 }}>Yer Gösterme Kayıtları</h3>
-        <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 14 }}>
+        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yer Gösterme Kayıtları</h3>
+        <p style={{ color: 'var(--cl-muted)', fontSize: 13, marginBottom: 14 }}>
           Danışmanların müşterilere yaptığı ilan gösterimlerinin hukuki kayıt arşivi. Beyan onaylı kayıtlar,
           danışmanın komisyon hakkını kanıtlayan belgelerdir.
         </p>
@@ -72,11 +73,11 @@ export default function ContractsPage() {
           <button type="button" className={filter === 'all' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setFilter('all')}>
             Tümü ({showings.length})
           </button>
-          <button type="button" className={filter === 'accepted' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setFilter('accepted')}>
-            ✓ Beyan Alındı ({showings.filter((s) => s.disclosureAccepted).length})
+          <button type="button" className={filter === 'accepted' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setFilter('accepted')}>
+            <Check size={13} /> Beyan Alındı ({showings.filter((s) => s.disclosureAccepted).length})
           </button>
-          <button type="button" className={filter === 'pending' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setFilter('pending')}>
-            ⚠️ Beklemede ({showings.filter((s) => !s.disclosureAccepted).length})
+          <button type="button" className={filter === 'pending' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setFilter('pending')}>
+            <AlertTriangle size={13} /> Beklemede ({showings.filter((s) => !s.disclosureAccepted).length})
           </button>
         </div>
       </div>
@@ -92,8 +93,8 @@ export default function ContractsPage() {
             const property = properties.find((p) => p.id === s.propertyId);
             return (
               <div key={s.id} className="disclosure-row">
-                <span className={s.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'}>
-                  {s.disclosureAccepted ? '✓ Beyan Alındı' : '⚠️ Beklemede'}
+                <span className={s.disclosureAccepted ? 'disclosure-badge disclosure-badge--ok' : 'disclosure-badge'} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  {s.disclosureAccepted ? (<><Check size={11} /> Beyan Alındı</>) : (<><AlertTriangle size={11} /> Beklemede</>)}
                 </span>
                 <div className="disclosure-row__body">
                   <div className="disclosure-row__title">
@@ -119,7 +120,7 @@ export default function ContractsPage() {
       </div>
 
       <div className="folder-panel" style={{ marginTop: 20 }}>
-        <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+        <p style={{ color: 'var(--cl-muted)', fontSize: 13 }}>
           Bu bölüm ileride genişletilecek: sözleşme bitiş tarihleri (Broker Dashboard'da zaten takip ediliyor),
           vekaletname durumları ve tapu sürecinin aşamaları da buraya eklenecek.
         </p>

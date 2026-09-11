@@ -5,7 +5,7 @@ export default function LegalPage() {
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>Hukuk / İhtarname</h2>
       <div className="folder-panel">
-        <p style={{ color: 'var(--muted)', fontSize: 14 }}>
+        <p style={{ color: 'var(--cl-muted)', fontSize: 14 }}>
           Bu bölüm yakında detaylandırılacak: ihtarname süreçleri, sözleşme revizyonları
           ve hukuki takip gerektiren dosyalar burada listelenecek.
         </p>

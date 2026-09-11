@@ -5,7 +5,7 @@ export default function ListingSyndicationPage() {
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>İlan Entegrasyonu</h2>
       <div className="folder-panel">
-        <p style={{ color: 'var(--muted)', fontSize: 14 }}>
+        <p style={{ color: 'var(--cl-muted)', fontSize: 14 }}>
           Bu bölüm yakında detaylandırılacak: portföylerin harici ilan sitelerine
           (Sahibinden, Hepsiemlak vb.) otomatik gönderimi burada yönetilecek.
         </p>

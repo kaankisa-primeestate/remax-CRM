@@ -5,7 +5,7 @@ export default function OfficeSettingsPage() {
     <div>
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>Ofis Ayarları</h2>
       <div className="folder-panel">
-        <p style={{ color: 'var(--muted)', fontSize: 14 }}>
+        <p style={{ color: 'var(--cl-muted)', fontSize: 14 }}>
           Bu bölüm yakında detaylandırılacak: ofis bilgileri, bildirim tercihleri ve
           genel sistem ayarları burada yönetilecek.
         </p>
