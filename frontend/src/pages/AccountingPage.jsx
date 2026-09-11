@@ -242,7 +242,7 @@ function EmptyTab({ title, description }) {
 
 function FormField({ label, children, style }) {
   return (
-    <div className="form-field" style={{ margin: 0, minWidth: 150, ...style }}>
+    <div className="form-field" style={{ margin: 0, ...style }}>
       <label>{label}</label>
       {children}
     </div>
