@@ -4531,6 +4531,27 @@ button.metric-card--clickable {
   vertical-align: middle;
 }
 .data-table th.is-right, .data-table td.is-right { text-align: right; }
+/* Siralanabilir baslik: baslik metninin kendisi dugme. Pasif durumda ok
+   soluk, aktif sutunda yon oku altin. */
+.data-table th .th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.data-table th .th-sort:hover { color: var(--cl-text); }
+.data-table th .th-sort:focus-visible { outline: none; box-shadow: var(--cl-focus); }
+.data-table th .th-sort > svg { flex: none; opacity: 0.45; }
+.data-table th .th-sort.is-active { color: var(--cl-text); font-weight: 600; }
+.data-table th .th-sort.is-active > svg { opacity: 1; color: var(--cl-gold); }
+.data-table th.is-right .th-sort { width: 100%; justify-content: flex-end; }
 
 /* --- Liste arac cubugu --- */
 .list-toolbar {
@@ -4568,6 +4589,11 @@ button.metric-card--clickable {
   color: var(--cl-text);
 }
 .list-toolbar .btn { min-height: 40px; padding: 0 var(--s4); }
+.list-toolbar__sort { display: none; }
+@media (max-width: 600px) {
+  /* Dar ekranda tablo basliklari gizli oldugu icin siralama kutusu aciliyor. */
+  .list-toolbar__sort { display: block; }
+}
 
 /* --- Sayfalama --- */
 .table-pager {

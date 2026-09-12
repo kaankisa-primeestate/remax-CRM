@@ -3,6 +3,7 @@ import {
   TrendingUp, TrendingDown, Wallet, Clock, FileBarChart2, ArrowUpRight, ArrowDownRight, Minus,
   ArrowLeftRight, Users, Percent, KeyRound, Landmark, BarChart3, FilePlus2, ListOrdered,
   Search, Download, Pencil, Ban, History, ChevronLeft, ChevronRight, RotateCcw, CheckCircle2,
+  ArrowUp, ArrowDown, ChevronsUpDown,
 } from 'lucide-react';
 import {
   ACCOUNTING_ACCOUNT_TYPES,
@@ -305,6 +306,29 @@ function KpiSpark({ series }) {
   );
 }
 
+// Siralanabilir tablo basligi. Ok yalnizca gercekten siralayan sutunlarda
+// gorunur; sussuz bir gosterge konmaz.
+function SortableTh({ label, sortKey, sort, onSort, right }) {
+  const aktif = sort.key === sortKey;
+  const Icon = !aktif ? ChevronsUpDown : sort.direction === 'asc' ? ArrowUp : ArrowDown;
+  return (
+    <th
+      className={right ? 'is-right' : undefined}
+      aria-sort={aktif ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        className={`th-sort${aktif ? ' is-active' : ''}`}
+        onClick={() => onSort(sortKey)}
+        title={`${label} sütununa göre sırala`}
+      >
+        {label}
+        <Icon size={14} strokeWidth={2} aria-hidden="true" />
+      </button>
+    </th>
+  );
+}
+
 function KpiCard({ variant, Icon, label, valueDisplay, changePercent, trendNote, series }) {
   const hasTrend = changePercent !== null && changePercent !== undefined && Number.isFinite(changePercent);
   const trendDirection = !hasTrend ? 'flat' : changePercent > 0.5 ? 'up' : changePercent < -0.5 ? 'down' : 'flat';
@@ -443,6 +467,8 @@ export default function AccountingPage() {
   // Hareket listesi arac cubugu: arama / tur filtresi / sayfalama
   const [entrySearch, setEntrySearch] = useState('');
   const [entryTypeFilter, setEntryTypeFilter] = useState('all');
+  // Siralama: varsayilan tarihe gore yeniden eskiye (listenin mevcut sirasi).
+  const [entrySort, setEntrySort] = useState({ key: 'date', direction: 'desc' });
   const [entryPage, setEntryPage] = useState(1);
   const [entryPageSize, setEntryPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -577,14 +603,32 @@ export default function AccountingPage() {
   // yeni bir API istegi yapilmaz.
   const filteredEntries = useMemo(() => {
     const term = entrySearch.trim().toLocaleLowerCase('tr-TR');
-    return entries.filter((entry) => {
+    const liste = entries.filter((entry) => {
       if (entryTypeFilter !== 'all' && entry.type !== entryTypeFilter) return false;
       if (!term) return true;
       return [entry.category, entry.accountName, entry.counterAccountName, entry.partyName,
         entry.description, formatDate(entry.date), String(entry.amount ?? '')]
         .filter(Boolean).join(' ').toLocaleLowerCase('tr-TR').includes(term);
     });
-  }, [entries, entrySearch, entryTypeFilter]);
+    // Siralama filtrelenmis liste uzerinde; sayfalama ve disa aktarma da
+    // ayni siradan beslendigi icin ekrandaki duzen CSV'ye birebir gecer.
+    const yon = entrySort.direction === 'asc' ? 1 : -1;
+    return liste.sort((a, b) => {
+      if (entrySort.key === 'amount') {
+        return (Number(a.amount || 0) - Number(b.amount || 0)) * yon;
+      }
+      const at = String(a.date || '');
+      const bt = String(b.date || '');
+      if (at === bt) return 0;
+      return (at < bt ? -1 : 1) * yon;
+    });
+  }, [entries, entrySearch, entryTypeFilter, entrySort]);
+
+  function toggleEntrySort(key) {
+    setEntrySort((onceki) => (onceki.key === key
+      ? { key, direction: onceki.direction === 'asc' ? 'desc' : 'asc' }
+      : { key, direction: 'desc' }));
+  }
 
   const entryPageCount = Math.max(1, Math.ceil(filteredEntries.length / entryPageSize));
   const safeEntryPage = Math.min(entryPage, entryPageCount);
@@ -593,7 +637,7 @@ export default function AccountingPage() {
     [filteredEntries, safeEntryPage, entryPageSize],
   );
 
-  useEffect(() => { setEntryPage(1); }, [entrySearch, entryTypeFilter, entryPageSize, period, currency]);
+  useEffect(() => { setEntryPage(1); }, [entrySearch, entryTypeFilter, entryPageSize, period, currency, entrySort]);
 
   function handleExportEntries() {
     const header = ['Tarih', 'Tür', 'Kategori', 'Hesap', 'Cari / açıklama', 'Tutar', 'Para birimi', 'Durum'];
@@ -1868,6 +1912,22 @@ export default function AccountingPage() {
                     <option value={item.value} key={item.value}>{item.label}</option>
                   ))}
                 </select>
+                {/* Dar ekranda tablo basliklari gizlendigi icin siralama buradan
+                    yapilir; ayni durumu paylasir, iki gorunumde de calisir. */}
+                <select
+                  className="list-toolbar__sort"
+                  value={`${entrySort.key}-${entrySort.direction}`}
+                  onChange={(event) => {
+                    const [key, direction] = event.target.value.split('-');
+                    setEntrySort({ key, direction });
+                  }}
+                  aria-label="Listeyi sırala"
+                >
+                  <option value="date-desc">Tarih: yeniden eskiye</option>
+                  <option value="date-asc">Tarih: eskiden yeniye</option>
+                  <option value="amount-desc">Tutar: çoktan aza</option>
+                  <option value="amount-asc">Tutar: azdan çoğa</option>
+                </select>
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -1890,13 +1950,13 @@ export default function AccountingPage() {
                 <table className="data-table" style={{ minWidth: 760 }}>
                   <thead>
                     <tr>
-                      <th>Tarih</th>
+                      <SortableTh label="Tarih" sortKey="date" sort={entrySort} onSort={toggleEntrySort} />
                       <th>Tür</th>
                       <th>Kategori</th>
                       <th>Hesap</th>
                       <th>Cari kart</th>
                       <th>Açıklama</th>
-                      <th className="is-right">Tutar</th>
+                      <SortableTh label="Tutar" sortKey="amount" sort={entrySort} onSort={toggleEntrySort} right />
                       <th>Durum</th>
                       <th>İşlem</th>
                     </tr>
