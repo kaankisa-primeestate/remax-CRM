@@ -4247,12 +4247,20 @@ button.metric-card--clickable {
     line-height: 1.2;
   }
 
-  /* Form ve modal icindeki ana eylemler tam genislikte */
-  form > .btn,
+  /* Form ve modal icindeki ana eylemler tam genislikte.
+     Dogrudan cocuk (>) yerine torun seciyoruz: butonlar cogu sayfada bir
+     sarmalayici div'in icinde ve "form > .btn" onlari tutmuyordu. */
+  form .btn,
   .modal-actions .btn,
   .folder-panel > .btn,
   .cl-panel > .btn {
     width: 100%;
+  }
+
+  /* Alan icindeki kucuk secim butonlari (orn. "Sistemde Kayitli / Harici")
+     tam genislige cikmaz, yan yana kalir. */
+  form .form-field .btn {
+    width: auto;
   }
 
   /* Yan yana duran buton siralari alt alta ve tam genislikte */
