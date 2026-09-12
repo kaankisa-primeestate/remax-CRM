@@ -12,6 +12,7 @@ import {
   accountingApi,
   formatAccountingMoney,
 } from '../api/accounting';
+import { Link } from 'react-router-dom';
 import { usersApi } from '../api/auth';
 
 const ACCOUNTING_TABS = [
@@ -1633,7 +1634,14 @@ export default function AccountingPage() {
   return (
     <div className="accounting-page">
       <div className="cl-page-header">
-        <div>
+        <div className="cl-page-header__text">
+          {/* "/" rotasi kullanicinin rolune gore dogru ana sayfaya yonlendirir
+              (broker -> Genel Bakis, danisman -> Panelim). */}
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Muhasebe</span>
+          </nav>
           <h2 className="cl-page-title">Muhasebe</h2>
           <p className="cl-page-subtitle">
             Finansal hareketlerinizi kolayca yönetin, takip edin ve raporlayın.
