@@ -11,6 +11,11 @@ import {
   Phone,
   Wallet,
   Circle,
+  TrendingUp,
+  Bell,
+  Activity,
+  Trophy,
+  Radio,
 } from 'lucide-react';
 import { dashboardApi } from '../api/dashboard';
 import { propertiesApi } from '../api/properties';
@@ -260,11 +265,23 @@ export default function DashboardPage() {
           {/* --- Ciro Grafiği + Akıllı Aksiyon Merkezi --- */}
           <div className="panel-grid-2">
             <div className="panel">
-              <h3 className="panel__title">Ofis Ciro Grafiği (Son 6 Ay)</h3>
+              <div className="section-head">
+                <span className="section-head__ico"><TrendingUp size={20} strokeWidth={2} /></span>
+                <div className="section-head__text">
+                  <h3>Ofis Ciro Grafiği (Son 6 Ay)</h3>
+                  <p>Aylık toplam ciro gelişiminizi tek bakışta görün.</p>
+                </div>
+              </div>
               <RevenueTrendChart months={data.revenueTrend || []} />
             </div>
             <div className="panel">
-              <h3 className="panel__title">Akıllı Aksiyon & Onay Merkezi</h3>
+              <div className="section-head">
+                <span className="section-head__ico"><Bell size={20} strokeWidth={2} /></span>
+                <div className="section-head__text">
+                  <h3>Akıllı Aksiyon &amp; Onay Merkezi</h3>
+                  <p>Onayınızı bekleyen işlemler ve aksiyon gerektiren kayıtlar.</p>
+                </div>
+              </div>
               {(data.pendingApprovals || []).map((p) => {
                 if (p.kind === 'flag') {
                   return (
@@ -383,7 +400,13 @@ export default function DashboardPage() {
 
           {/* --- Danışman Aktiviteleri: aksiyon gerektirmez, sadece haberdar-olma amacli --- */}
           <div className="panel" style={{ marginBottom: 20 }}>
-            <h3 className="panel__title">Danışman Aktiviteleri</h3>
+            <div className="section-head">
+                <span className="section-head__ico"><Activity size={20} strokeWidth={2} /></span>
+                <div className="section-head__text">
+                  <h3>Danışman Aktiviteleri</h3>
+                  <p>Ekibinizin son dönemdeki işlem ve görüşme hareketliliği.</p>
+                </div>
+              </div>
             {agentActivity.length === 0 ? (
               <div className="panel__empty">Yakın zamanda bir aktivite yok.</div>
             ) : (
@@ -423,7 +446,13 @@ export default function DashboardPage() {
 
           {/* --- Danışman Liderlik Tablosu (gercek veri) --- */}
           <div className="panel" style={{ marginBottom: 20 }}>
-            <h3 className="panel__title">Danışman Liderlik Tablosu</h3>
+            <div className="section-head">
+                <span className="section-head__ico"><Trophy size={20} strokeWidth={2} /></span>
+                <div className="section-head__text">
+                  <h3>Danışman Liderlik Tablosu</h3>
+                  <p>Ciro ve işlem sayısına göre ekip sıralaması.</p>
+                </div>
+              </div>
             {data.leaderboard.length === 0 ? (
               <div className="panel__empty">Bu aralıkta veri yok.</div>
             ) : (
@@ -460,7 +489,13 @@ export default function DashboardPage() {
 
           {/* --- Canlı Aktivite (gercek veri) --- */}
           <div className="panel">
-            <h3 className="panel__title">Canlı Aktivite</h3>
+            <div className="section-head">
+                <span className="section-head__ico"><Radio size={20} strokeWidth={2} /></span>
+                <div className="section-head__text">
+                  <h3>Canlı Aktivite</h3>
+                  <p>Ofiste az önce ne olduğunu anlık olarak takip edin.</p>
+                </div>
+              </div>
             {data.activity.length === 0 ? (
               <div className="panel__empty">Bu aralıkta aktivite yok.</div>
             ) : (

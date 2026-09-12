@@ -313,9 +313,8 @@ button {
    böylece tüm uygulama tek elden aynı sekme görünümüne kavuşuyor. --- */
 .folder-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--cl-border);
+  gap: var(--s2);
+  margin-bottom: var(--s5);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -323,38 +322,45 @@ button {
 
 .folder-tab {
   flex-shrink: 0;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 11px 14px;
-  margin-bottom: -1px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  padding: 0 var(--s4);
+  min-height: 40px;
   font-family: var(--font-body);
-  font-size: 13.5px;
+  font-size: var(--t-body);
   font-weight: 600;
   color: var(--cl-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .folder-tab:hover {
   color: var(--cl-text);
+  background: var(--cl-bg);
 }
 
 .folder-tab.active {
-  background: transparent;
-  color: var(--cl-primary-800);
+  background: var(--cl-gold);
+  border-color: var(--cl-gold);
+  color: #fff;
   font-weight: 600;
-  box-shadow: none;
-  border-bottom-color: var(--cl-gold);
+}
+.folder-tab.active:hover {
+  background: var(--cl-gold);
+  color: #fff;
 }
 
 .folder-panel {
   background: var(--cl-surface);
   border: 1px solid var(--cl-border);
-  border-radius: 14px;
-  padding: 20px;
-  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
+  border-radius: var(--r-md);
+  padding: var(--s5);
+  box-shadow: var(--sh-md);
 }
 
 /* --- Araç çubuğu --- */
@@ -368,13 +374,19 @@ button {
 
 .search-input {
   flex: 1;
-  padding: 10px 14px;
+  min-height: 44px;
+  padding: 0 var(--s4);
   border: 1px solid var(--cl-border);
-  border-radius: 9px;
+  border-radius: var(--r-sm);
   background: var(--cl-surface);
   color: var(--cl-text);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--t-body);
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--cl-gold);
+  box-shadow: var(--cl-focus);
 }
 
 /* Buton: 44px dokunma yuksekligi, 8px kose, ikon icin 8px bosluk.
@@ -582,10 +594,10 @@ td .btn {
 
 .dossier__name {
   font-family: var(--cl-font-heading);
-  font-size: 26px;
-  font-weight: 800;
+  font-size: var(--t-h1);
+  font-weight: 700;
   color: var(--cl-text);
-  margin: 0 0 4px;
+  margin: 0 0 var(--s1);
 }
 
 .dossier__field-grid {
@@ -1638,8 +1650,8 @@ td .btn {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--s4);
+  margin-bottom: var(--s5);
 }
 @media (max-width: 900px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1647,9 +1659,9 @@ td .btn {
 .metric-card {
   background: var(--cl-surface);
   border: 1px solid var(--cl-border);
-  border-radius: 14px;
-  padding: 16px 18px;
-  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
+  border-radius: var(--r-md);
+  padding: var(--s5);
+  box-shadow: var(--sh-md);
 }
 /* Metrik kartlari tiklanabilir Link olarak kullanildiginda (bkz.
    AgentDashboardPage) -- varsayilan link stillerini sifirlar ve hover'da
@@ -1805,17 +1817,18 @@ button.metric-card--clickable {
 }
 .metric-card__label {
   font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--cl-muted);
-  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: var(--t-label);
+  color: var(--cl-faint);
+  margin-bottom: var(--s1);
 }
 .metric-card__value {
   font-family: var(--cl-font-heading);
-  font-size: 23px;
-  font-weight: 800;
+  font-size: clamp(19px, 1.7vw, var(--t-num));
+  font-weight: 700;
   color: var(--cl-text);
-  line-height: 1.1;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 .metric-card__delta {
   font-family: var(--font-body);
@@ -1845,10 +1858,10 @@ button.metric-card--clickable {
 }
 .panel__title {
   font-family: var(--cl-font-heading);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--t-title);
+  font-weight: 600;
   color: var(--cl-text);
-  margin: 0 0 14px;
+  margin: 0 0 var(--s4);
 }
 .panel__empty {
   color: var(--cl-muted);
@@ -3483,9 +3496,9 @@ button.metric-card--clickable {
 .cl-panel {
   background: var(--cl-surface);
   border: 1px solid var(--cl-border);
-  border-radius: 14px;
-  padding: 22px;
-  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
+  border-radius: var(--r-md);
+  padding: var(--s5);
+  box-shadow: var(--sh-md);
 }
 @media (max-width: 600px) {
   .cl-panel { padding: 16px; border-radius: 12px; }

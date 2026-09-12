@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, Handshake, ClipboardList, Check, Hourglass, FolderOpen, X } from 'lucide-react';
+import { Clock, Handshake, ClipboardList, Check, Hourglass, FolderOpen, X, FilePlus2 } from 'lucide-react';
 import { transactionsApi, TRANSACTION_STAGES } from '../api/transactions';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
@@ -141,7 +141,13 @@ export default function TransactionsPage() {
       <h2 className="dossier__name" style={{ marginBottom: 16 }}>İşlemler (Uçtan Uca Takip)</h2>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yeni İşlem Başlat</h3>
+        <div className="section-head">
+          <span className="section-head__ico"><FilePlus2 size={20} strokeWidth={2} /></span>
+          <div className="section-head__text">
+            <h3>Yeni İşlem Başlat</h3>
+            <p>Müşteri ve portföyü eşleştirerek uçtan uca takip edilecek yeni bir işlem dosyası açın.</p>
+          </div>
+        </div>
         <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="form-field" style={{ margin: 0, minWidth: 200 }}>
             <label>Müşteri</label>
