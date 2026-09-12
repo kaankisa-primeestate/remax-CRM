@@ -466,7 +466,9 @@ export default function CalendarPage() {
       {(view === 'month' || view === 'week') && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* flexWrap: dar ekranda ok tuslari + 160px'lik ay etiketi +
+                "Bugun" tek satira sigmiyor ve buton ekrandan tasiyordu. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" style={{ padding: '4px 12px' }} onClick={() => navigatePeriod(-1)}>←</button>
               <span style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 16, minWidth: 160, textAlign: 'center' }}>
                 {view === 'month'
