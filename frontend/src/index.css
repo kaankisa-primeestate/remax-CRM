@@ -2993,36 +2993,11 @@ button.metric-card--clickable {
   border-radius: 12px;
   overflow: auto;
 }
-.accounting-page .table-scroll table:not(.accounting-report-table) {
-  border: none;
-}
-.accounting-page .table-scroll table:not(.accounting-report-table) thead tr {
-  background: var(--cl-bg);
-}
-.accounting-page .table-scroll table:not(.accounting-report-table) thead th {
-  color: var(--cl-muted);
-  font-weight: 600;
-  font-size: 11.5px;
-  letter-spacing: 0.02em;
-  border-bottom: 1px solid var(--cl-border);
-  white-space: nowrap;
-}
-.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr {
-  background: var(--cl-surface);
-  transition: background-color 0.12s ease;
-}
-.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:hover {
-  background: var(--cl-bg);
-}
-.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:first-child td {
-  border-top: none !important;
-}
-.accounting-page .table-scroll table:not(.accounting-report-table) td {
-  border-bottom: 1px solid var(--cl-border);
-}
-.accounting-page .table-scroll table:not(.accounting-report-table) tbody tr:last-child td {
-  border-bottom: none;
-}
+/* Muhasebe tablolarinin eski sayfaya ozel stillendirmesi kaldirildi:
+   .data-table sozlugu artik bu isi yapiyor. Eski kural daha spesifik
+   oldugu icin sozlugu eziyordu (baslik 11.5px/600 kaliyordu) -- iki ayri
+   dogruluk kaynagi olusuyordu. Korunmaya deger tek davranis olan baslik
+   bandi .data-table'a tasindi. */
 
 /* ================================================================
    Corporate Luxury — paylaşılan sayfa iskeleti sınıfları (.cl-*).
@@ -4245,6 +4220,7 @@ button.metric-card--clickable {
   --sh-md: 0 2px 8px rgba(16, 24, 40, 0.06);
 
   --cl-faint: #8b95a3;
+  --cl-border-light: #eef0f3;
   --cl-focus: 0 0 0 3px rgba(196, 154, 85, 0.25);
 }
 
@@ -4461,21 +4437,26 @@ button.metric-card--clickable {
   border-collapse: collapse;
   font-size: var(--t-body);
 }
+/* Talimat 18: baslik satiri kucuk ve muted; agir uppercase kullanilmamali. */
+.data-table thead tr {
+  background: var(--cl-bg);
+}
 .data-table thead th {
   text-align: left;
   padding: var(--s3) var(--s4);
   font-family: var(--font-body);
   font-size: var(--t-label);
-  font-weight: 600;
-  color: var(--cl-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  color: var(--cl-muted);
   white-space: nowrap;
 }
-.data-table tbody tr { border-top: 1px solid var(--cl-border); }
+.data-table tbody tr { border-top: 1px solid var(--cl-border-light); }
+.data-table tbody tr:first-child { border-top: 0; }
 .data-table tbody tr:hover { background: var(--cl-bg); }
+/* Dikey dolgu 8px: 32px'lik islem butonlari + 2x8 = 48px satir yuksekligi
+   (talimat 18: 44-52px). 4px ritminden sapmadan. */
 .data-table td {
-  padding: var(--s4);
+  padding: var(--s2) var(--s4);
   color: var(--cl-text);
   vertical-align: middle;
 }

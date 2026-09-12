@@ -1803,7 +1803,8 @@ export default function AccountingPage() {
                       <th>Tür</th>
                       <th>Kategori</th>
                       <th>Hesap</th>
-                      <th>Cari / açıklama</th>
+                      <th>Cari kart</th>
+                      <th>Açıklama</th>
                       <th className="is-right">Tutar</th>
                       <th>Durum</th>
                       <th>İşlem</th>
@@ -1818,7 +1819,8 @@ export default function AccountingPage() {
                         <td data-label="Hesap">
                           {entry.type === 'transfer' ? `${entry.accountName || '—'} → ${entry.counterAccountName || '—'}` : entry.accountName || '—'}
                         </td>
-                        <td data-label="Cari / açıklama">{entry.partyName || entry.description || '—'}</td>
+                        <td data-label="Cari kart">{entry.partyName || '—'}</td>
+                        <td data-label="Açıklama">{entry.description || '—'}</td>
                         <td data-label="Tutar" className="amount" style={{ color: entry.type === 'expense' ? 'var(--cl-danger)' : 'var(--cl-success)' }}>
                           {formatAccountingMoney(entry.amount, entry.currency)}
                         </td>
