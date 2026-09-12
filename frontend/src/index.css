@@ -273,7 +273,10 @@ button {
 }
 
 .app-body {
-  max-width: 1080px;
+  /* Spec 3: "Ana icerik maksimum genislikte ortalanmali; genis ekranlarda
+     gereksiz bosluk olusmamali." 1080px sinir 1920px ekranda iki yanda
+     294'er piksel olu alan birakiyordu. */
+  max-width: 1600px;
   margin: 0 auto;
   padding: 32px;
   width: 100%;
