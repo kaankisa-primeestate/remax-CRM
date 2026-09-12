@@ -3179,36 +3179,6 @@ button.metric-card--clickable {
   .cl-kpi-row { grid-template-columns: 1fr; }
 }
 
-/* --- Sekmeler --- */
-.cl-tabs {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--cl-border);
-}
-.cl-tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 11px 14px;
-  margin-bottom: -1px;
-  font-family: var(--font-body);
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--cl-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-.cl-tab:hover {
-  color: var(--cl-text);
-}
-.cl-tab.active {
-  color: var(--cl-primary-800);
-  border-bottom-color: var(--cl-gold);
-}
-
 /* --- Panel/kart --- */
 .cl-panel {
   background: var(--cl-surface);
@@ -4662,11 +4632,21 @@ button.metric-card--clickable {
   color: var(--cl-text);
   background: var(--cl-bg);
 }
+/* Ikon asla daralmaz: dar hucrede flex onu sifir genislige indirip
+   gorunmez yapiyordu (390px'te "Komisyonlar" sekmesinde goruldu). */
+.cl-tab > svg,
+.folder-tab > svg { flex: none; }
+.cl-tab:focus-visible,
+.folder-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--cl-focus);
+}
 .cl-tab.active,
 .folder-tab.active {
   background: var(--cl-gold);
   border-color: var(--cl-gold);
   color: #fff;
+  box-shadow: var(--sh-sm);
 }
 .cl-tab.active:hover,
 .folder-tab.active:hover {
@@ -4684,8 +4664,10 @@ button.metric-card--clickable {
   }
   .cl-tab,
   .folder-tab {
+    flex-direction: column;
     justify-content: center;
-    padding: 0 var(--s2);
+    gap: var(--s1);
+    padding: var(--s2) var(--s2);
     font-size: 13px;
     white-space: normal;
     text-align: center;

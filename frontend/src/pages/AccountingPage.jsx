@@ -1718,7 +1718,7 @@ export default function AccountingPage() {
         </div>
       )}
 
-      <div className="cl-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
+      <div className="cl-tabs">
         {ACCOUNTING_TABS.map((tab) => (
           <button
             type="button"
@@ -1992,7 +1992,7 @@ export default function AccountingPage() {
       )}
 
       {activeTab === 'accounts' && (
-        <div className="cl-tabs" style={{ flexWrap: 'wrap', marginBottom: 18 }}>
+        <div className="cl-tabs">
           <button
             type="button"
             className={`cl-tab${accountSubTab === 'bank' ? ' active' : ''}`}
