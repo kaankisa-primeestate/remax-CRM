@@ -4213,3 +4213,119 @@ button.metric-card--clickable {
     width: 100%;
   }
 }
+
+/* ================================================================
+   MOBIL DOKUNMA HEDEFLERI (<= 600px)
+   Tek yerden yonetilen olculer; ayri bir "mobil surum" yok, ayni
+   bilesenler dar ekranda buyuyor.
+
+   !important kullanimi bilincli: sayfalarin cogunda butonlara ve
+   alanlara inline style={{ fontSize, padding }} verilmis durumda ve
+   inline stil, sinif kuralini yener. Bu blok yalnizca dar ekranda ve
+   yalnizca dokunulabilirligi belirleyen ozelliklerde devreye girer.
+   ================================================================ */
+@media (max-width: 600px) {
+  /* --- Taban: HER buton en az 44px ---
+     Sinif bazli kovalamak yerine tabandan veriyoruz; sayfalarda sinifsiz
+     ya da sayfaya ozel kurallarla kuculmus butonlar da kapsansin.
+     !important gerekli: .accounting-page .cl-tab gibi sayfa ici kurallar
+     daha spesifik ve aksi halde 40px'te kaliyorlar. */
+  button {
+    min-height: 44px !important;
+  }
+
+  /* --- .btn: 52px, okunakli yazi --- */
+  .btn {
+    min-height: 52px !important;
+    padding: 0 20px !important;
+    font-size: 15px !important;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    line-height: 1.2;
+  }
+
+  /* Form ve modal icindeki ana eylemler tam genislikte */
+  form > .btn,
+  .modal-actions .btn,
+  .folder-panel > .btn,
+  .cl-panel > .btn {
+    width: 100%;
+  }
+
+  /* Yan yana duran buton siralari alt alta ve tam genislikte */
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  /* --- Ikon butonlari: 44px kare --- */
+  .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* --- Form alanlari: 48px, 16px yazi ---
+     16px kritik: iOS Safari daha kucuk yazili bir alana dokunuldugunda
+     sayfayi otomatik yakinlastiriyor. 16px bunu engelliyor.
+
+     Cipsiz "input" seciyoruz: React alanlarinin cogunda type ozniteligi
+     yok, input[type="text"] onlari tutmuyordu. min-height de !important
+     cunku sayfa ici kurallar (orn. .accounting-entry-form-grid .form-field
+     input) daha spesifik ve aksi halde 42px'te kaliyorlar. */
+  input,
+  select,
+  textarea,
+  .search-input {
+    min-height: 48px !important;
+    font-size: 16px !important;
+    border-radius: 8px;
+  }
+
+  /* Onay kutusu ve radyo bu kuralin disinda kalir */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 0 !important;
+    width: 22px;
+    height: 22px;
+  }
+
+  /* --- Kabuk kontrolleri (hamburger, bildirim, hizli ekle, cikis) ---
+     Bunlar .btn sinifini kullanmiyor; hamburger 28px kaliyordu ve mobilde
+     ana gezinme kontrolu o. */
+  .app-topbar__hamburger,
+  .notif-bell__button,
+  .quickadd-menu__button,
+  .sidebar__logout,
+  .app-topbar__profile {
+    min-height: 44px !important;
+    min-width: 44px;
+  }
+
+  .app-topbar__hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-field textarea,
+  textarea {
+    min-height: 96px;
+    padding-top: 12px;
+  }
+
+  /* --- Sekmeler: 48px --- */
+  .cl-tab,
+  .folder-tab {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  /* --- Etiket okunakligi --- */
+  .form-field label {
+    font-size: 13px;
+  }
+}
