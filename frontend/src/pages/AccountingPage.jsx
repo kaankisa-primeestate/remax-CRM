@@ -1663,7 +1663,7 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               {entryForm.type !== 'transfer' && (
-                <FormField label="Cari kartlar" style={{ gridColumn: 'span 2' }}>
+                <FormField label="Cari kartlar">
                   <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
                     {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
                     <option value={NEW_CATEGORY_VALUE}>+ Yeni kalem ekle</option>
@@ -1699,7 +1699,7 @@ export default function AccountingPage() {
               <FormField label="Tutar">
                 <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
-              <div className="accounting-entry-form-row" style={{ gridColumn: 'span 4', display: 'flex', gap: 16 }}>
+              <div className="accounting-entry-form-row" style={{ gridColumn: '1 / -1', display: 'flex', gap: 16 }}>
                 <FormField label="Para birimi" style={{ minWidth: 0, width: 100, flex: '0 0 auto' }}>
                   <select name="currency" value={entryForm.currency} onChange={handleEntryChange}>
                     {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
@@ -1710,7 +1710,7 @@ export default function AccountingPage() {
                 </FormField>
               </div>
               {editingEntry && (
-                <FormField label="Düzeltme nedeni" style={{ gridColumn: 'span 2' }}>
+                <FormField label="Düzeltme nedeni" style={{ gridColumn: '1 / -1' }}>
                   <input value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Örn. Tutar yanlış girildi" required />
                 </FormField>
               )}
@@ -1803,7 +1803,8 @@ export default function AccountingPage() {
                       <th>Tür</th>
                       <th>Kategori</th>
                       <th>Hesap</th>
-                      <th>Cari / açıklama</th>
+                      <th>Cari kart</th>
+                      <th>Açıklama</th>
                       <th className="is-right">Tutar</th>
                       <th>Durum</th>
                       <th>İşlem</th>
@@ -1818,7 +1819,8 @@ export default function AccountingPage() {
                         <td data-label="Hesap">
                           {entry.type === 'transfer' ? `${entry.accountName || '—'} → ${entry.counterAccountName || '—'}` : entry.accountName || '—'}
                         </td>
-                        <td data-label="Cari / açıklama">{entry.partyName || entry.description || '—'}</td>
+                        <td data-label="Cari kart">{entry.partyName || '—'}</td>
+                        <td data-label="Açıklama">{entry.description || '—'}</td>
                         <td data-label="Tutar" className="amount" style={{ color: entry.type === 'expense' ? 'var(--cl-danger)' : 'var(--cl-success)' }}>
                           {formatAccountingMoney(entry.amount, entry.currency)}
                         </td>
