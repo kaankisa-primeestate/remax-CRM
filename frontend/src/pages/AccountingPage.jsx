@@ -133,6 +133,22 @@ function periodLabel(period) {
   );
 }
 
+// KPI kartlarindaki kucuk grafik, secili ayi esit araliklara bolerek
+// hareketleri dagitir. Kova sayisi kart genisligine gore secildi.
+const SPARK_BUCKETS = 6;
+
+function periodBucketIndex(period, dateValue) {
+  if (!period || !dateValue) return -1;
+  const iso = String(dateValue).slice(0, 10);
+  if (!iso.startsWith(period)) return -1;
+  const [year, month] = period.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  const day = Number(iso.slice(8, 10));
+  if (!day || !lastDay) return -1;
+  const index = Math.floor(((day - 1) / lastDay) * SPARK_BUCKETS);
+  return Math.min(SPARK_BUCKETS - 1, Math.max(0, index));
+}
+
 function getPeriodBounds(period) {
   if (!period) return {};
   const [year, month] = period.split('-').map(Number);
@@ -271,7 +287,24 @@ function FormField({ label, children, style }) {
   );
 }
 
-function KpiCard({ variant, Icon, label, valueDisplay, changePercent, trendNote }) {
+// Kart grafigi: donem icindeki dagilim. Cubuk yukseklikleri ekrandaki
+// gercek hareketlerden hesaplanir; veri yoksa grafik hic basilmaz.
+function KpiSpark({ series }) {
+  if (!Array.isArray(series) || series.length === 0) return null;
+  if (series.every((value) => !value)) return null;
+  const min = Math.min(0, ...series);
+  const max = Math.max(0, ...series);
+  const range = max - min || 1;
+  return (
+    <span className="stat-card__spark" aria-hidden="true">
+      {series.map((value, index) => (
+        <i key={index} style={{ height: `${Math.max(6, ((value - min) / range) * 100)}%` }} />
+      ))}
+    </span>
+  );
+}
+
+function KpiCard({ variant, Icon, label, valueDisplay, changePercent, trendNote, series }) {
   const hasTrend = changePercent !== null && changePercent !== undefined && Number.isFinite(changePercent);
   const trendDirection = !hasTrend ? 'flat' : changePercent > 0.5 ? 'up' : changePercent < -0.5 ? 'down' : 'flat';
   const TrendIcon = trendDirection === 'up' ? ArrowUpRight : trendDirection === 'down' ? ArrowDownRight : Minus;
@@ -293,6 +326,7 @@ function KpiCard({ variant, Icon, label, valueDisplay, changePercent, trendNote 
           )}
         </div>
       </div>
+      <KpiSpark series={series} />
     </div>
   );
 }
@@ -611,6 +645,35 @@ export default function AccountingPage() {
     };
   }, [entries, previousPeriodEntries, commissions, rents, currency]);
 
+  // Kart grafiklerinin verisi. kpiStats ile ayni kaynaklardan beslenir,
+  // ek bir API istegi yapilmaz.
+  const kpiSeries = useMemo(() => {
+    const bos = () => new Array(SPARK_BUCKETS).fill(0);
+    const income = bos();
+    const expense = bos();
+    const pending = bos();
+    entries.forEach((entry) => {
+      const index = periodBucketIndex(period, entry.date);
+      if (index < 0) return;
+      const amount = Number(entry.amount || 0);
+      if (entry.type === 'income') income[index] += amount;
+      else if (entry.type === 'expense') expense[index] += amount;
+    });
+    [...commissions, ...rents].forEach((item) => {
+      if (item.status !== 'pending_collection' || item.currency !== currency) return;
+      const index = periodBucketIndex(period, item.date);
+      if (index < 0) return;
+      pending[index] += 1;
+    });
+    // Net kart: donem basindan itibaren birikimli bakiye.
+    let running = 0;
+    const net = income.map((value, index) => {
+      running += value - expense[index];
+      return running;
+    });
+    return { income, expense, net, pending };
+  }, [entries, commissions, rents, period, currency]);
+
   const loadRecentExpenseEntries = useCallback(async () => {
     setRecentExpenseLoading(true);
     try {
@@ -725,6 +788,22 @@ export default function AccountingPage() {
     loadRecentExpenseEntries();
     return undefined;
   }, [activeTab, loadRecentExpenseEntries]);
+
+  // "Bekleyen Islemler" karti komisyon ve kira kayitlarindan besleniyor;
+  // bu iki liste yalnizca ilgili sekme acilinca yuklendigi icin kart,
+  // sekmeye girilmeden once her zaman 0 gosteriyordu. Kart her sekmede
+  // gorundugunden veriyi acilista bir kez cekiyoruz. Hata olursa kart
+  // 0'da kalir, sayfada uyari cikmaz.
+  useEffect(() => {
+    let iptalEdildi = false;
+    Promise.allSettled([accountingApi.listCommissions(), accountingApi.listRents()])
+      .then(([komisyonSonuc, kiraSonuc]) => {
+        if (iptalEdildi) return;
+        if (komisyonSonuc.status === 'fulfilled') setCommissions(komisyonSonuc.value || []);
+        if (kiraSonuc.status === 'fulfilled') setRents(kiraSonuc.value || []);
+      });
+    return () => { iptalEdildi = true; };
+  }, []);
 
   useEffect(() => {
     if (activeTab !== 'commissions') return undefined;
@@ -1595,6 +1674,7 @@ export default function AccountingPage() {
             label={`${periodLabel(period)} Gelir`}
             valueDisplay={formatAccountingMoney(kpiStats.income, currency)}
             changePercent={kpiStats.incomeChange}
+            series={kpiSeries.income}
           />
           <KpiCard
             variant="expense"
@@ -1602,6 +1682,7 @@ export default function AccountingPage() {
             label={`${periodLabel(period)} Gider`}
             valueDisplay={formatAccountingMoney(kpiStats.expense, currency)}
             changePercent={kpiStats.expenseChange}
+            series={kpiSeries.expense}
           />
           <KpiCard
             variant="net"
@@ -1609,6 +1690,7 @@ export default function AccountingPage() {
             label="Net Bakiye"
             valueDisplay={formatAccountingMoney(kpiStats.net, currency)}
             changePercent={kpiStats.netChange}
+            series={kpiSeries.net}
           />
           <KpiCard
             variant="pending"
@@ -1617,6 +1699,7 @@ export default function AccountingPage() {
             valueDisplay={String(kpiStats.pendingCount)}
             changePercent={null}
             trendNote="Tahsilat bekleyen komisyon/kira"
+            series={kpiSeries.pending}
           />
         </div>
       )}
