@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { TrendingUp, TrendingDown, Wallet, Clock, FileBarChart2, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, Wallet, Clock, FileBarChart2, ArrowUpRight, ArrowDownRight, Minus,
+  ArrowLeftRight, Users, Percent, KeyRound, Landmark, BarChart3, FilePlus2, ListOrdered,
+  CalendarDays, Banknote, Coins, FileText, RotateCcw,
+  Search, Download, Pencil, Ban, History, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import {
   ACCOUNTING_ACCOUNT_TYPES,
   ACCOUNTING_CURRENCIES,
@@ -11,12 +16,12 @@ import {
 import { usersApi } from '../api/auth';
 
 const ACCOUNTING_TABS = [
-  { key: 'entries', label: 'Hareketler' },
-  { key: 'ledgers', label: 'Cari Kartlar' },
-  { key: 'commissions', label: 'Komisyonlar' },
-  { key: 'dues', label: 'Danışman Kiraları' },
-  { key: 'accounts', label: 'Hesaplar' },
-  { key: 'reports', label: 'Raporlar' },
+  { key: 'entries', label: 'Hareketler', Icon: ArrowLeftRight },
+  { key: 'ledgers', label: 'Cari Kartlar', Icon: Users },
+  { key: 'commissions', label: 'Komisyonlar', Icon: Percent },
+  { key: 'dues', label: 'Danışman Kiraları', Icon: KeyRound },
+  { key: 'accounts', label: 'Hesaplar', Icon: Landmark },
+  { key: 'reports', label: 'Raporlar', Icon: BarChart3 },
 ];
 
 const EMPTY_COMMISSION_FORM = {
@@ -205,6 +210,17 @@ function entryTypeLabel(type) {
   return ACCOUNTING_ENTRY_TYPES.find((item) => item.value === type)?.label || type;
 }
 
+// Listede yalnizca iptal edilmemis kayitlar doner (bkz. listEntries:
+// voidedAt IS NULL), bu yuzden durum rozeti kaydin KAYNAGINI anlatir:
+// elle mi girildi, bir duzeltme kaydi mi, yoksa komisyon/kira gibi bir
+// islemden otomatik mi olustu.
+function entrySourceStatus(sourceType) {
+  if (sourceType === 'manual_correction') return { label: 'Düzeltme', tone: 'wait' };
+  if (sourceType === 'accounting_recurring_expense') return { label: 'Tekrarlayan', tone: 'ok' };
+  if (sourceType && sourceType !== 'manual') return { label: 'Otomatik', tone: 'ok' };
+  return { label: 'Tamamlandı', tone: 'ok' };
+}
+
 function quickExpenseLabel(entry) {
   return entry?.category?.trim() || 'Gider';
 }
@@ -247,11 +263,16 @@ function EmptyTab({ title, description }) {
   );
 }
 
-function FormField({ label, children, style }) {
+function FormField({ label, children, style, Icon }) {
   return (
-    <div className="form-field" style={{ margin: 0, minWidth: 150, ...style }}>
+    <div className={`form-field${Icon ? ' form-field--with-icon' : ''}`} style={{ margin: 0, minWidth: 150, ...style }}>
       <label>{label}</label>
-      {children}
+      {Icon ? (
+        <div className="form-field__wrap">
+          <span className="form-field__ico"><Icon size={16} strokeWidth={2} /></span>
+          {children}
+        </div>
+      ) : children}
     </div>
   );
 }
@@ -262,19 +283,21 @@ function KpiCard({ variant, Icon, label, valueDisplay, changePercent, trendNote 
   const TrendIcon = trendDirection === 'up' ? ArrowUpRight : trendDirection === 'down' ? ArrowDownRight : Minus;
   return (
     <div className={`cl-kpi-card cl-kpi-card--${variant}`}>
-      <span className="cl-kpi-card__icon"><Icon size={18} strokeWidth={2} /></span>
-      <div className="cl-kpi-card__label">{label}</div>
-      <div className="cl-kpi-card__value">{valueDisplay}</div>
-      <div className={`cl-kpi-card__trend cl-kpi-card__trend--${trendDirection}`}>
-        {hasTrend ? (
-          <>
-            <TrendIcon size={13} strokeWidth={2.5} />
-            {Math.abs(changePercent).toFixed(0)}%
-            <span className="cl-kpi-card__trend-note">geçen aya göre</span>
-          </>
-        ) : (
-          <span className="cl-kpi-card__trend-note">{trendNote || 'geçen ay veri yok'}</span>
-        )}
+      <span className="cl-kpi-card__icon"><Icon size={20} strokeWidth={2} /></span>
+      <div className="cl-kpi-card__body">
+        <div className="cl-kpi-card__label">{label}</div>
+        <div className="cl-kpi-card__value">{valueDisplay}</div>
+        <div className={`cl-kpi-card__trend cl-kpi-card__trend--${trendDirection}`}>
+          {hasTrend ? (
+            <>
+              <TrendIcon size={13} strokeWidth={2.5} />
+              {Math.abs(changePercent).toFixed(0)}%
+              <span className="cl-kpi-card__trend-note">geçen aya göre</span>
+            </>
+          ) : (
+            <span className="cl-kpi-card__trend-note">{trendNote || 'geçen ay veri yok'}</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -389,6 +412,11 @@ export default function AccountingPage() {
   const [accounts, setAccounts] = useState([]);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Hareket listesi araç çubuğu: arama / tür filtresi / sayfalama
+  const [entrySearch, setEntrySearch] = useState('');
+  const [entryTypeFilter, setEntryTypeFilter] = useState('all');
+  const [entryPage, setEntryPage] = useState(1);
+  const [entryPageSize, setEntryPageSize] = useState(10);
   const [saving, setSaving] = useState(false);
   const [entrySaveNotice, setEntrySaveNotice] = useState(null);
   const [accountSaving, setAccountSaving] = useState(false);
@@ -515,6 +543,60 @@ export default function AccountingPage() {
       .then((list) => setPreviousPeriodEntries(list || []))
       .catch(() => setPreviousPeriodEntries([]));
   }, [period, currency]);
+
+  // Hareket listesi: arama + tür filtresi (istemci tarafında, mevcut veri
+  // üzerinde -- yeni bir API isteği yapılmaz).
+  const filteredEntries = useMemo(() => {
+    const term = entrySearch.trim().toLocaleLowerCase('tr-TR');
+    return entries.filter((entry) => {
+      if (entryTypeFilter !== 'all' && entry.type !== entryTypeFilter) return false;
+      if (!term) return true;
+      const haystack = [
+        entry.category,
+        entry.accountName,
+        entry.counterAccountName,
+        entry.partyName,
+        entry.description,
+        formatDate(entry.date),
+        String(entry.amount ?? ''),
+      ].filter(Boolean).join(' ').toLocaleLowerCase('tr-TR');
+      return haystack.includes(term);
+    });
+  }, [entries, entrySearch, entryTypeFilter]);
+
+  const entryPageCount = Math.max(1, Math.ceil(filteredEntries.length / entryPageSize));
+  const safeEntryPage = Math.min(entryPage, entryPageCount);
+  const visibleEntries = useMemo(
+    () => filteredEntries.slice((safeEntryPage - 1) * entryPageSize, safeEntryPage * entryPageSize),
+    [filteredEntries, safeEntryPage, entryPageSize],
+  );
+
+  // Filtre/arama değişince ilk sayfaya dön
+  useEffect(() => { setEntryPage(1); }, [entrySearch, entryTypeFilter, entryPageSize, period, currency]);
+
+  function handleExportEntries() {
+    const header = ['Tarih', 'Tür', 'Kategori', 'Hesap', 'Cari / açıklama', 'Tutar', 'Para birimi', 'Durum'];
+    const rows = filteredEntries.map((entry) => [
+      formatDate(entry.date),
+      entryTypeLabel(entry.type),
+      entry.category ?? '',
+      entry.type === 'transfer' ? `${entry.accountName || ''} -> ${entry.counterAccountName || ''}` : (entry.accountName || ''),
+      entry.partyName || entry.description || '',
+      Number(entry.amount || 0).toFixed(2),
+      entry.currency ?? '',
+      entrySourceStatus(entry.sourceType).label,
+    ]);
+    // Excel'in Turkce karakterleri dogru okumasi icin BOM ekleniyor.
+    const csv = '﻿' + [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+      .join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `muhasebe-hareketler-${period}-${currency}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   const kpiStats = useMemo(() => {
     const sumByType = (list, type) => list
@@ -1567,6 +1649,7 @@ export default function AccountingPage() {
             className={`cl-tab${activeTab === tab.key ? ' active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
+            {tab.Icon && <tab.Icon size={16} strokeWidth={2} />}
             {tab.label}
           </button>
         ))}
@@ -1575,23 +1658,26 @@ export default function AccountingPage() {
       {activeTab === 'entries' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-              <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 19, color: 'var(--cl-primary-800)' }}>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
-              {editingEntry && (
-                <p style={{ color: 'var(--cl-muted)', margin: 0, fontSize: 13 }}>
-                  Eski kayıt silinmez ve geçmişte korunur. Yeni değerler ayrı bir düzeltme kaydı olarak oluşturulur.
+            <div className="section-head">
+              <span className="section-head__ico"><FilePlus2 size={20} strokeWidth={2} /></span>
+              <div className="section-head__text">
+                <h3>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
+                <p>
+                  {editingEntry
+                    ? 'Eski kayıt silinmez ve geçmişte korunur. Yeni değerler ayrı bir düzeltme kaydı olarak oluşturulur.'
+                    : 'Gelir veya gider kaydı oluşturarak finansal hareketlerinizi kayıt altına alın.'}
                 </p>
-              )}
+              </div>
             </div>
             <form onSubmit={handleCreateEntry}>
               <div className="accounting-entry-form-grid">
-              <FormField label="Hareket türü">
+              <FormField label="Hareket türü" Icon={ArrowLeftRight}>
                 <select name="type" value={entryForm.type} onChange={handleEntryChange}>
                   {ACCOUNTING_ENTRY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
               {entryForm.type !== 'transfer' && (
-                <FormField label="Cari kartlar" style={{ gridColumn: 'span 2' }}>
+                <FormField label="Cari kartlar" Icon={Users} style={{ gridColumn: 'span 2' }}>
                   <select name="category" value={entryForm.category} onChange={handleEntryChange} required>
                     {entryCategoryOptions.map((category) => <option value={category} key={category}>{category}</option>)}
                     <option value={NEW_CATEGORY_VALUE}>+ Yeni kalem ekle</option>
@@ -1603,7 +1689,7 @@ export default function AccountingPage() {
                   <input name="customCategory" value={entryForm.customCategory} onChange={handleEntryChange} placeholder="Örn. Reklam gideri" required />
                 </FormField>
               )}
-              <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'}>
+              <FormField label={entryForm.type === 'transfer' ? 'Kaynak hesap' : 'Para hesabı'} Icon={Landmark}>
                 <select name="accountId" value={entryForm.accountId} onChange={handleEntryChange} required>
                   <option value="">Hesap seçin</option>
                   {currencyAccounts.map((account) => (
@@ -1612,7 +1698,7 @@ export default function AccountingPage() {
                 </select>
               </FormField>
               {entryForm.type === 'transfer' && (
-                <FormField label="Hedef hesap">
+                <FormField label="Hedef hesap" Icon={Landmark}>
                   <select name="counterAccountId" value={entryForm.counterAccountId} onChange={handleEntryChange} required>
                     <option value="">Hesap seçin</option>
                     {currencyAccounts.filter((account) => account.id !== entryForm.accountId).map((account) => (
@@ -1621,10 +1707,10 @@ export default function AccountingPage() {
                   </select>
                 </FormField>
               )}
-              <FormField label="Tarih">
+              <FormField label="Tarih" Icon={CalendarDays}>
                 <input type="date" name="date" value={entryForm.date} onChange={handleEntryChange} required />
               </FormField>
-              <FormField label="Tutar">
+              <FormField label="Tutar" Icon={Coins}>
                 <AmountInput id="accounting-entry-amount" name="amount" value={entryForm.amount} currency={entryForm.currency} onChange={handleEntryChange} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
               <div className="accounting-entry-form-row" style={{ gridColumn: 'span 4', display: 'flex', gap: 16 }}>
@@ -1633,7 +1719,7 @@ export default function AccountingPage() {
                     {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Açıklama" style={{ minWidth: 0, flex: '1 1 auto' }}>
+                <FormField label="Açıklama" Icon={FileText} style={{ minWidth: 0, flex: '1 1 auto' }}>
                   <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
                 </FormField>
               </div>
@@ -1643,11 +1729,23 @@ export default function AccountingPage() {
                 </FormField>
               )}
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap' }}>
                 <button type="submit" className="btn btn-primary" disabled={saving || currencyAccounts.length === 0}>
                   {saving ? 'Kaydediliyor…' : editingEntry ? 'Düzeltmeyi Kaydet' : 'Hareketi Kaydet'}
+                  {!saving && <ArrowUpRight size={16} strokeWidth={2.5} />}
                 </button>
-                {editingEntry && <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>}
+                {editingEntry ? (
+                  <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={saving}
+                    onClick={() => setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency })}
+                  >
+                    <RotateCcw size={16} strokeWidth={2} /> Temizle
+                  </button>
+                )}
               </div>
             </form>
             <SavedRecordNotice notice={entrySaveNotice} />
@@ -1659,17 +1757,58 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Hareket listesi</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>{periodLabel(period)} · {currency}</p>
+            <div className="list-head">
+              <div className="section-head" style={{ marginBottom: 0 }}>
+                <span className="section-head__ico"><ListOrdered size={20} strokeWidth={2} /></span>
+                <div className="section-head__text">
+                  <h3>Hareket listesi</h3>
+                  <p>
+                    {periodLabel(period)} · {currency} ·{' '}
+                    {filteredEntries.length === entries.length
+                      ? `${entries.length} kayıt`
+                      : `${entries.length} kayıttan ${filteredEntries.length} tanesi`}
+                  </p>
+                </div>
               </div>
-              <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{entries.length} kayıt</span>
+              <div className="list-toolbar">
+                <div className="list-toolbar__search">
+                  <Search size={16} strokeWidth={2} />
+                  <input
+                    type="search"
+                    value={entrySearch}
+                    onChange={(event) => setEntrySearch(event.target.value)}
+                    placeholder="Tabloda ara…"
+                    aria-label="Hareket listesinde ara"
+                  />
+                </div>
+                <select
+                  className="list-toolbar__filter"
+                  value={entryTypeFilter}
+                  onChange={(event) => setEntryTypeFilter(event.target.value)}
+                  aria-label="Hareket türüne göre filtrele"
+                >
+                  <option value="all">Tüm hareketler</option>
+                  {ACCOUNTING_ENTRY_TYPES.map((item) => (
+                    <option value={item.value} key={item.value}>{item.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleExportEntries}
+                  disabled={filteredEntries.length === 0}
+                  title="Görünen kayıtları CSV olarak indir"
+                >
+                  <Download size={16} strokeWidth={2} /> Dışa Aktar
+                </button>
+              </div>
             </div>
             {loading ? (
               <div className="empty-state">Yükleniyor…</div>
             ) : entries.length === 0 ? (
               <div className="empty-state">Bu dönem ve para biriminde henüz hareket yok.</div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="empty-state">Arama veya filtreyle eşleşen hareket bulunamadı.</div>
             ) : (
               <div className="table-scroll">
                 <table className="accounting-data-table" style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 13 }}>
@@ -1681,11 +1820,12 @@ export default function AccountingPage() {
                       <th style={{ padding: '7px 8px' }}>Hesap</th>
                       <th style={{ padding: '7px 8px' }}>Cari / açıklama</th>
                       <th style={{ padding: '7px 8px', textAlign: 'right' }}>Tutar</th>
+                      <th style={{ padding: '7px 8px' }}>Durum</th>
                       <th style={{ padding: '7px 8px' }}>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {entries.map((entry) => (
+                    {visibleEntries.map((entry) => (
                       <tr key={entry.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
                         <td data-label="Tarih" style={{ padding: '9px 8px' }}>{formatDate(entry.date)}</td>
                         <td data-label="Tür" style={{ padding: '9px 8px' }}>{entryTypeLabel(entry.type)}</td>
@@ -1697,16 +1837,70 @@ export default function AccountingPage() {
                         <td data-label="Tutar" className="accounting-data-table__amount" style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: entry.type === 'expense' ? 'var(--cl-danger)' : 'var(--cl-success)' }}>
                           {formatAccountingMoney(entry.amount, entry.currency)}
                         </td>
+                        <td data-label="Durum" style={{ padding: '9px 8px' }}>
+                          {(() => {
+                            const status = entrySourceStatus(entry.sourceType);
+                            return <span className={`pill pill--${status.tone}`}>{status.label}</span>;
+                          })()}
+                        </td>
                         <td data-label="İşlem" className="accounting-data-table__actions" style={{ padding: '9px 8px' }}>
-                          {entry.sourceType === 'manual' && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleStartCorrectEntry(entry)}>Düzelt</button>}
-                          {['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleVoidEntry(entry)}>İptal Et</button>}
-                          {!['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}>Komisyon/kira kaynağı</span>}
-                          <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11, marginTop: 4 }} onClick={() => handleViewAudit(entry)}>Geçmiş</button>
+                          <div className="row-actions">
+                            {entry.sourceType === 'manual' && (
+                              <button type="button" className="icon-btn" title="Düzelt" aria-label="Düzelt" disabled={saving} onClick={() => handleStartCorrectEntry(entry)}>
+                                <Pencil size={15} strokeWidth={2} /><span className="icon-btn__text">Düzelt</span>
+                              </button>
+                            )}
+                            {['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && (
+                              <button type="button" className="icon-btn icon-btn--danger" title="İptal Et" aria-label="İptal Et" disabled={saving} onClick={() => handleVoidEntry(entry)}>
+                                <Ban size={15} strokeWidth={2} /><span className="icon-btn__text">İptal Et</span>
+                              </button>
+                            )}
+                            <button type="button" className="icon-btn" title="Kayıt geçmişi" aria-label="Kayıt geçmişi" onClick={() => handleViewAudit(entry)}>
+                              <History size={15} strokeWidth={2} /><span className="icon-btn__text">Geçmiş</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {!loading && filteredEntries.length > 0 && (
+              <div className="table-pager">
+                <label className="table-pager__size">
+                  Sayfa başına
+                  <select value={entryPageSize} onChange={(event) => setEntryPageSize(Number(event.target.value))}>
+                    {[10, 25, 50, 100].map((size) => <option value={size} key={size}>{size}</option>)}
+                  </select>
+                  kayıt
+                </label>
+                <div className="table-pager__nav">
+                  <span className="table-pager__info">
+                    {(safeEntryPage - 1) * entryPageSize + 1}–{Math.min(safeEntryPage * entryPageSize, filteredEntries.length)} / {filteredEntries.length}
+                  </span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    disabled={safeEntryPage <= 1}
+                    onClick={() => setEntryPage(safeEntryPage - 1)}
+                    title="Önceki sayfa"
+                    aria-label="Önceki sayfa"
+                  >
+                    <ChevronLeft size={16} strokeWidth={2} />
+                  </button>
+                  <span className="table-pager__page">{safeEntryPage} / {entryPageCount}</span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    disabled={safeEntryPage >= entryPageCount}
+                    onClick={() => setEntryPage(safeEntryPage + 1)}
+                    title="Sonraki sayfa"
+                    aria-label="Sonraki sayfa"
+                  >
+                    <ChevronRight size={16} strokeWidth={2} />
+                  </button>
+                </div>
               </div>
             )}
           </div>
