@@ -453,6 +453,13 @@ button {
   text-align: right;
 }
 
+/* --- Kucuk buton: tablo satirlari ve sikisik alanlar icin --- */
+.btn--sm {
+  min-height: 32px;
+  padding: 0 var(--s3);
+  font-size: var(--t-label);
+}
+
 /* --- Durum rozeti --- */
 .status-badge {
   font-family: var(--font-body);
@@ -4212,6 +4219,454 @@ button.metric-card--clickable {
   .calendar-day-detail-modal__quick-task .btn {
     width: 100%;
   }
+}
+
+/* ================================================================
+   BILESEN SOZLUGU
+   Tum sayfalarin kullandigi ortak dil. Sayfalar kendi CSS'ini yazmaz,
+   sabit px/renk kullanmaz; her deger buradaki token'lardan gelir.
+   Her bilesenin hem genis hem dar ekran karsiligi burada tanimli --
+   ayri bir mobil surum yok.
+   ================================================================ */
+:root {
+  /* Bosluk: 4px ritmi, ara deger uydurulmaz */
+  --s1: 4px;  --s2: 8px;  --s3: 12px;
+  --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+
+  /* Tipografi: 4 seviye */
+  --t-label: 12px; --t-body: 14px; --t-title: 18px; --t-num: 28px;
+
+  /* Kose ve golge */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+  --sh-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --sh-md: 0 2px 8px rgba(16, 24, 40, 0.06);
+
+  --cl-faint: #8b95a3;
+  --cl-focus: 0 0 0 3px rgba(196, 154, 85, 0.25);
+}
+
+/* --- Ikincil metin --- */
+.muted {
+  color: var(--cl-muted);
+  font-size: var(--t-body);
+}
+.muted--sm { font-size: var(--t-label); }
+
+/* --- Tutar --- */
+.amount {
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.amount--in { color: var(--cl-success); }
+.amount--out { color: var(--cl-danger); }
+
+/* --- Bolum basligi: ikon kutusu + baslik + tek satir aciklama --- */
+.section-head {
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-start;
+  margin-bottom: var(--s5);
+}
+.section-head__ico {
+  width: 40px; height: 40px; flex: none;
+  border-radius: var(--r-sm);
+  background: rgba(196, 154, 85, 0.12);
+  color: var(--cl-gold);
+  display: grid; place-items: center;
+}
+.section-head__text { min-width: 0; }
+.section-head__text h3 {
+  margin: 0;
+  font-family: var(--cl-font-heading);
+  font-size: var(--t-title);
+  font-weight: 600;
+  color: var(--cl-text);
+}
+.section-head__text p {
+  margin: 2px 0 0;
+  font-size: var(--t-body);
+  color: var(--cl-muted);
+}
+
+/* --- Panel basligi (ikon kutusu olmayan sade baslik) --- */
+.panel-title {
+  margin: 0;
+  font-family: var(--cl-font-heading);
+  font-size: var(--t-title);
+  font-weight: 600;
+  color: var(--cl-text);
+}
+
+/* --- Yan yana dizilen form satiri --- */
+.form-row {
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+@media (max-width: 600px) {
+  .form-row { flex-direction: column; align-items: stretch; }
+  .form-row > * { width: 100%; }
+}
+
+/* --- Panel basligi + sag taraf eylemleri --- */
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s5);
+}
+.panel-head__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+/* --- Istatistik kartlari --- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s4);
+  margin-bottom: var(--s5);
+}
+.stat-card {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-md);
+  padding: var(--s5);
+  box-shadow: var(--sh-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s4);
+}
+.stat-card__ico {
+  width: 44px; height: 44px; flex: none;
+  border-radius: 50%;
+  display: grid; place-items: center;
+}
+.stat-card--income .stat-card__ico { background: rgba(22, 163, 74, 0.12); color: var(--cl-success); }
+.stat-card--expense .stat-card__ico { background: rgba(220, 38, 38, 0.10); color: var(--cl-danger); }
+.stat-card--net .stat-card__ico { background: rgba(37, 99, 235, 0.10); color: var(--cl-info); }
+.stat-card--pending .stat-card__ico { background: rgba(196, 154, 85, 0.16); color: #a9793c; }
+.stat-card__body { min-width: 0; }
+.stat-card__label {
+  font-size: var(--t-label);
+  font-weight: 500;
+  color: var(--cl-faint);
+}
+.stat-card__value {
+  margin-top: var(--s1);
+  font-family: var(--font-body);
+  font-size: clamp(19px, 1.7vw, var(--t-num));
+  font-weight: 700;
+  color: var(--cl-text);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.stat-card__trend {
+  margin-top: var(--s2);
+  font-size: var(--t-label);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+.stat-card__trend--up { color: var(--cl-success); }
+.stat-card__trend--down { color: var(--cl-danger); }
+.stat-card__trend--flat { color: var(--cl-muted); }
+.stat-card__note { color: var(--cl-muted); font-weight: 500; }
+
+/* --- Form izgarasi ve eylem satiri --- */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s4);
+  align-items: start;
+}
+.form-actions {
+  display: flex;
+  gap: var(--s3);
+  margin-top: var(--s5);
+  flex-wrap: wrap;
+}
+
+/* --- Durum rozeti --- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s3);
+  border-radius: 999px;
+  font-size: var(--t-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pill--ok { background: rgba(22, 163, 74, 0.10); color: var(--cl-success); }
+.pill--wait { background: rgba(217, 119, 6, 0.10); color: var(--cl-warning); }
+.pill--no { background: rgba(220, 38, 38, 0.10); color: var(--cl-danger); }
+
+/* --- Satir ici ikon butonlari --- */
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  flex-wrap: nowrap;
+}
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  background: var(--cl-surface);
+  color: var(--cl-muted);
+  cursor: pointer;
+}
+.icon-btn:hover:not(:disabled) { color: var(--cl-text); background: var(--cl-bg); }
+.icon-btn--danger:hover:not(:disabled) { color: var(--cl-danger); border-color: var(--cl-danger); }
+.icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.icon-btn:focus-visible { outline: none; border-color: var(--cl-gold); box-shadow: var(--cl-focus); }
+/* Genis ekranda sadece ikon; metin ekran okuyucuda kalir */
+.icon-btn__text {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* --- Veri tablosu --- */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-body);
+}
+.data-table thead th {
+  text-align: left;
+  padding: var(--s3) var(--s4);
+  font-family: var(--font-body);
+  font-size: var(--t-label);
+  font-weight: 600;
+  color: var(--cl-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.data-table tbody tr { border-top: 1px solid var(--cl-border); }
+.data-table tbody tr:hover { background: var(--cl-bg); }
+.data-table td {
+  padding: var(--s4);
+  color: var(--cl-text);
+  vertical-align: middle;
+}
+.data-table th.is-right, .data-table td.is-right { text-align: right; }
+
+/* --- Liste arac cubugu --- */
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+.list-toolbar__search { position: relative; display: flex; align-items: center; }
+.list-toolbar__search > svg {
+  position: absolute; left: var(--s3);
+  color: var(--cl-faint); pointer-events: none;
+}
+.list-toolbar__search input {
+  min-height: 40px;
+  padding: 0 var(--s3) 0 36px;
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  font-size: var(--t-body);
+  background: var(--cl-surface);
+  color: var(--cl-text);
+  min-width: 220px;
+}
+.list-toolbar__search input:focus,
+.list-toolbar select:focus {
+  outline: none; border-color: var(--cl-gold); box-shadow: var(--cl-focus);
+}
+.list-toolbar select {
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  font-size: var(--t-body);
+  background: var(--cl-surface);
+  color: var(--cl-text);
+}
+.list-toolbar .btn { min-height: 40px; padding: 0 var(--s4); }
+
+/* --- Sayfalama --- */
+.table-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  margin-top: var(--s4);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--cl-border);
+  font-size: var(--t-label);
+  color: var(--cl-muted);
+}
+.table-pager__size { display: inline-flex; align-items: center; gap: var(--s2); }
+.table-pager__size select {
+  min-height: 32px; padding: 0 var(--s2);
+  border: 1px solid var(--cl-border); border-radius: var(--r-sm);
+  background: var(--cl-surface); color: var(--cl-text); font-size: var(--t-label);
+}
+.table-pager__nav { display: inline-flex; align-items: center; gap: var(--s2); }
+.table-pager__page { font-weight: 600; color: var(--cl-text); }
+
+/* --- Sekmeler: dolgulu pill, aktif olan altin zeminli.
+   .cl-tabs (Muhasebe, Danismanlar) ve .folder-tabs (Portfoy, Musteri...)
+   ayni dili konussun diye ikisi de burada tanimli. --- */
+.cl-tabs,
+.folder-tabs {
+  display: flex;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  margin-bottom: var(--s5);
+  border-bottom: 0;
+}
+.folder-tabs { overflow-x: visible; }
+.cl-tab,
+.folder-tab {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  padding: 0 var(--s4);
+  min-height: 40px;
+  margin-bottom: 0;
+  font-family: var(--font-body);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--cl-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-shrink: 0;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.cl-tab:hover,
+.folder-tab:hover {
+  color: var(--cl-text);
+  background: var(--cl-bg);
+}
+.cl-tab.active,
+.folder-tab.active {
+  background: var(--cl-gold);
+  border-color: var(--cl-gold);
+  color: #fff;
+}
+.cl-tab.active:hover,
+.folder-tab.active:hover {
+  background: var(--cl-gold);
+  color: #fff;
+}
+/* Dar ekranda sekmeler ucerli izgaraya iner -- yatay kaydirma yerine
+   hepsi tek bakista gorunur (mockup'taki duzen). */
+@media (max-width: 600px) {
+  .cl-tabs,
+  .folder-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s2);
+  }
+  .cl-tab,
+  .folder-tab {
+    justify-content: center;
+    padding: 0 var(--s2);
+    font-size: 13px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+  }
+}
+
+/* ================================================================
+   SOZLUGUN DAR EKRAN KARSILIGI (<= 600px)
+   ================================================================ */
+@media (max-width: 600px) {
+  /* Istatistikler 2x2 */
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: var(--s3); }
+  .stat-card { padding: var(--s4); gap: var(--s3); flex-direction: column; }
+  .stat-card__ico { width: 36px; height: 36px; }
+  .stat-card__value { font-size: 20px; }
+
+  /* Form tek sutun, eylemler alt alta tam genislik.
+     span degerleri de tek sutuna sabitlenir: tek sutunlu bir grid'de
+     "span 4" ortuk sutunlar acip grid'i ekrandan tasiriyor ve alanlar
+     gorunmeden kirpiliyordu. */
+  .form-grid { grid-template-columns: 1fr; gap: var(--s3); }
+  .form-grid > * { grid-column: 1 / -1 !important; }
+  .form-grid > div[style*="display: flex"] { flex-direction: column; gap: var(--s3) !important; }
+  .form-grid > div[style*="display: flex"] > .form-field { width: 100% !important; flex: 1 1 100% !important; }
+  .form-actions { flex-direction: column; }
+  .form-actions .btn { width: 100%; }
+
+  /* Panel basligi ve arac cubugu alt alta */
+  .panel-head { flex-direction: column; align-items: stretch; }
+  .list-toolbar { width: 100%; }
+  .list-toolbar__search { flex: 1 1 100%; }
+  .list-toolbar__search input { width: 100%; min-width: 0; }
+  .list-toolbar select,
+  .list-toolbar .btn { flex: 1 1 100%; width: 100%; }
+
+  /* Tablo -> etiketli kart */
+  .data-table { display: block; width: 100% !important; min-width: 0 !important; }
+  .data-table thead { display: none; }
+  .data-table tbody,
+  .data-table tr,
+  .data-table td { display: block; width: 100%; }
+  .data-table tbody tr {
+    border: 1px solid var(--cl-border);
+    border-radius: var(--r-md);
+    background: var(--cl-surface);
+    padding: var(--s2) var(--s4);
+    margin-bottom: var(--s3);
+  }
+  .data-table td {
+    padding: var(--s2) 0;
+    border-bottom: 1px solid var(--cl-border);
+    text-align: left !important;
+    overflow-wrap: anywhere;
+  }
+  .data-table td:last-child { border-bottom: 0; }
+  /* Etiket degerin ustunde durur -- yan yana duzende uzun degerler tasiyordu */
+  .data-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--cl-faint);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .data-table td:empty { display: none; }
+  .amount { text-align: left; font-size: 15px; font-weight: 700; }
+
+  /* Satir eylemleri: tam genislik, metinli */
+  .row-actions { flex-direction: column; align-items: stretch; gap: var(--s2); }
+  .row-actions .icon-btn { width: 100%; gap: var(--s2); }
+  .row-actions .icon-btn__text {
+    position: static; width: auto; height: auto;
+    overflow: visible; clip: auto;
+  }
+
+  .table-pager { gap: var(--s3); }
 }
 
 /* ================================================================

@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { TrendingUp, TrendingDown, Wallet, Clock, FileBarChart2, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, Wallet, Clock, FileBarChart2, ArrowUpRight, ArrowDownRight, Minus,
+  ArrowLeftRight, Users, Percent, KeyRound, Landmark, BarChart3, FilePlus2, ListOrdered,
+  Search, Download, Pencil, Ban, History, ChevronLeft, ChevronRight, RotateCcw, CheckCircle2,
+} from 'lucide-react';
 import {
   ACCOUNTING_ACCOUNT_TYPES,
   ACCOUNTING_CURRENCIES,
@@ -11,12 +15,12 @@ import {
 import { usersApi } from '../api/auth';
 
 const ACCOUNTING_TABS = [
-  { key: 'entries', label: 'Hareketler' },
-  { key: 'ledgers', label: 'Cari Kartlar' },
-  { key: 'commissions', label: 'Komisyonlar' },
-  { key: 'dues', label: 'Danışman Kiraları' },
-  { key: 'accounts', label: 'Hesaplar' },
-  { key: 'reports', label: 'Raporlar' },
+  { key: 'entries', label: 'Hareketler', Icon: ArrowLeftRight },
+  { key: 'ledgers', label: 'Cari Kartlar', Icon: Users },
+  { key: 'commissions', label: 'Komisyonlar', Icon: Percent },
+  { key: 'dues', label: 'Danışman Kiraları', Icon: KeyRound },
+  { key: 'accounts', label: 'Hesaplar', Icon: Landmark },
+  { key: 'reports', label: 'Raporlar', Icon: BarChart3 },
 ];
 
 const EMPTY_COMMISSION_FORM = {
@@ -205,6 +209,17 @@ function entryTypeLabel(type) {
   return ACCOUNTING_ENTRY_TYPES.find((item) => item.value === type)?.label || type;
 }
 
+// Liste yalnizca iptal edilmemis kayitlari getirir (bkz. listEntries:
+// voidedAt IS NULL), bu yuzden durum rozeti kaydin KAYNAGINI anlatir:
+// elle mi girildi, bir duzeltme kaydi mi, yoksa komisyon/kira gibi bir
+// islemden otomatik mi olustu.
+function entrySourceStatus(sourceType) {
+  if (sourceType === 'manual_correction') return { label: 'Düzeltme', tone: 'wait' };
+  if (sourceType === 'accounting_recurring_expense') return { label: 'Tekrarlayan', tone: 'ok' };
+  if (sourceType && sourceType !== 'manual') return { label: 'Otomatik', tone: 'ok' };
+  return { label: 'Tamamlandı', tone: 'ok' };
+}
+
 function quickExpenseLabel(entry) {
   return entry?.category?.trim() || 'Gider';
 }
@@ -261,20 +276,22 @@ function KpiCard({ variant, Icon, label, valueDisplay, changePercent, trendNote 
   const trendDirection = !hasTrend ? 'flat' : changePercent > 0.5 ? 'up' : changePercent < -0.5 ? 'down' : 'flat';
   const TrendIcon = trendDirection === 'up' ? ArrowUpRight : trendDirection === 'down' ? ArrowDownRight : Minus;
   return (
-    <div className={`cl-kpi-card cl-kpi-card--${variant}`}>
-      <span className="cl-kpi-card__icon"><Icon size={18} strokeWidth={2} /></span>
-      <div className="cl-kpi-card__label">{label}</div>
-      <div className="cl-kpi-card__value">{valueDisplay}</div>
-      <div className={`cl-kpi-card__trend cl-kpi-card__trend--${trendDirection}`}>
-        {hasTrend ? (
-          <>
-            <TrendIcon size={13} strokeWidth={2.5} />
-            {Math.abs(changePercent).toFixed(0)}%
-            <span className="cl-kpi-card__trend-note">geçen aya göre</span>
-          </>
-        ) : (
-          <span className="cl-kpi-card__trend-note">{trendNote || 'geçen ay veri yok'}</span>
-        )}
+    <div className={`stat-card stat-card--${variant}`}>
+      <span className="stat-card__ico"><Icon size={20} strokeWidth={2} /></span>
+      <div className="stat-card__body">
+        <div className="stat-card__label">{label}</div>
+        <div className="stat-card__value">{valueDisplay}</div>
+        <div className={`stat-card__trend stat-card__trend--${trendDirection}`}>
+          {hasTrend ? (
+            <>
+              <TrendIcon size={13} strokeWidth={2.5} />
+              {Math.abs(changePercent).toFixed(0)}%
+              <span className="stat-card__note">geçen aya göre</span>
+            </>
+          ) : (
+            <span className="stat-card__note">{trendNote || 'geçen ay veri yok'}</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -388,6 +405,11 @@ export default function AccountingPage() {
   const [currency, setCurrency] = useState('TRY');
   const [accounts, setAccounts] = useState([]);
   const [entries, setEntries] = useState([]);
+  // Hareket listesi arac cubugu: arama / tur filtresi / sayfalama
+  const [entrySearch, setEntrySearch] = useState('');
+  const [entryTypeFilter, setEntryTypeFilter] = useState('all');
+  const [entryPage, setEntryPage] = useState(1);
+  const [entryPageSize, setEntryPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [entrySaveNotice, setEntrySaveNotice] = useState(null);
@@ -515,6 +537,52 @@ export default function AccountingPage() {
       .then((list) => setPreviousPeriodEntries(list || []))
       .catch(() => setPreviousPeriodEntries([]));
   }, [period, currency]);
+
+  // Arama ve filtre istemci tarafinda, mevcut veri uzerinde calisir --
+  // yeni bir API istegi yapilmaz.
+  const filteredEntries = useMemo(() => {
+    const term = entrySearch.trim().toLocaleLowerCase('tr-TR');
+    return entries.filter((entry) => {
+      if (entryTypeFilter !== 'all' && entry.type !== entryTypeFilter) return false;
+      if (!term) return true;
+      return [entry.category, entry.accountName, entry.counterAccountName, entry.partyName,
+        entry.description, formatDate(entry.date), String(entry.amount ?? '')]
+        .filter(Boolean).join(' ').toLocaleLowerCase('tr-TR').includes(term);
+    });
+  }, [entries, entrySearch, entryTypeFilter]);
+
+  const entryPageCount = Math.max(1, Math.ceil(filteredEntries.length / entryPageSize));
+  const safeEntryPage = Math.min(entryPage, entryPageCount);
+  const visibleEntries = useMemo(
+    () => filteredEntries.slice((safeEntryPage - 1) * entryPageSize, safeEntryPage * entryPageSize),
+    [filteredEntries, safeEntryPage, entryPageSize],
+  );
+
+  useEffect(() => { setEntryPage(1); }, [entrySearch, entryTypeFilter, entryPageSize, period, currency]);
+
+  function handleExportEntries() {
+    const header = ['Tarih', 'Tür', 'Kategori', 'Hesap', 'Cari / açıklama', 'Tutar', 'Para birimi', 'Durum'];
+    const rows = filteredEntries.map((entry) => [
+      formatDate(entry.date),
+      entryTypeLabel(entry.type),
+      entry.category ?? '',
+      entry.type === 'transfer' ? `${entry.accountName || ''} -> ${entry.counterAccountName || ''}` : (entry.accountName || ''),
+      entry.partyName || entry.description || '',
+      Number(entry.amount || 0).toFixed(2),
+      entry.currency ?? '',
+      entrySourceStatus(entry.sourceType).label,
+    ]);
+    // Excel'in Turkce karakterleri dogru okumasi icin BOM ekleniyor.
+    const csv = '\uFEFF' + [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+      .join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `muhasebe-hareketler-${period}-${currency}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   const kpiStats = useMemo(() => {
     const sumByType = (list, type) => list
@@ -1520,7 +1588,7 @@ export default function AccountingPage() {
       </div>
 
       {activeTab !== 'reports' && (
-        <div className="cl-kpi-row">
+        <div className="stat-grid">
           <KpiCard
             variant="income"
             Icon={TrendingUp}
@@ -1567,6 +1635,7 @@ export default function AccountingPage() {
             className={`cl-tab${activeTab === tab.key ? ' active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
           >
+            {tab.Icon && <tab.Icon size={16} strokeWidth={2} />}
             {tab.label}
           </button>
         ))}
@@ -1575,16 +1644,19 @@ export default function AccountingPage() {
       {activeTab === 'entries' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-              <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 19, color: 'var(--cl-primary-800)' }}>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
-              {editingEntry && (
-                <p style={{ color: 'var(--cl-muted)', margin: 0, fontSize: 13 }}>
-                  Eski kayıt silinmez ve geçmişte korunur. Yeni değerler ayrı bir düzeltme kaydı olarak oluşturulur.
+            <div className="section-head">
+              <span className="section-head__ico"><FilePlus2 size={20} strokeWidth={2} /></span>
+              <div className="section-head__text">
+                <h3>{editingEntry ? 'Muhasebe hareketini düzelt' : 'Yeni muhasebe hareketi'}</h3>
+                <p>
+                  {editingEntry
+                    ? 'Eski kayıt silinmez ve geçmişte korunur. Yeni değerler ayrı bir düzeltme kaydı olarak oluşturulur.'
+                    : 'Gelir veya gider kaydı oluşturarak finansal hareketlerinizi kayıt altına alın.'}
                 </p>
-              )}
+              </div>
             </div>
             <form onSubmit={handleCreateEntry}>
-              <div className="accounting-entry-form-grid">
+              <div className="form-grid">
               <FormField label="Hareket türü">
                 <select name="type" value={entryForm.type} onChange={handleEntryChange}>
                   {ACCOUNTING_ENTRY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
@@ -1633,7 +1705,7 @@ export default function AccountingPage() {
                     {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Açıklama" style={{ minWidth: 0, flex: '1 1 auto' }}>
+                <FormField label="Açıklama" style={{ flex: '1 1 auto' }}>
                   <input name="description" value={entryForm.description} onChange={handleEntryChange} placeholder="İşlem açıklaması" />
                 </FormField>
               </div>
@@ -1643,11 +1715,23 @@ export default function AccountingPage() {
                 </FormField>
               )}
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <div className="form-actions">
                 <button type="submit" className="btn btn-primary" disabled={saving || currencyAccounts.length === 0}>
                   {saving ? 'Kaydediliyor…' : editingEntry ? 'Düzeltmeyi Kaydet' : 'Hareketi Kaydet'}
+                  {!saving && <ArrowUpRight size={16} strokeWidth={2.5} />}
                 </button>
-                {editingEntry && <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>}
+                {editingEntry ? (
+                  <button type="button" className="btn btn-secondary" onClick={cancelCorrection} disabled={saving}>Düzeltmeden Çık</button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={saving}
+                    onClick={() => setEntryForm({ ...EMPTY_ENTRY_FORM, date: new Date().toISOString().slice(0, 10), currency })}
+                  >
+                    <RotateCcw size={16} strokeWidth={2} /> Temizle
+                  </button>
+                )}
               </div>
             </form>
             <SavedRecordNotice notice={entrySaveNotice} />
@@ -1659,49 +1743,111 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-              <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Hareket listesi</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>{periodLabel(period)} · {currency}</p>
+            <div className="panel-head">
+              <div className="section-head" style={{ marginBottom: 0 }}>
+                <span className="section-head__ico"><ListOrdered size={20} strokeWidth={2} /></span>
+                <div className="section-head__text">
+                  <h3>Hareket listesi</h3>
+                  <p>
+                    {periodLabel(period)} · {currency} ·{' '}
+                    {filteredEntries.length === entries.length
+                      ? `${entries.length} kayıt`
+                      : `${entries.length} kayıttan ${filteredEntries.length} tanesi`}
+                  </p>
+                </div>
               </div>
-              <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{entries.length} kayıt</span>
+              <div className="list-toolbar">
+                <div className="list-toolbar__search">
+                  <Search size={16} strokeWidth={2} />
+                  <input
+                    type="search"
+                    value={entrySearch}
+                    onChange={(event) => setEntrySearch(event.target.value)}
+                    placeholder="Tabloda ara…"
+                    aria-label="Hareket listesinde ara"
+                  />
+                </div>
+                <select
+                  value={entryTypeFilter}
+                  onChange={(event) => setEntryTypeFilter(event.target.value)}
+                  aria-label="Hareket türüne göre filtrele"
+                >
+                  <option value="all">Tüm hareketler</option>
+                  {ACCOUNTING_ENTRY_TYPES.map((item) => (
+                    <option value={item.value} key={item.value}>{item.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleExportEntries}
+                  disabled={filteredEntries.length === 0}
+                  title="Görünen kayıtları CSV olarak indir"
+                >
+                  <Download size={16} strokeWidth={2} /> Dışa Aktar
+                </button>
+              </div>
             </div>
             {loading ? (
               <div className="empty-state">Yükleniyor…</div>
             ) : entries.length === 0 ? (
               <div className="empty-state">Bu dönem ve para biriminde henüz hareket yok.</div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="empty-state">Arama veya filtreyle eşleşen hareket bulunamadı.</div>
             ) : (
               <div className="table-scroll">
-                <table className="accounting-data-table" style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="data-table" style={{ minWidth: 760 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '7px 8px' }}>Tarih</th>
-                      <th style={{ padding: '7px 8px' }}>Tür</th>
-                      <th style={{ padding: '7px 8px' }}>Kategori</th>
-                      <th style={{ padding: '7px 8px' }}>Hesap</th>
-                      <th style={{ padding: '7px 8px' }}>Cari / açıklama</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Tutar</th>
-                      <th style={{ padding: '7px 8px' }}>İşlem</th>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Tür</th>
+                      <th>Kategori</th>
+                      <th>Hesap</th>
+                      <th>Cari / açıklama</th>
+                      <th className="is-right">Tutar</th>
+                      <th>Durum</th>
+                      <th>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {entries.map((entry) => (
-                      <tr key={entry.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                        <td data-label="Tarih" style={{ padding: '9px 8px' }}>{formatDate(entry.date)}</td>
-                        <td data-label="Tür" style={{ padding: '9px 8px' }}>{entryTypeLabel(entry.type)}</td>
-                        <td data-label="Kategori" style={{ padding: '9px 8px' }}>{entry.category}</td>
-                        <td data-label="Hesap" style={{ padding: '9px 8px' }}>
+                    {visibleEntries.map((entry) => (
+                      <tr key={entry.id} >
+                        <td data-label="Tarih">{formatDate(entry.date)}</td>
+                        <td data-label="Tür">{entryTypeLabel(entry.type)}</td>
+                        <td data-label="Kategori">{entry.category}</td>
+                        <td data-label="Hesap">
                           {entry.type === 'transfer' ? `${entry.accountName || '—'} → ${entry.counterAccountName || '—'}` : entry.accountName || '—'}
                         </td>
-                        <td data-label="Cari / açıklama" style={{ padding: '9px 8px' }}>{entry.partyName || entry.description || '—'}</td>
-                        <td data-label="Tutar" className="accounting-data-table__amount" style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: entry.type === 'expense' ? 'var(--cl-danger)' : 'var(--cl-success)' }}>
+                        <td data-label="Cari / açıklama">{entry.partyName || entry.description || '—'}</td>
+                        <td data-label="Tutar" className="amount" style={{ color: entry.type === 'expense' ? 'var(--cl-danger)' : 'var(--cl-success)' }}>
                           {formatAccountingMoney(entry.amount, entry.currency)}
                         </td>
-                        <td data-label="İşlem" className="accounting-data-table__actions" style={{ padding: '9px 8px' }}>
-                          {entry.sourceType === 'manual' && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleStartCorrectEntry(entry)}>Düzelt</button>}
-                          {['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={saving} onClick={() => handleVoidEntry(entry)}>İptal Et</button>}
-                          {!['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}>Komisyon/kira kaynağı</span>}
-                          <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11, marginTop: 4 }} onClick={() => handleViewAudit(entry)}>Geçmiş</button>
+                        <td data-label="Durum">
+                          {(() => {
+                            const status = entrySourceStatus(entry.sourceType);
+                            return (
+                              <span className={`pill pill--${status.tone}`}>
+                                <CheckCircle2 size={13} strokeWidth={2.5} /> {status.label}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td data-label="İşlem">
+                          <div className="row-actions">
+                            {entry.sourceType === 'manual' && (
+                              <button type="button" className="icon-btn" title="Düzelt" aria-label="Düzelt" disabled={saving} onClick={() => handleStartCorrectEntry(entry)}>
+                                <Pencil size={15} strokeWidth={2} /><span className="icon-btn__text">Düzelt</span>
+                              </button>
+                            )}
+                            {['manual', 'manual_correction', 'accounting_recurring_expense'].includes(entry.sourceType) && (
+                              <button type="button" className="icon-btn icon-btn--danger" title="İptal Et" aria-label="İptal Et" disabled={saving} onClick={() => handleVoidEntry(entry)}>
+                                <Ban size={15} strokeWidth={2} /><span className="icon-btn__text">İptal Et</span>
+                              </button>
+                            )}
+                            <button type="button" className="icon-btn" title="Kayıt geçmişi" aria-label="Kayıt geçmişi" onClick={() => handleViewAudit(entry)}>
+                              <History size={15} strokeWidth={2} /><span className="icon-btn__text">Geçmiş</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1709,13 +1855,36 @@ export default function AccountingPage() {
                 </table>
               </div>
             )}
+            {!loading && filteredEntries.length > 0 && (
+              <div className="table-pager">
+                <label className="table-pager__size">
+                  Sayfa başına
+                  <select value={entryPageSize} onChange={(event) => setEntryPageSize(Number(event.target.value))}>
+                    {[10, 25, 50, 100].map((size) => <option value={size} key={size}>{size}</option>)}
+                  </select>
+                  kayıt
+                </label>
+                <div className="table-pager__nav">
+                  <span>
+                    {(safeEntryPage - 1) * entryPageSize + 1}–{Math.min(safeEntryPage * entryPageSize, filteredEntries.length)} / {filteredEntries.length}
+                  </span>
+                  <button type="button" className="icon-btn" disabled={safeEntryPage <= 1} onClick={() => setEntryPage(safeEntryPage - 1)} title="Önceki sayfa" aria-label="Önceki sayfa">
+                    <ChevronLeft size={16} strokeWidth={2} />
+                  </button>
+                  <span className="table-pager__page">{safeEntryPage} / {entryPageCount}</span>
+                  <button type="button" className="icon-btn" disabled={safeEntryPage >= entryPageCount} onClick={() => setEntryPage(safeEntryPage + 1)} title="Sonraki sayfa" aria-label="Sonraki sayfa">
+                    <ChevronRight size={16} strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           {auditTarget && (
             <div className="cl-panel" style={{ marginTop: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div className="panel-head">
                 <div>
-                  <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Kayıt geçmişi</h3>
-                  <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>{auditTarget.category} · {formatAccountingMoney(auditTarget.amount, auditTarget.currency)} · Değişiklikler silinmeden saklanır.</p>
+                  <h3 className="panel-title">Kayıt geçmişi</h3>
+                  <p className="muted">{auditTarget.category} · {formatAccountingMoney(auditTarget.amount, auditTarget.currency)} · Değişiklikler silinmeden saklanır.</p>
                 </div>
                 <button type="button" className="btn btn-secondary" onClick={() => { setAuditTarget(null); setAuditLogs([]); }}>Geçmişi Kapat</button>
               </div>
@@ -1751,14 +1920,14 @@ export default function AccountingPage() {
       {activeTab === 'accounts' && accountSubTab === 'bank' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 14px', fontSize: 18 }}>Yeni muhasebe hesabı</h3>
-            <form onSubmit={handleCreateAccount} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <h3 className="panel-title">Yeni muhasebe hesabı</h3>
+            <form onSubmit={handleCreateAccount} className="form-row">
               <FormField label="Hesap türü">
                 <select name="type" value={accountForm.type} onChange={(event) => setAccountForm({ ...accountForm, type: event.target.value })}>
                   {ACCOUNTING_ACCOUNT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Hesap adı" style={{ minWidth: 190 }}>
+              <FormField label="Hesap adı">
                 <input value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} placeholder="Örn. Ana Banka Hesabı" required />
               </FormField>
               {accountForm.type !== 'cash' && (
@@ -1787,38 +1956,38 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 14px', fontSize: 18 }}>Hesaplar ve bakiyeler</h3>
+            <h3 className="panel-title">Hesaplar ve bakiyeler</h3>
             {loading ? (
               <div className="empty-state">Yükleniyor…</div>
             ) : accounts.length === 0 ? (
               <div className="empty-state">Henüz muhasebe hesabı eklenmemiş.</div>
             ) : (
               <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 620, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="data-table" style={{ minWidth: 620 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '7px 8px' }}>Hesap</th>
-                      <th style={{ padding: '7px 8px' }}>Tür</th>
-                      <th style={{ padding: '7px 8px' }}>Para birimi</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Güncel bakiye</th>
-                      <th style={{ padding: '7px 8px' }}>İşlem</th>
+                    <tr>
+                      <th>Hesap</th>
+                      <th>Tür</th>
+                      <th>Para birimi</th>
+                      <th className="is-right">Güncel bakiye</th>
+                      <th>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
                     {accounts.map((account) => (
-                      <tr key={account.id} style={{ borderTop: '1px solid var(--cl-border)', opacity: account.isActive === false ? 0.55 : 1 }}>
-                        <td style={{ padding: '9px 8px' }}>
+                      <tr key={account.id}  style={{ opacity: account.isActive === false ? 0.55 : 1 }}>
+                        <td data-label="Hesap">
                           <strong>{account.name}</strong>
-                          {account.bankName && <div style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{account.bankName}</div>}
+                          {account.bankName && <div className="muted muted--sm">{account.bankName}</div>}
                         </td>
-                        <td style={{ padding: '9px 8px' }}>{ACCOUNTING_ACCOUNT_TYPES.find((item) => item.value === account.type)?.label || account.type}</td>
-                        <td style={{ padding: '9px 8px' }}>{account.currency}</td>
-                        <td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: Number(account.currentBalance || 0) >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
+                        <td data-label="Tür">{ACCOUNTING_ACCOUNT_TYPES.find((item) => item.value === account.type)?.label || account.type}</td>
+                        <td data-label="Para birimi">{account.currency}</td>
+                        <td data-label="Güncel bakiye" className="amount" style={{ color: Number(account.currentBalance || 0) >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                           {formatAccountingMoney(account.currentBalance, account.currency)}
                         </td>
-                        <td style={{ padding: '9px 8px' }}>
-                          {account.isActive !== false && <><button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleEditAccount(account)}>Düzenle</button> <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleArchiveAccount(account)}>Pasifleştir</button></>}
-                          {account.isActive === false && <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}>Pasif</span>}
+                        <td data-label="İşlem">
+                          {account.isActive !== false && <><button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleEditAccount(account)}>Düzenle</button> <button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleArchiveAccount(account)}>Pasifleştir</button></>}
+                          {account.isActive === false && <span className="muted muted--sm">Pasif</span>}
                         </td>
                       </tr>
                     ))}
@@ -1833,25 +2002,25 @@ export default function AccountingPage() {
       {activeTab === 'ledgers' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20, display: partyStatement ? 'none' : undefined }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Yeni cari kart</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>
+                <h3 className="panel-title">Yeni cari kart</h3>
+                <p className="muted">
                   Ortak, müşteri, tedarikçi ve diğer muhatapları burada tanımlayın. Danışman kartları Danışman Yönetimi’nden otomatik gelir.
                 </p>
               </div>
               <span style={{ color: 'var(--cl-gold)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>Danışmanlar otomatik</span>
             </div>
-            <form onSubmit={handleCreateParty} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <form onSubmit={handleCreateParty} className="form-row">
               <FormField label="Kart türü">
                 <select value={partyForm.type} onChange={(event) => setPartyForm({ ...partyForm, type: event.target.value })}>
                   {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Ad / unvan" style={{ minWidth: 210 }}>
+              <FormField label="Ad / unvan">
                 <input value={partyForm.name} onChange={(event) => setPartyForm({ ...partyForm, name: event.target.value })} placeholder="Örn. ABC Elektrik" required />
               </FormField>
-              <FormField label="Şirket adı" style={{ minWidth: 190 }}>
+              <FormField label="Şirket adı">
                 <input value={partyForm.companyName} onChange={(event) => setPartyForm({ ...partyForm, companyName: event.target.value })} placeholder="Opsiyonel" />
               </FormField>
               <FormField label="Telefon">
@@ -1862,7 +2031,7 @@ export default function AccountingPage() {
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Açılış bakiyesi" style={{ minWidth: 150 }}>
+              <FormField label="Açılış bakiyesi">
                                   <AmountInput id="accounting-party-opening-balance" value={partyForm.openingBalance} currency={partyForm.currency} onChange={(event) => setPartyForm({ ...partyForm, openingBalance: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" />
 
               </FormField>
@@ -1880,18 +2049,18 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel" style={{ display: partyStatement ? 'none' : undefined }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Cari kartlar ve bakiyeler</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>{currency} görünümü · Kira alacağı ve ödenecek danışman hakedişi dahil</p>
+                <h3 className="panel-title">Cari kartlar ve bakiyeler</h3>
+                <p className="muted">{currency} görünümü · Kira alacağı ve ödenecek danışman hakedişi dahil</p>
               </div>
-              <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{filteredParties.length} / {parties.length} kart · Sayfa {partyPage} / {partyPageCount}</span>
+              <span className="muted muted--sm">{filteredParties.length} / {parties.length} kart · Sayfa {partyPage} / {partyPageCount}</span>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
-              <FormField label="Cari ara" style={{ minWidth: 250, flex: '1 1 250px' }}>
+              <FormField label="Cari ara" style={{ flex: '1 1 250px' }}>
                 <input value={partySearch} onChange={(event) => setPartySearch(event.target.value)} placeholder="Ad, şirket, telefon veya vergi no" />
               </FormField>
-              <FormField label="Kart türü" style={{ minWidth: 170 }}>
+              <FormField label="Kart türü">
                 <select value={partyTypeFilter} onChange={(event) => setPartyTypeFilter(event.target.value)}>
                   <option value="all">Tüm kartlar</option>
                   {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
@@ -1905,18 +2074,18 @@ export default function AccountingPage() {
               <div className="empty-state">{parties.length === 0 ? 'Henüz cari kart bulunmuyor.' : 'Arama veya filtreye uyan cari kart bulunamadı.'}</div>
             ) : (
               <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 1050, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="data-table" style={{ minWidth: 1050 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                                              <th style={{ padding: '7px 8px' }}>Cari kart</th>
-                        <th style={{ padding: '7px 8px' }}>Tür</th>
-                        <th style={{ padding: '7px 8px' }}>Para birimi</th>
-                        <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirketten alacak</th>
-                        <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirkete borç</th>
-                        <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net bakiye</th>
-                        <th style={{ padding: '7px 8px' }}>Durum</th>
-                        <th style={{ padding: '7px 8px' }}>Ekstre</th>
-                        <th style={{ padding: '7px 8px' }}>İşlem</th>
+                    <tr>
+                                              <th>Cari kart</th>
+                        <th>Tür</th>
+                        <th>Para birimi</th>
+                        <th className="is-right">Şirketten alacak</th>
+                        <th className="is-right">Şirkete borç</th>
+                        <th className="is-right">Net bakiye</th>
+                        <th>Durum</th>
+                        <th>Ekstre</th>
+                        <th>İşlem</th>
                       </tr>
                     </thead>
 
@@ -1925,20 +2094,20 @@ export default function AccountingPage() {
                       const typeLabel = ACCOUNTING_PARTY_TYPES.find((item) => item.value === party.type)?.label || (party.type === 'agent' ? 'Danışman' : party.type);
                       const netBalance = Number(party.balance || 0);
                       return (
-                        <tr key={party.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                          <td style={{ padding: '10px 8px' }}>
+                        <tr key={party.id} >
+                          <td data-label="Cari kart">
                             <strong>{party.name}</strong>
-                            {party.companyName && <div style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{party.companyName}</div>}
+                            {party.companyName && <div className="muted muted--sm">{party.companyName}</div>}
                           </td>
-                          <td style={{ padding: '10px 8px' }}>{typeLabel}</td>
-                          <td style={{ padding: '10px 8px' }}>{party.currency}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--cl-success)' }}>{formatAccountingMoney(party.receivable, party.currency)}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--cl-danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: netBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
-                          <td style={{ padding: '10px 8px', color: 'var(--cl-muted)' }}>{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
-                          <td style={{ padding: '10px 8px' }}><button type="button" className="btn btn-secondary" onClick={() => handleViewPartyStatement(party)}>Ekstreyi Aç</button></td>
-                          <td style={{ padding: '10px 8px' }}>
-                            {party.linkedUserId ? <span style={{ color: 'var(--cl-muted)', fontSize: 11 }}>Danışman kaydından yönetilir</span> : <><button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleEditParty(party)}>Düzenle</button> <button type="button" className="btn btn-secondary" style={{ padding: '5px 8px', fontSize: 11 }} disabled={masterSaving} onClick={() => handleArchiveParty(party)}>Pasifleştir</button></>}
+                          <td data-label="Tür">{typeLabel}</td>
+                          <td data-label="Para birimi">{party.currency}</td>
+                          <td data-label="Şirketten alacak" className="amount" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(party.receivable, party.currency)}</td>
+                          <td data-label="Şirkete borç" className="amount" style={{ color: 'var(--cl-danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
+                          <td data-label="Net bakiye" className="amount" style={{ color: netBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
+                          <td data-label="Durum">{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
+                          <td data-label="Ekstre"><button type="button" className="btn btn-secondary" onClick={() => handleViewPartyStatement(party)}>Ekstreyi Aç</button></td>
+                          <td data-label="İşlem">
+                            {party.linkedUserId ? <span className="muted muted--sm">Danışman kaydından yönetilir</span> : <><button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleEditParty(party)}>Düzenle</button> <button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleArchiveParty(party)}>Pasifleştir</button></>}
                           </td>
                         </tr>
                       );
@@ -1949,7 +2118,7 @@ export default function AccountingPage() {
             )}
             {!partyLoading && filteredParties.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--cl-border)' }}>
-                <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{(partyPage - 1) * PARTY_PAGE_SIZE + 1}–{Math.min(partyPage * PARTY_PAGE_SIZE, filteredParties.length)} / {filteredParties.length} gösteriliyor</span>
+                <span className="muted muted--sm">{(partyPage - 1) * PARTY_PAGE_SIZE + 1}–{Math.min(partyPage * PARTY_PAGE_SIZE, filteredParties.length)} / {filteredParties.length} gösteriliyor</span>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" className="btn btn-secondary" disabled={partyPage <= 1} onClick={() => setPartyPage((page) => Math.max(1, page - 1))}>Önceki</button>
                   <button type="button" className="btn btn-secondary" disabled={partyPage >= partyPageCount} onClick={() => setPartyPage((page) => Math.min(partyPageCount, page + 1))}>Sonraki</button>
@@ -1960,10 +2129,10 @@ export default function AccountingPage() {
 
           {partyStatement && (
             <div className="cl-panel" style={{ marginTop: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+              <div className="panel-head">
                 <div>
-                  <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>{partyStatement.party?.name || 'Cari'} · Cari Ekstresi</h3>
-                  <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>
+                  <h3 className="panel-title">{partyStatement.party?.name || 'Cari'} · Cari Ekstresi</h3>
+                  <p className="muted">
                     {partyStatement.party?.currency || currency} · İptal edilen kayıtlar ekstreye dahil edilmez
                   </p>
                 </div>
@@ -1985,41 +2154,41 @@ export default function AccountingPage() {
                     <div style={{ padding: 14, background: 'var(--cl-bg)', border: '1px solid var(--cl-border)' }}>
                       <div style={{ color: 'var(--cl-muted)', fontSize: 11, textTransform: 'uppercase' }}>Net bakiye</div>
                       <strong style={{ display: 'block', marginTop: 6, color: statementBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)', fontFamily: 'var(--font-body)' }}>{formatAccountingMoney(Math.abs(statementBalance), partyStatement.party?.currency || currency)}</strong>
-                      <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{statementBalance > 0 ? 'Şirketten alacaklı' : statementBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</span>
+                      <span className="muted muted--sm">{statementBalance > 0 ? 'Şirketten alacaklı' : statementBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</span>
                     </div>
                   </div>
                   {statementRows.length === 0 ? (
                     <div className="empty-state">Bu cari kartta henüz hareket bulunmuyor.</div>
                   ) : (
                     <div className="table-scroll">
-                      <table style={{ width: '100%', minWidth: 1050, borderCollapse: 'collapse', fontSize: 13 }}>
+                      <table className="data-table" style={{ minWidth: 1050 }}>
                         <thead>
-                          <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                            <th style={{ padding: '7px 8px' }}>Tarih</th>
-                            <th style={{ padding: '7px 8px' }}>İşlem</th>
-                            <th style={{ padding: '7px 8px' }}>Kategori</th>
-                            <th style={{ padding: '7px 8px' }}>Hesap / açıklama</th>
-                            <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirket alacağı</th>
-                            <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirket borcu</th>
-                            <th style={{ padding: '7px 8px', textAlign: 'right' }}>Kümülatif net</th>
-                            <th style={{ padding: '7px 8px' }}>Durum</th>
+                          <tr>
+                            <th>Tarih</th>
+                            <th>İşlem</th>
+                            <th>Kategori</th>
+                            <th>Hesap / açıklama</th>
+                            <th className="is-right">Şirket alacağı</th>
+                            <th className="is-right">Şirket borcu</th>
+                            <th className="is-right">Kümülatif net</th>
+                            <th>Durum</th>
                           </tr>
                         </thead>
                         <tbody>
                           {statementRows.map((entry) => (
-                            <tr key={entry.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                              <td style={{ padding: '10px 8px' }}>{formatDate(entry.date)}</td>
-                              <td style={{ padding: '10px 8px' }}>{statementTypeLabel(entry.type)}</td>
-                              <td style={{ padding: '10px 8px' }}>{entry.category || '—'}</td>
-                              <td style={{ padding: '10px 8px' }}>
+                            <tr key={entry.id} >
+                              <td data-label="Tarih">{formatDate(entry.date)}</td>
+                              <td data-label="İşlem">{statementTypeLabel(entry.type)}</td>
+                              <td data-label="Kategori">{entry.category || '—'}</td>
+                              <td data-label="Hesap / açıklama">
                                 {entry.accountName || entry.counterAccountName || '—'}
                                 {entry.counterAccountName && entry.accountName && <span style={{ color: 'var(--cl-muted)' }}> → {entry.counterAccountName}</span>}
-                                {entry.description && <div style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{entry.description}</div>}
+                                {entry.description && <div className="muted muted--sm">{entry.description}</div>}
                               </td>
-                              <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--cl-success)' }}>{entry.receivableDelta > 0 ? formatAccountingMoney(entry.receivableDelta, entry.currency) : '—'}</td>
-                              <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--cl-danger)' }}>{entry.payableDelta > 0 ? formatAccountingMoney(entry.payableDelta, entry.currency) : '—'}</td>
-                              <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: entry.runningBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>{formatAccountingMoney(Math.abs(entry.runningBalance), entry.currency)}</td>
-                              <td style={{ padding: '10px 8px', color: 'var(--cl-muted)' }}>{entry.statusLabel || '—'}</td>
+                              <td data-label="Şirket alacağı" className="amount" style={{ color: 'var(--cl-success)' }}>{entry.receivableDelta > 0 ? formatAccountingMoney(entry.receivableDelta, entry.currency) : '—'}</td>
+                              <td data-label="Şirket borcu" className="amount" style={{ color: 'var(--cl-danger)' }}>{entry.payableDelta > 0 ? formatAccountingMoney(entry.payableDelta, entry.currency) : '—'}</td>
+                              <td data-label="Kümülatif net" className="amount" style={{ color: entry.runningBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>{formatAccountingMoney(Math.abs(entry.runningBalance), entry.currency)}</td>
+                              <td data-label="Durum">{entry.statusLabel || '—'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -2035,17 +2204,17 @@ export default function AccountingPage() {
       {activeTab === 'commissions' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Yeni komisyon kapaması</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>
+                <h3 className="panel-title">Yeni komisyon kapaması</h3>
+                <p className="muted">
                   Brüt komisyonu kapama sırasında elle girin. Danışman payı, danışman kayıt ekranındaki güncel orandan alınır.
                 </p>
               </div>
               <span style={{ color: 'var(--cl-gold)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>Oran otomatik alınır</span>
             </div>
-            <form onSubmit={handleCreateCommission} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <FormField label="Danışman" style={{ minWidth: 210 }}>
+            <form onSubmit={handleCreateCommission} className="form-row">
+              <FormField label="Danışman">
                 <select value={commissionForm.agentId} onChange={(event) => setCommissionForm({ ...commissionForm, agentId: event.target.value })} required>
                   <option value="">Danışman seçin</option>
                   {agents.map((agent) => (
@@ -2062,7 +2231,7 @@ export default function AccountingPage() {
               <FormField label="Kapama tarihi">
                 <input type="date" value={commissionForm.date} onChange={(event) => setCommissionForm({ ...commissionForm, date: event.target.value })} required />
               </FormField>
-              <FormField label="Brüt komisyon" style={{ minWidth: 170 }}>
+              <FormField label="Brüt komisyon">
                 <AmountInput id="accounting-commission-gross-amount" value={commissionForm.grossAmount} currency={commissionForm.currency} onChange={(event) => setCommissionForm({ ...commissionForm, grossAmount: event.target.value })} placeholder="Örn. 170000 veya 170.000,00" required />
               </FormField>
               <FormField label="Para birimi">
@@ -2070,7 +2239,7 @@ export default function AccountingPage() {
                   {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </FormField>
-              <FormField label="Portföy / açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+              <FormField label="Portföy / açıklama" style={{ flex: '1 1 220px' }}>
                 <input value={commissionForm.propertyTitle} onChange={(event) => setCommissionForm({ ...commissionForm, propertyTitle: event.target.value })} placeholder="Opsiyonel" />
               </FormField>
               <button type="submit" className="btn btn-primary" disabled={commissionSaving || commissionLoading}>
@@ -2081,14 +2250,14 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Komisyon ve hakediş listesi</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>
+                <h3 className="panel-title">Komisyon ve hakediş listesi</h3>
+                <p className="muted">
                   Önce şirkete tahsilat, ardından danışmana hakediş ödemesi kaydedilir.
                 </p>
               </div>
-              <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{commissions.length} kayıt</span>
+              <span className="muted muted--sm">{commissions.length} kayıt</span>
             </div>
             {commissionLoading ? (
               <div className="empty-state">Komisyonlar yükleniyor…</div>
@@ -2096,16 +2265,16 @@ export default function AccountingPage() {
               <div className="empty-state">Henüz Muhasebe komisyonu oluşturulmamış.</div>
             ) : (
               <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 1060, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="data-table" style={{ minWidth: 1060 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '7px 8px' }}>Tarih</th>
-                      <th style={{ padding: '7px 8px' }}>Danışman</th>
-                      <th style={{ padding: '7px 8px' }}>Brüt komisyon</th>
-                      <th style={{ padding: '7px 8px' }}>Oran</th>
-                      <th style={{ padding: '7px 8px' }}>Danışman payı</th>
-                      <th style={{ padding: '7px 8px' }}>Ofis payı</th>
-                      <th style={{ padding: '7px 8px' }}>Durum / işlem</th>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Danışman</th>
+                      <th>Brüt komisyon</th>
+                      <th>Oran</th>
+                      <th>Danışman payı</th>
+                      <th>Ofis payı</th>
+                      <th>Durum / işlem</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2120,17 +2289,17 @@ export default function AccountingPage() {
                             ? 'İptal edildi'
                             : 'Danışmana ödendi';
                       return (
-                        <tr key={commission.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                          <td style={{ padding: '10px 8px' }}>{formatDate(commission.date)}</td>
-                          <td style={{ padding: '10px 8px' }}>
+                        <tr key={commission.id} >
+                          <td data-label="Tarih">{formatDate(commission.date)}</td>
+                          <td data-label="Danışman">
                             <strong>{commission.agentNameSnapshot}</strong>
-                            <div style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{commission.propertyTitle || commission.transactionType}</div>
+                            <div className="muted muted--sm">{commission.propertyTitle || commission.transactionType}</div>
                           </td>
-                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-body)' }}>{formatAccountingMoney(commission.grossAmount, commission.currency)}</td>
-                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-body)' }}>%{Number(commission.agentSharePercent).toLocaleString('tr-TR')}</td>
-                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-body)', color: 'var(--cl-danger)' }}>{formatAccountingMoney(commission.agentGrossShare, commission.currency)}</td>
-                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-body)', color: 'var(--cl-success)' }}>{formatAccountingMoney(commission.officeShare, commission.currency)}</td>
-                          <td style={{ padding: '10px 8px', minWidth: 250 }}>
+                          <td data-label="Brüt komisyon">{formatAccountingMoney(commission.grossAmount, commission.currency)}</td>
+                          <td data-label="Oran">%{Number(commission.agentSharePercent).toLocaleString('tr-TR')}</td>
+                          <td data-label="Danışman payı" style={{ color: 'var(--cl-danger)' }}>{formatAccountingMoney(commission.agentGrossShare, commission.currency)}</td>
+                          <td data-label="Ofis payı" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(commission.officeShare, commission.currency)}</td>
+                          <td data-label="Durum / işlem" style={{ minWidth: 250 }}>
                             <div style={{ fontSize: 12, color: commission.status === 'agent_paid' ? 'var(--cl-success)' : 'var(--cl-muted)', marginBottom: 6 }}>{statusLabel}</div>
                             {commission.status !== 'agent_paid' && commission.status !== 'voided' && (
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -2170,10 +2339,10 @@ export default function AccountingPage() {
       {activeTab === 'dues' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Danışman kira tahakkukları</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>
+                <h3 className="panel-title">Danışman kira tahakkukları</h3>
+                <p className="muted">
                   Danışman kayıt ekranındaki aylık kira ve başlangıç tarihine göre bu dönemin tahakkuklarını oluşturun. Aynı dönem ikinci kez oluşturulmaz.
                 </p>
               </div>
@@ -2187,19 +2356,19 @@ export default function AccountingPage() {
               </div>
             )}
             {currency === 'TRY' && (
-              <div style={{ color: 'var(--cl-muted)', fontSize: 12 }}>
+              <div className="muted muted--sm">
                 Başlangıç tarihi boş olan istisnai kayıtlar bu aydan itibaren başlar; başlangıç tarihi bulunan danışmanlar için önceki dönemler atlanır.
               </div>
             )}
           </div>
 
           <div className="cl-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Kira listesi</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>{periodLabel(period)} · {currency}</p>
+                <h3 className="panel-title">Kira listesi</h3>
+                <p className="muted">{periodLabel(period)} · {currency}</p>
               </div>
-              <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{rents.length} kayıt</span>
+              <span className="muted muted--sm">{rents.length} kayıt</span>
             </div>
             {rentLoading ? (
               <div className="empty-state">Kira kayıtları yükleniyor…</div>
@@ -2207,14 +2376,14 @@ export default function AccountingPage() {
               <div className="empty-state">Bu dönem için henüz kira tahakkuku yok. Üstteki düğmeyle oluşturabilirsiniz.</div>
             ) : (
               <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 880, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="data-table" style={{ minWidth: 880 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '7px 8px' }}>Dönem</th>
-                      <th style={{ padding: '7px 8px' }}>Danışman</th>
-                      <th style={{ padding: '7px 8px' }}>Vade</th>
-                      <th style={{ padding: '7px 8px' }}>Tutar</th>
-                      <th style={{ padding: '7px 8px' }}>Durum / işlem</th>
+                    <tr>
+                      <th>Dönem</th>
+                      <th>Danışman</th>
+                      <th>Vade</th>
+                      <th>Tutar</th>
+                      <th>Durum / işlem</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2227,12 +2396,12 @@ export default function AccountingPage() {
                           ? 'Tahsil edildi'
                           : 'İptal edildi';
                       return (
-                        <tr key={rent.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                          <td style={{ padding: '10px 8px' }}>{periodLabel(rent.period)}</td>
-                          <td style={{ padding: '10px 8px' }}><strong>{rent.agentNameSnapshot}</strong></td>
-                          <td style={{ padding: '10px 8px' }}>{formatDate(rent.dueDate)}</td>
-                          <td style={{ padding: '10px 8px', fontFamily: 'var(--font-body)' }}>{formatAccountingMoney(rent.amount, rent.currency)}</td>
-                          <td style={{ padding: '10px 8px', minWidth: 330 }}>
+                        <tr key={rent.id} >
+                          <td data-label="Dönem">{periodLabel(rent.period)}</td>
+                          <td data-label="Danışman"><strong>{rent.agentNameSnapshot}</strong></td>
+                          <td data-label="Vade">{formatDate(rent.dueDate)}</td>
+                          <td data-label="Tutar">{formatAccountingMoney(rent.amount, rent.currency)}</td>
+                          <td data-label="Durum / işlem" style={{ minWidth: 330 }}>
                             <div style={{ fontSize: 12, color: rent.status === 'collected' ? 'var(--cl-success)' : rent.status === 'voided' ? 'var(--cl-muted)' : 'var(--cl-danger)', marginBottom: 6 }}>{statusLabel}</div>
                             {rent.status === 'pending_collection' && (
                               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -2264,8 +2433,8 @@ export default function AccountingPage() {
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
             <div style={{ marginBottom: 14 }}>
-              <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Yeni ortak hareketi</h3>
-              <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>
+              <h3 className="panel-title">Yeni ortak hareketi</h3>
+              <p className="muted">
                 Ortak şirkete para verdiğinde giriş, şirket ortaktan para aldığında veya kâr dağıttığında çıkış hareketi oluşturun. Her hareket ortak cari kartına bağlanır.
               </p>
             </div>
@@ -2275,14 +2444,14 @@ export default function AccountingPage() {
               </div>
             ) : (
               <>
-                <form onSubmit={handleCreatePartnerMovement} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <FormField label="Ortak" style={{ minWidth: 210 }}>
+                <form onSubmit={handleCreatePartnerMovement} className="form-row">
+                <FormField label="Ortak">
                   <select value={partnerMovementForm.partyId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, partyId: event.target.value })} required>
                     <option value="">Ortak seçin</option>
                     {parties.filter((party) => party.type === 'partner').map((party) => <option value={party.id} key={party.id}>{party.name} · {party.currency}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Hareket türü" style={{ minWidth: 240 }}>
+                <FormField label="Hareket türü">
                   <select value={partnerMovementForm.movementType} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, movementType: event.target.value })}>
                     {PARTNER_MOVEMENT_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
@@ -2290,7 +2459,7 @@ export default function AccountingPage() {
                 <FormField label="Tarih">
                   <input type="date" value={partnerMovementForm.date} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, date: event.target.value })} required />
                 </FormField>
-                <FormField label="Tutar" style={{ minWidth: 150 }}>
+                <FormField label="Tutar">
                   <AmountInput id="accounting-partner-movement-amount" value={partnerMovementForm.amount} currency={partnerMovementForm.currency} onChange={(event) => { setPartnerSaveNotice(null); setPartnerMovementForm({ ...partnerMovementForm, amount: event.target.value }); }} placeholder="Örn. 170000 veya 170.000,00" required />
                 </FormField>
                 <FormField label="Para birimi">
@@ -2298,13 +2467,13 @@ export default function AccountingPage() {
                     {ACCOUNTING_CURRENCIES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Para hesabı" style={{ minWidth: 210 }}>
+                <FormField label="Para hesabı">
                   <select value={partnerMovementForm.accountId} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, accountId: event.target.value })} required>
                     <option value="">Hesap seçin</option>
                     {accounts.filter((account) => account.currency === partnerMovementForm.currency && account.isActive !== false).map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
                   </select>
                 </FormField>
-                <FormField label="Açıklama" style={{ minWidth: 220, flex: '1 1 220px' }}>
+                <FormField label="Açıklama" style={{ flex: '1 1 220px' }}>
                   <input value={partnerMovementForm.description} onChange={(event) => setPartnerMovementForm({ ...partnerMovementForm, description: event.target.value })} placeholder="Opsiyonel" />
                 </FormField>
                 <button type="submit" className="btn btn-primary" disabled={partnerSaving}>
@@ -2317,39 +2486,39 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Ortak cari bakiyeleri</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>Şirkete giren ortak parası borç, şirkete yapılan ortak ödemesi/çekişi bu borcu azaltır.</p>
+                <h3 className="panel-title">Ortak cari bakiyeleri</h3>
+                <p className="muted">Şirkete giren ortak parası borç, şirkete yapılan ortak ödemesi/çekişi bu borcu azaltır.</p>
               </div>
-              <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{parties.filter((party) => party.type === 'partner').length} ortak</span>
+              <span className="muted muted--sm">{parties.filter((party) => party.type === 'partner').length} ortak</span>
             </div>
             {parties.filter((party) => party.type === 'partner').length === 0 ? (
               <div className="empty-state">Henüz ortak cari kartı yok.</div>
             ) : (
               <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="data-table" style={{ minWidth: 900 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '7px 8px' }}>Ortak</th>
-                      <th style={{ padding: '7px 8px' }}>Para birimi</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirketten alacak</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Şirkete borç</th>
-                      <th style={{ padding: '7px 8px', textAlign: 'right' }}>Net bakiye</th>
-                      <th style={{ padding: '7px 8px' }}>Durum</th>
+                    <tr>
+                      <th>Ortak</th>
+                      <th>Para birimi</th>
+                      <th className="is-right">Şirketten alacak</th>
+                      <th className="is-right">Şirkete borç</th>
+                      <th className="is-right">Net bakiye</th>
+                      <th>Durum</th>
                     </tr>
                   </thead>
                   <tbody>
                     {parties.filter((party) => party.type === 'partner').map((party) => {
                       const netBalance = Number(party.balance || 0);
                       return (
-                        <tr key={party.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                          <td style={{ padding: '10px 8px' }}><strong>{party.name}</strong>{party.companyName && <div style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{party.companyName}</div>}</td>
-                          <td style={{ padding: '10px 8px' }}>{party.currency}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--cl-success)' }}>{formatAccountingMoney(party.receivable, party.currency)}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: 'var(--cl-danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: netBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
-                          <td style={{ padding: '10px 8px', color: 'var(--cl-muted)' }}>{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
+                        <tr key={party.id} >
+                          <td data-label="Ortak"><strong>{party.name}</strong>{party.companyName && <div className="muted muted--sm">{party.companyName}</div>}</td>
+                          <td data-label="Para birimi">{party.currency}</td>
+                          <td data-label="Şirketten alacak" className="amount" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(party.receivable, party.currency)}</td>
+                          <td data-label="Şirkete borç" className="amount" style={{ color: 'var(--cl-danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
+                          <td data-label="Net bakiye" className="amount" style={{ color: netBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
+                          <td data-label="Durum">{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
                         </tr>
                       );
                     })}
@@ -2604,7 +2773,7 @@ export default function AccountingPage() {
                             <th>Kategori / Açıklama</th>
                             <th>Hesap / Cari</th>
                             <th>Hareket Türü</th>
-                            <th style={{ textAlign: 'right' }}>Tutar</th>
+                            <th className="is-right">Tutar</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2620,7 +2789,7 @@ export default function AccountingPage() {
                                 <td data-label="Kategori / Açıklama"><strong>{entry.category || 'Kategorisiz'}</strong><div className="accounting-report-subtext">{entry.description || 'Açıklama yok'}</div></td>
                                 <td data-label="Hesap / Cari"><strong>{accountText}</strong><div className="accounting-report-subtext">{entry.partyName || 'Cari yok'}</div></td>
                                 <td data-label="Hareket Türü">{reportMovementLabel(classification)}</td>
-                                <td data-label="Tutar" className="accounting-report-table__amount" style={{ textAlign: 'right', fontFamily: 'var(--font-body)', color: isInflow ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
+                                <td data-label="Tutar" className="accounting-report-table__amount amount" style={{ color: isInflow ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                                   {isInflow ? '+' : '-'}{formatAccountingMoney(entry.amount, entry.currency)}
                                 </td>
                               </tr>
@@ -2661,12 +2830,12 @@ export default function AccountingPage() {
 
           {managementReport && !managementReportLoading && (
             <div className="cl-panel" style={{ marginTop: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div className="panel-head">
                 <div>
-                  <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Bekleyen cari yükümlülükler</h3>
-                  <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>Henüz gerçekleşmiş para hareketi olmayan, takipteki kira ve danışman hakedişleri.</p>
+                  <h3 className="panel-title">Bekleyen cari yükümlülükler</h3>
+                  <p className="muted">Henüz gerçekleşmiş para hareketi olmayan, takipteki kira ve danışman hakedişleri.</p>
                 </div>
-                <span style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{managementReport.pending?.commissionCount || 0} komisyon takibi</span>
+                <span className="muted muted--sm">{managementReport.pending?.commissionCount || 0} komisyon takibi</span>
               </div>
               <div className="metric-grid">
                 <div className="metric-card"><div className="metric-card__label">Bekleyen kira alacağı</div><div className="metric-card__value" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(managementReport.pending?.rentReceivable, currency)}</div><div className="metric-card__delta is-muted">{managementReport.pending?.rentCount || 0} kira tahakkuku</div></div>
@@ -2681,10 +2850,10 @@ export default function AccountingPage() {
       {activeTab === 'migration' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 19 }}>Finans Aktarım Önizlemesi</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '5px 0 0', fontSize: 13 }}>
+                <h3 className="panel-title">Finans Aktarım Önizlemesi</h3>
+                <p className="muted">
                   Eski Finans kayıtlarını yeni Muhasebe’ye taşımadan önce kaynak verileri, toplamları ve olası eşleşme sorunlarını gösterir.
                 </p>
               </div>
@@ -2713,14 +2882,14 @@ export default function AccountingPage() {
               </div>
 
               <div className="cl-panel" style={{ marginTop: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div className="panel-head">
                   <div>
-                    <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 18 }}>Para hareketi toplamları</h3>
-                    <p style={{ color: 'var(--cl-muted)', margin: '4px 0 0', fontSize: 13 }}>Eski Finans hesaplarının kendi para birimlerine göre; kur çevrimi yapılmadan.</p>
+                    <h3 className="panel-title">Para hareketi toplamları</h3>
+                    <p className="muted">Eski Finans hesaplarının kendi para birimlerine göre; kur çevrimi yapılmadan.</p>
                   </div>
                 </div>
                 <div className="table-scroll">
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <table className="data-table">
                     <thead><tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}><th style={{ padding: '7px 8px' }}>Para birimi</th><th style={{ padding: '7px 8px', textAlign: 'right' }}>Giriş</th><th style={{ padding: '7px 8px', textAlign: 'right' }}>Çıkış</th><th style={{ padding: '7px 8px', textAlign: 'right' }}>Hareket</th></tr></thead>
                     <tbody>{ACCOUNTING_CURRENCIES.map((item) => { const total = migrationPreview.totalsByCurrency?.[item.value] || {}; return <tr key={item.value} style={{ borderTop: '1px solid var(--cl-border)' }}><td style={{ padding: '9px 8px' }}><strong>{item.label}</strong></td><td style={{ padding: '9px 8px', textAlign: 'right', color: 'var(--cl-success)', fontFamily: 'var(--font-body)' }}>{formatAccountingMoney(total.income, item.value)}</td><td style={{ padding: '9px 8px', textAlign: 'right', color: 'var(--cl-danger)', fontFamily: 'var(--font-body)' }}>{formatAccountingMoney(total.expense, item.value)}</td><td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-body)' }}>{total.transactionCount || 0}</td></tr>; })}</tbody>
                   </table>
@@ -2729,7 +2898,7 @@ export default function AccountingPage() {
 
               <div className="panel-grid-2" style={{ marginTop: 20 }}>
                 <div className="cl-panel">
-                  <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 12px', fontSize: 18 }}>Kaynak kayıt sayıları</h3>
+                  <h3 className="panel-title">Kaynak kayıt sayıları</h3>
                   <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                     {[
                       ['Eski gider kategorileri', migrationPreview.sourceCounts?.expenseCategories],
@@ -2744,7 +2913,7 @@ export default function AccountingPage() {
                   </div>
                 </div>
                 <div className="cl-panel">
-                  <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 12px', fontSize: 18 }}>Aktarım kalite kontrolü</h3>
+                  <h3 className="panel-title">Aktarım kalite kontrolü</h3>
                   <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Hesapsız banka hareketi</span><strong style={{ color: migrationPreview.qualityChecks?.transactionsWithoutAccount ? 'var(--cl-danger)' : 'var(--cl-success)' }}>{migrationPreview.qualityChecks?.transactionsWithoutAccount || 0}</strong></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Ödeme hesabı olmayan gider</span><strong style={{ color: migrationPreview.qualityChecks?.expensesWithoutBankAccount ? 'var(--cl-danger)' : 'var(--cl-success)' }}>{migrationPreview.qualityChecks?.expensesWithoutBankAccount || 0}</strong></div>
@@ -2756,7 +2925,7 @@ export default function AccountingPage() {
               </div>
 
               <div className="cl-panel" style={{ marginTop: 20 }}>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: '0 0 12px', fontSize: 18 }}>Aktarım eşleştirme özeti</h3>
+                <h3 className="panel-title">Aktarım eşleştirme özeti</h3>
                 <div className="panel-grid-2" style={{ marginBottom: 0 }}>
                   {Object.entries(migrationPreview.mapping || {}).map(([source, target]) => <div key={source} style={{ border: '1px solid var(--cl-border)', borderRadius: 6, padding: 10, background: 'var(--cl-bg)' }}><div style={{ color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 10, textTransform: 'uppercase', marginBottom: 4 }}>{source}</div><div style={{ fontSize: 13 }}>{target}</div></div>)}
                 </div>
@@ -2767,10 +2936,10 @@ export default function AccountingPage() {
           )}
 
           <div className="cl-panel" style={{ marginTop: 24, border: '1px solid #d38b7c', background: '#fffaf8' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div className="panel-head">
               <div>
-                <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 19 }}>Muhasebe Temiz Başlangıç</h3>
-                <p style={{ color: 'var(--cl-muted)', margin: '5px 0 0', fontSize: 13 }}>
+                <h3 className="panel-title">Muhasebe Temiz Başlangıç</h3>
+                <p className="muted">
                   Excel ile gerçek veri girişinden önce yalnızca yeni Muhasebe deneme kayıtlarını güvenli biçimde temizler.
                 </p>
               </div>
@@ -2788,7 +2957,7 @@ export default function AccountingPage() {
                 <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
                   {Object.entries(resetPreview.counts || {}).map(([key, count]) => (
                     <div key={key} style={{ border: '1px solid var(--cl-border)', borderRadius: 6, padding: '10px 12px', background: 'var(--cl-bg)' }}>
-                      <div style={{ color: 'var(--cl-muted)', fontSize: 12 }}>{RESET_COUNT_LABELS[key] || key}</div>
+                      <div className="muted muted--sm">{RESET_COUNT_LABELS[key] || key}</div>
                       <strong style={{ display: 'block', marginTop: 4, fontFamily: 'var(--font-body)', fontSize: 20 }}>{count}</strong>
                     </div>
                   ))}
