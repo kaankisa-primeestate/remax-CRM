@@ -1662,21 +1662,29 @@ button {
 /* ================================================================
    Dashboard (Broker & Danışman): metrik kartları, panel ızgarası, kanban
    ================================================================ */
+/* Metrik karti: ikonsuz, sade olcum kutusu. KPI satirindaki .stat-card
+   ile ayni dili konusur (belirtec, yaricap, golge, tipografi, kirilim);
+   fark yalnizca ikon ve grafik tasimamasidir. */
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  /* minmax(0,1fr): duz 1fr'in min-content tabani uzun tutarli kartlari
+     genisletip dort karti esitsiz birakiyor. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s4);
+  margin-bottom: var(--s5);
 }
-@media (max-width: 900px) {
-  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1279px) {
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .metric-card {
   background: var(--cl-surface);
   border: 1px solid var(--cl-border);
-  border-radius: 14px;
-  padding: 16px 18px;
-  box-shadow: 0 1px 2px rgba(16, 35, 61, 0.05);
+  border-radius: var(--r-md);
+  padding: var(--s4) var(--s5);
+  box-shadow: var(--sh-sm);
+  /* Deger puntosu kartin kendi genisligine gore olceklenir; uzun tutarlar
+     dar kartta tasmadan tek satirda kalir. */
+  container-type: inline-size;
 }
 /* Metrik kartlari tiklanabilir Link olarak kullanildiginda (bkz.
    AgentDashboardPage) -- varsayilan link stillerini sifirlar ve hover'da
@@ -1810,23 +1818,28 @@ button.metric-card--clickable {
 }
 .metric-card__label {
   font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.3;
   color: var(--cl-muted);
-  margin-bottom: 8px;
+  margin-bottom: var(--s1);
 }
 .metric-card__value {
-  font-family: var(--cl-font-heading);
-  font-size: 23px;
-  font-weight: 800;
+  font-family: var(--font-body);
+  font-size: clamp(16px, 8.1cqi, 26px);
+  font-weight: 700;
   color: var(--cl-text);
-  line-height: 1.1;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 .metric-card__delta {
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 12px;
-  margin-top: 6px;
+  font-size: var(--t-label);
+  line-height: 1.35;
+  margin-top: var(--s1);
 }
 .metric-card__delta.is-up { color: var(--cl-success); }
 .metric-card__delta.is-muted { color: var(--cl-muted); }
@@ -3173,6 +3186,50 @@ button.metric-card--clickable {
   box-shadow: var(--cl-focus);
 }
 
+/* Donem secici: birbirine bitisik segmentli dugme. Sayfa basligindaki
+   kontrollerle ayni yukseklikte (40px) durur. */
+.period-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  /* Ayiricilar kenarlik yerine 1px'lik bosluktan geliyor: dugmeler alt
+     satira sardiginda kenarlikli surumde ayiricilar yanlis yerde
+     kaliyordu, bu cozum her sarma bicimiyle dogru calisiyor. */
+  gap: 1px;
+  padding: 1px;
+  background: var(--cl-border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.period-switch__item {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 0 var(--s3);
+  border: 0;
+  background: var(--cl-surface);
+  color: var(--cl-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.period-switch__item:hover { background: var(--cl-bg); color: var(--cl-text); }
+.period-switch__item.is-active { background: var(--cl-gold); color: #fff; }
+.period-switch__item:focus-visible { outline: none; box-shadow: var(--cl-focus); }
+@media (max-width: 600px) {
+  /* Dar ekranda ikili izgara: dort secenek 2x2 duruyor, dokunma alani
+     genis kaliyor. */
+  .period-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    /* Basliktaki kontroller iki sutunlu izgara; donem secici tam satiri
+       kaplar, yarim sutunda sikismaz. */
+    grid-column: 1 / -1;
+  }
+}
+
 /* --- KPI kartları --- */
 .cl-kpi-row {
   display: grid;
@@ -3739,11 +3796,6 @@ button.metric-card--clickable {
     min-height: 44px;
   }
 
-  .accounting-page .metric-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
   .accounting-page .accounting-report-presets,
   .accounting-page .accounting-report-tabs {
     display: grid;
@@ -3770,14 +3822,6 @@ button.metric-card--clickable {
   .accounting-page .accounting-report-actions .btn {
     width: auto;
     min-height: 36px;
-  }
-
-  .accounting-page .metric-card {
-    padding: 13px 14px;
-  }
-
-  .accounting-page .metric-card__value {
-    font-size: 21px;
   }
 
   .accounting-page .panel-grid-2 {
@@ -4360,7 +4404,7 @@ button.metric-card--clickable {
 .stat-card__value {
   margin-top: 2px;
   font-family: var(--font-body);
-  font-size: clamp(15px, 6.8cqi, 26px);
+  font-size: clamp(16px, 8.1cqi, 26px);
   font-weight: 700;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;

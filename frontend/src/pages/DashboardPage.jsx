@@ -12,6 +12,7 @@ import {
   Wallet,
   Circle,
 } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { dashboardApi } from '../api/dashboard';
 import { propertiesApi } from '../api/properties';
 import { propertyCommentsApi } from '../api/propertyComments';
@@ -206,31 +207,50 @@ export default function DashboardPage() {
         <Link to="/piyasa" className="market-ticker__link">Tüm Piyasa Verilerini Gör →</Link>
       </div>
 
-      <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0 }}>Genel Bakış</h2>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: period === 'custom' ? 12 : 0 }}>
-          {PERIOD_OPTIONS.map((opt) => (
-            <button key={opt.value} className={period === opt.value ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setPeriod(opt.value)} style={{ fontSize: 13, padding: '6px 14px' }}>
-              {opt.label}
-            </button>
-          ))}
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <h2 className="cl-page-title">Genel Bakış</h2>
+          <p className="cl-page-subtitle">
+            Ofisin portföy, ciro ve danışman performansını tek ekranda izleyin.
+          </p>
         </div>
-        {period === 'custom' && (
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div className="form-field" style={{ margin: 0 }}>
-              <label>Başlangıç</label>
-              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-            </div>
-            <div className="form-field" style={{ margin: 0 }}>
-              <label>Bitiş</label>
-              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
-            </div>
+        <div className="cl-page-controls">
+          <div className="period-switch" role="group" aria-label="Dönem seçimi">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`period-switch__item${period === opt.value ? ' is-active' : ''}`}
+                aria-pressed={period === opt.value}
+                onClick={() => setPeriod(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
-        )}
+          {period === 'custom' && (
+            <>
+              <div className="cl-control">
+                <label htmlFor="dashboard-from">Başlangıç</label>
+                <input id="dashboard-from" type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+              </div>
+              <div className="cl-control">
+                <label htmlFor="dashboard-to">Bitiş</label>
+                <input id="dashboard-to" type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      {loading || !data || !propertyStats ? (
-        <div className="empty-state">Yükleniyor…</div>
+      {loading ? (
+        <TableSkeleton rows={4} columns={4} label="Genel bakış yükleniyor…" />
+      ) : !data || !propertyStats ? (
+        <EmptyState
+          Icon={AlertCircle}
+          title="Genel bakış verisi alınamadı"
+          note="Bağlantıyı kontrol edip sayfayı yenileyin."
+        />
       ) : (
         <>
           {/* --- Metrik Kartları --- */}
