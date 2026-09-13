@@ -3,7 +3,7 @@ import {
   TrendingUp, TrendingDown, Wallet, Clock, FileBarChart2, ArrowUpRight, ArrowDownRight, Minus,
   ArrowLeftRight, Users, Percent, KeyRound, Landmark, BarChart3, FilePlus2, ListOrdered,
   Search, Download, Pencil, Ban, History, ChevronLeft, ChevronRight, RotateCcw, CheckCircle2,
-  ArrowUp, ArrowDown, ChevronsUpDown, Inbox, SearchX,
+  ArrowUp, ArrowDown, ChevronsUpDown, Inbox, SearchX, ChevronDown,
 } from 'lucide-react';
 import {
   ACCOUNTING_ACCOUNT_TYPES,
@@ -2094,7 +2094,11 @@ export default function AccountingPage() {
       {activeTab === 'accounts' && accountSubTab === 'bank' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <h3 className="panel-title">Yeni muhasebe hesabı</h3>
+            <PanelHead
+              Icon={FilePlus2}
+              title="Yeni muhasebe hesabı"
+              note="Gelir ve giderlerin işleneceği banka veya kasa hesabını tanımlayın."
+            />
             <form onSubmit={handleCreateAccount} className="form-row">
               <FormField label="Hesap türü">
                 <select name="type" value={accountForm.type} onChange={(event) => setAccountForm({ ...accountForm, type: event.target.value })}>
@@ -2677,12 +2681,11 @@ export default function AccountingPage() {
       {activeTab === 'accounts' && accountSubTab === 'partners' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <div style={{ marginBottom: 14 }}>
-              <h3 className="panel-title">Yeni ortak hareketi</h3>
-              <p className="muted">
-                Ortak şirkete para verdiğinde giriş, şirket ortaktan para aldığında veya kâr dağıttığında çıkış hareketi oluşturun. Her hareket ortak cari kartına bağlanır.
-              </p>
-            </div>
+            <PanelHead
+              Icon={FilePlus2}
+              title="Yeni ortak hareketi"
+              note="Ortak şirkete para verdiğinde giriş, şirket ortaktan para aldığında veya kâr dağıttığında çıkış hareketi oluşturun. Her hareket ortak cari kartına bağlanır."
+            />
             {parties.filter((party) => party.type === 'partner').length === 0 ? (
               <div style={{ color: 'var(--cl-muted)', background: 'var(--cl-surface)', border: '1px solid var(--cl-border)', borderRadius: 5, padding: '10px 12px', fontSize: 13 }}>
                 Önce Cari Kartlar sekmesinden kart türü “Ortak” olan bir cari kart oluşturun.
@@ -2731,13 +2734,12 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Ortak cari bakiyeleri</h3>
-                <p className="muted">Şirkete giren ortak parası borç, şirkete yapılan ortak ödemesi/çekişi bu borcu azaltır.</p>
-              </div>
-              <span className="muted muted--sm">{parties.filter((party) => party.type === 'partner').length} ortak</span>
-            </div>
+            <PanelHead
+              Icon={Users}
+              title="Ortak cari bakiyeleri"
+              note="Şirkete giren ortak parası borç, şirkete yapılan ortak ödemesi/çekişi bu borcu azaltır."
+              meta={`${parties.filter((party) => party.type === 'partner').length} ortak`}
+            />
             {parties.filter((party) => party.type === 'partner').length === 0 ? (
               <EmptyState
                 Icon={Users}
@@ -2780,8 +2782,13 @@ export default function AccountingPage() {
       )}
       {activeTab === 'reports' && (
         <>
-          <div className="cl-panel accounting-report-filter" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
-            <div ref={reportBoxRef} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="cl-panel accounting-report-filter" style={{ marginBottom: 20 }}>
+            <PanelHead
+              Icon={BarChart3}
+              title="Yönetimsel rapor"
+              note="Rapor türünü, kapsamı ve tarih aralığını seçip raporu getirin."
+            />
+            <div ref={reportBoxRef} className="report-filter-row">
               {/* 1. buton: Rapor Türü */}
               <div style={{ position: 'relative' }}>
                 <button
@@ -2789,7 +2796,8 @@ export default function AccountingPage() {
                   className="btn btn-secondary"
                   onClick={() => setOpenReportBox(openReportBox === 'type' ? null : 'type')}
                 >
-                  Rapor Türü: <strong>{REPORT_TYPES.find((type) => type.value === reportType)?.label}</strong> ▾
+                  Rapor Türü: <strong>{REPORT_TYPES.find((type) => type.value === reportType)?.label}</strong>
+                  <ChevronDown size={15} strokeWidth={2} aria-hidden="true" />
                 </button>
                 {openReportBox === 'type' && (
                   <div className="report-dropdown-panel">
@@ -2815,7 +2823,8 @@ export default function AccountingPage() {
                   onClick={() => setOpenReportBox(openReportBox === 'scope' ? null : 'scope')}
                 >
                   {reportType === 'expenses' ? 'Kategori' : reportType === 'partners' ? 'Ortak' : reportType === 'summary' ? 'Kapsam' : 'Danışman'}:{' '}
-                  <strong>{reportType === 'summary' ? 'Tümü' : (reportSubFilter === 'ALL' ? 'Tümü' : (reportSubFilterOptions.find((o) => o.value === reportSubFilter)?.label || 'Tümü'))}</strong> ▾
+                  <strong>{reportType === 'summary' ? 'Tümü' : (reportSubFilter === 'ALL' ? 'Tümü' : (reportSubFilterOptions.find((o) => o.value === reportSubFilter)?.label || 'Tümü'))}</strong>
+                  <ChevronDown size={15} strokeWidth={2} aria-hidden="true" />
                 </button>
                 {openReportBox === 'scope' && reportType !== 'summary' && (
                   <div className="report-dropdown-panel" style={{ minWidth: 220 }}>
@@ -2852,7 +2861,8 @@ export default function AccountingPage() {
                   className="btn btn-secondary"
                   onClick={() => setOpenReportBox(openReportBox === 'date' ? null : 'date')}
                 >
-                  Tarih: <strong>{reportPreset === 'custom' ? `${formatDate(reportFromDate)} – ${formatDate(reportToDate)}` : REPORT_PRESETS.find((p) => p.value === reportPreset)?.label}</strong> ▾
+                  Tarih: <strong>{reportPreset === 'custom' ? `${formatDate(reportFromDate)} – ${formatDate(reportToDate)}` : REPORT_PRESETS.find((p) => p.value === reportPreset)?.label}</strong>
+                  <ChevronDown size={15} strokeWidth={2} aria-hidden="true" />
                 </button>
                 {openReportBox === 'date' && (
                   <div className="report-dropdown-panel" style={{ minWidth: 240 }}>
@@ -2898,14 +2908,18 @@ export default function AccountingPage() {
                   setOpenReportBox(null);
                 }}
               >
-                {managementReportLoading ? 'Hazırlanıyor…' : '🚀 Getir'}
+                {managementReportLoading ? 'Hazırlanıyor…' : (<><FileBarChart2 size={16} strokeWidth={2} /> Raporu Getir</>)}
               </button>
             </div>
 
             {managementReportLoading ? (
-              <div className="empty-state" style={{ marginTop: 16 }}>Yönetimsel rapor hazırlanıyor…</div>
+              <TableSkeleton rows={5} columns={5} label="Yönetimsel rapor hazırlanıyor…" />
             ) : !managementReport ? (
-              <div className="empty-state" style={{ marginTop: 16 }}>Rapor verisi bulunamadı.</div>
+              <EmptyState
+                Icon={BarChart3}
+                title="Rapor verisi bulunamadı"
+                note="Yukarıdaki seçimleri değiştirip raporu yeniden getirin."
+              />
             ) : (
               <div className="accounting-report-section">
                 <div className="accounting-report-section-label">Sonuç</div>
@@ -3001,14 +3015,21 @@ export default function AccountingPage() {
                 )}
 
                 <div className="accounting-report-view accounting-report-detail">
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 10 }}>
-                    <strong style={{ color: 'var(--cl-primary-800)', fontSize: 13 }}>{reportRows.length} kayıt</strong>
-                  </div>
+                  <PanelHead
+                    Icon={ListOrdered}
+                    title="Rapor detayı"
+                    note={`${REPORT_TYPES.find((type) => type.value === appliedReportType)?.label || 'Rapor'} · ${currency}`}
+                    meta={`${reportRows.length} kayıt`}
+                  />
                   {visibleReportRows.length === 0 ? (
-                    <div className="empty-state">Seçilen tarih aralığında bu rapor türü için kayıt bulunamadı.</div>
+                    <EmptyState
+                      Icon={SearchX}
+                      title="Seçilen tarih aralığında kayıt bulunamadı"
+                      note="Tarih aralığını veya kapsamı genişletip tekrar deneyin."
+                    />
                   ) : (
                     <div className="table-scroll">
-                      <table className="accounting-report-table">
+                      <table className="data-table accounting-report-table">
                         <colgroup>
                           <col className="col-date" />
                           <col className="col-main" />
@@ -3057,19 +3078,26 @@ export default function AccountingPage() {
                         ? (displayValue >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)')
                         : 'var(--cl-success)'; // commission / dues: her zaman gelir
                     return (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--cl-border)' }}>
+                      <div className="report-total-row">
                         <strong>Toplam ({reportRows.length} kayıt)</strong>
-                        <strong style={{ fontFamily: 'var(--font-body)', fontSize: 15, color }}>
+                        <strong className="report-total-row__value" style={{ color }}>
                           {appliedReportType === 'expenses' ? '-' : ''}{formatAccountingMoney(Math.abs(displayValue), currency)}
                         </strong>
                       </div>
                     );
                   })()}
                   {reportPageCount > 1 && (
-                    <div className="accounting-report-pagination">
-                      <button type="button" className="btn btn-secondary" disabled={reportPage <= 1} onClick={() => setReportPage((page) => Math.max(1, page - 1))}>Önceki</button>
-                      <span>Sayfa {reportPage} / {reportPageCount}</span>
-                      <button type="button" className="btn btn-secondary" disabled={reportPage >= reportPageCount} onClick={() => setReportPage((page) => Math.min(reportPageCount, page + 1))}>Sonraki</button>
+                    <div className="table-pager">
+                      <span>{visibleReportRows.length} / {reportRows.length} gösteriliyor</span>
+                      <div className="table-pager__nav">
+                        <button type="button" className="icon-btn" disabled={reportPage <= 1} onClick={() => setReportPage((page) => Math.max(1, page - 1))} title="Önceki sayfa" aria-label="Önceki sayfa">
+                          <ChevronLeft size={16} strokeWidth={2} />
+                        </button>
+                        <span className="table-pager__page">{reportPage} / {reportPageCount}</span>
+                        <button type="button" className="icon-btn" disabled={reportPage >= reportPageCount} onClick={() => setReportPage((page) => Math.min(reportPageCount, page + 1))} title="Sonraki sayfa" aria-label="Sonraki sayfa">
+                          <ChevronRight size={16} strokeWidth={2} />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -3079,13 +3107,12 @@ export default function AccountingPage() {
 
           {managementReport && !managementReportLoading && (
             <div className="cl-panel" style={{ marginTop: 20 }}>
-              <div className="panel-head">
-                <div>
-                  <h3 className="panel-title">Bekleyen cari yükümlülükler</h3>
-                  <p className="muted">Henüz gerçekleşmiş para hareketi olmayan, takipteki kira ve danışman hakedişleri.</p>
-                </div>
-                <span className="muted muted--sm">{managementReport.pending?.commissionCount || 0} komisyon takibi</span>
-              </div>
+              <PanelHead
+                Icon={Clock}
+                title="Bekleyen cari yükümlülükler"
+                note="Henüz gerçekleşmiş para hareketi olmayan, takipteki kira ve danışman hakedişleri."
+                meta={`${managementReport.pending?.commissionCount || 0} komisyon takibi`}
+              />
               <div className="metric-grid">
                 <div className="metric-card"><div className="metric-card__label">Bekleyen kira alacağı</div><div className="metric-card__value" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(managementReport.pending?.rentReceivable, currency)}</div><div className="metric-card__delta is-muted">{managementReport.pending?.rentCount || 0} kira tahakkuku</div></div>
                 <div className="metric-card"><div className="metric-card__label">Komisyon tahsilatı bekleyen</div><div className="metric-card__value" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(managementReport.pending?.commissionCollection, currency)}</div><div className="metric-card__delta is-muted">{managementReport.pending?.commissionCollectionCount || 0} komisyon · brüt tutar</div></div>
@@ -3099,15 +3126,13 @@ export default function AccountingPage() {
       {activeTab === 'migration' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Finans Aktarım Önizlemesi</h3>
-                <p className="muted">
-                  Eski Finans kayıtlarını yeni Muhasebe’ye taşımadan önce kaynak verileri, toplamları ve olası eşleşme sorunlarını gösterir.
-                </p>
-              </div>
-              <span style={{ color: 'var(--cl-gold)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>Salt okunur</span>
-            </div>
+            <PanelHead
+              Icon={History}
+              title="Finans Aktarım Önizlemesi"
+              note="Eski Finans kayıtlarını yeni Muhasebe'ye taşımadan önce kaynak verileri, toplamları ve olası eşleşme sorunlarını gösterir."
+            >
+              <span className="pill pill--wait">Salt okunur</span>
+            </PanelHead>
             <div style={{ background: '#fdf3e0', border: '1px solid #e8c477', borderRadius: 6, padding: '10px 12px', color: '#6b4a1c', fontSize: 13, marginBottom: 14 }}>
               Bu ekran yalnızca sayım ve karşılaştırma yapar. Eski Finans kayıtlarını silmez, yeni Muhasebe kaydı oluşturmaz ve mevcut bakiyeleri değiştirmez.
             </div>
@@ -3185,15 +3210,13 @@ export default function AccountingPage() {
           )}
 
           <div className="cl-panel" style={{ marginTop: 24, border: '1px solid #d38b7c', background: '#fffaf8' }}>
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Muhasebe Temiz Başlangıç</h3>
-                <p className="muted">
-                  Excel ile gerçek veri girişinden önce yalnızca yeni Muhasebe deneme kayıtlarını güvenli biçimde temizler.
-                </p>
-              </div>
-              <span style={{ color: 'var(--cl-danger)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>Destructive · Broker</span>
-            </div>
+            <PanelHead
+              Icon={Ban}
+              title="Muhasebe Temiz Başlangıç"
+              note="Excel ile gerçek veri girişinden önce yalnızca yeni Muhasebe deneme kayıtlarını güvenli biçimde temizler."
+            >
+              <span className="pill pill--no">Geri alınamaz · yalnızca broker</span>
+            </PanelHead>
             <div style={{ background: '#fbe0dc', border: '1px solid #d38b7c', borderRadius: 6, padding: '10px 12px', color: 'var(--cl-danger)', fontSize: 13, marginBottom: 14 }}>
               Bu işlem geri alınamaz; ancak silme işleminden hemen önce tüm hedef Muhasebe kayıtlarının geri yüklenebilir JSON snapshot yedeği saklanır. Eski Finans ve CRM verileri bu işleme dahil değildir.
             </div>
