@@ -36,12 +36,28 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 10 | Altı sekme aynı iskelete geçti: `PanelHead`, satır yüksekliği 80→48px, Cari Kartlar ortak araç çubuğu/sayfalama | `b3291c66` |
 | 11 | Raporlar sekmesi ortak `.data-table`'a geçti, eski rapor tablosu CSS'i silindi, ikon/buton dili birleşti | `fbffd579` |
 | 12 | İki kart sistemi tek dile geldi (`.metric-card` → belirteç), Genel Bakış sayfa başlığı ve dönem seçici | `de7621f2` |
+| 13 | Portföy Havuzu: sayfa başlığı + kırıntı yolu, 11 sekmeye ikon, ortak araç çubuğu, boş/yükleme durumları | `a7379e8b` |
 
 ## Sıradaki adım
 
-**13 — Portföy Havuzu.** `.folder-tabs` kullanan 11 sekmesi var, hiçbirinde
-ikon yok. Sayfa başlığı (`.cl-page-header`) yok. Tabloları `.data-table`'a
-taşınacak, kırıntı yolu eklenecek.
+**14 — Portföy Detay + Müşteri Havuzu/Detay.** Portföy Detay sayfası
+kırıntı yolunun ikinci basamağını alacak (Ana Sayfa › Portföy Havuzu ›
+ilan adı). Müşteri Havuzu, Portföy Havuzu ile aynı yapıda olduğu için
+aynı dönüşüm uygulanacak.
+
+## Kalan sayfa sırası (adım tahmini)
+
+| # | Adım | Sayfalar |
+|---|---|---|
+| 14 | Portföy Detay + Müşteri Havuzu/Detay | |
+| 15 | Danışman Yönetimi | 101 satır içi stil, ağır |
+| 16 | İşlemler + İşlem Detay | 91, ağır |
+| 17 | Küçük listeler | Görevler, Sıcak Fırsatlar, Sözleşmeler |
+| 18 | Takvim | |
+| 19 | Piyasa + Değer Analizi (liste + sihirbaz) | 64, ağır |
+| 20 | Danışman tarafı | Panelim, Aidatlarım, Cari Hesabım, Komisyonlar |
+| 21 | Küçük sayfalar | Ayarlar, Hukuk, İlan Entegrasyonu, Gider Kategorisi, Finans |
+| 22 | Son geçiş | Kalan satır içi stiller, ölü CSS, kırılımları üçe indirme |
 
 Not: Danışman Paneli (`/panelim`) adım 12'de kart sistemi üzerinden
 dolaylı olarak düzeldi ama kendi sayfa başlığı hâlâ yok.
