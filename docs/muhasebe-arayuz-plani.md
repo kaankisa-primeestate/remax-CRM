@@ -35,15 +35,16 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 9 | Boş durum ve yükleme iskeleti bileşenleri (`components/Feedback.jsx`), çalışan eylem butonları | `d3ad2274` |
 | 10 | Altı sekme aynı iskelete geçti: `PanelHead`, satır yüksekliği 80→48px, Cari Kartlar ortak araç çubuğu/sayfalama | `b3291c66` |
 | 11 | Raporlar sekmesi ortak `.data-table`'a geçti, eski rapor tablosu CSS'i silindi, ikon/buton dili birleşti | `fbffd579` |
+| 12 | İki kart sistemi tek dile geldi (`.metric-card` → belirteç), Genel Bakış sayfa başlığı ve dönem seçici | `de7621f2` |
 
 ## Sıradaki adım
 
-**12 — Genel Bakış sayfası.** Muhasebe'nin altı sekmesi bitti; sıra diğer
-sayfalarda. Genel Bakış ile başlanacak çünkü `.metric-card` kart sistemi
-orada yaşıyor: Muhasebe raporlarındaki özet kartları hâlâ `.metric-card`,
-sayfa üstündeki KPI satırı `.stat-card`. İki kart sistemi de Genel Bakış
-adımında tek sisteme indirilecek (`.metric-card` → `.stat-card`).
-Ayrıca kırıntı yolu ve sekme ikonları eklenecek.
+**13 — Portföy Havuzu.** `.folder-tabs` kullanan 11 sekmesi var, hiçbirinde
+ikon yok. Sayfa başlığı (`.cl-page-header`) yok. Tabloları `.data-table`'a
+taşınacak, kırıntı yolu eklenecek.
+
+Not: Danışman Paneli (`/panelim`) adım 12'de kart sistemi üzerinden
+dolaylı olarak düzeldi ama kendi sayfa başlığı hâlâ yok.
 
 ## Muhasebe'de kalanlar (daha sonra)
 
