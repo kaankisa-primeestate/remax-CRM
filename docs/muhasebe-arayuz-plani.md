@@ -32,19 +32,21 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | — | Takvim "Bugün" butonu 390px'te taşıyordu (eski hata) | `2724db96` |
 | 7 | Form paneli: buton ikon hizası, 48px eylem butonları, panel 24/12, Muhasebe'ye özel panel ölçüsü kaldırıldı | `b71147ce` |
 | 8 | Hareket listesi: Tarih ve Tutar sütunlarında gerçek sıralama, mobilde sıralama kutusu | `515c4226` |
+| 9 | Boş durum ve yükleme iskeleti bileşenleri (`components/Feedback.jsx`), çalışan eylem butonları | `d3ad2274` |
 
 ## Sıradaki adım
 
-**9 — Boş durum / yükleniyor / kayıt sonrası geri bildirim.**
-Talimat maddeleri 23-24. Şu an `.empty-state` düz bir metin; örnekte ikonlu,
-açıklamalı ve eylem butonlu. Yükleme sırasında iskelet (skeleton) yok.
-Kaydetme sonrası bildirim var (`SavedRecordNotice`) ama toast değil.
-Not: silme onay kutusu ve toast eklenirse **gerçekten çalışmalı**.
+**10 — Muhasebe'nin diğer sekmeleri.** Şimdiye kadar ağırlıklı olarak
+Hareketler sekmesi ölçüldü. Cari Kartlar, Komisyonlar, Danışman Kiraları,
+Hesaplar ve Raporlar sekmeleri aynı bileşenlere geçirilecek: `.data-table`,
+`.list-toolbar`, `.table-pager`, `.section-head`. Önce her sekme 1920 ve
+390px'te ölçülüp hangisinin neyi kullandığı çıkarılacak.
 
-## Muhasebe'de kalanlar (9'dan sonra)
+## Muhasebe'de kalanlar (10'dan sonra)
 
-- Boş durum bileşeni (ikon + açıklama + eylem), yükleme iskeleti, toast.
 - Silme/iptal işlemi için onay kutusu (şu an doğrudan mı yapılıyor, bakılacak).
+- Kayıt sonrası bildirim `SavedRecordNotice` olarak duruyor; toast'a
+  çevrilecek mi, karar verilecek. Eklenirse gerçekten çalışmalı.
 - Kalan satır içi stiller: AccountingPage'de ~170 adet `style={{}}` var.
   Bunlar durdukça tasarım sistemi sayfanın her yerine ulaşamıyor.
 - Ölü CSS sınıfları (JSX'te hiç kullanılmıyor): `.accounting-data-table`
