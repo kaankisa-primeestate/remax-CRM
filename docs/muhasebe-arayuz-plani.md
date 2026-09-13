@@ -33,16 +33,14 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 7 | Form paneli: buton ikon hizası, 48px eylem butonları, panel 24/12, Muhasebe'ye özel panel ölçüsü kaldırıldı | `b71147ce` |
 | 8 | Hareket listesi: Tarih ve Tutar sütunlarında gerçek sıralama, mobilde sıralama kutusu | `515c4226` |
 | 9 | Boş durum ve yükleme iskeleti bileşenleri (`components/Feedback.jsx`), çalışan eylem butonları | `d3ad2274` |
+| 10 | Altı sekme aynı iskelete geçti: `PanelHead`, satır yüksekliği 80→48px, Cari Kartlar ortak araç çubuğu/sayfalama | `b3291c66` |
 
 ## Sıradaki adım
 
-**10 — Muhasebe'nin diğer sekmeleri.** Şimdiye kadar ağırlıklı olarak
-Hareketler sekmesi ölçüldü. Cari Kartlar, Komisyonlar, Danışman Kiraları,
-Hesaplar ve Raporlar sekmeleri aynı bileşenlere geçirilecek: `.data-table`,
-`.list-toolbar`, `.table-pager`, `.section-head`. Önce her sekme 1920 ve
-390px'te ölçülüp hangisinin neyi kullandığı çıkarılacak.
+**11 — Raporlar sekmesi.** Tek kalan sekme; tablo içermiyor, bir rapor
+oluşturucu. Panel başlığı `PanelHead`'e geçmedi, 15 satır içi stil var.
 
-## Muhasebe'de kalanlar (10'dan sonra)
+## Muhasebe'de kalanlar (11'den sonra)
 
 - Silme/iptal işlemi için onay kutusu (şu an doğrudan mı yapılıyor, bakılacak).
 - Kayıt sonrası bildirim `SavedRecordNotice` olarak duruyor; toast'a
@@ -53,9 +51,8 @@ Hesaplar ve Raporlar sekmeleri aynı bileşenlere geçirilecek: `.data-table`,
   (13 CSS / 0 JSX), `.accounting-entry-form-grid` (9/0), `.cl-kpi-card` (13/0),
   `.cl-kpi-row` (3/0).
 - Kırılım sayısı ~10; talimattaki üçe indirilecek (1024 / 768 / 600).
-- Muhasebe'nin diğer sekmeleri (Cari Kartlar, Komisyonlar, Danışman
-  Kiraları, Hesaplar, Raporlar) aynı bileşenlere geçirilecek — şu ana kadar
-  ağırlıklı olarak Hareketler sekmesi ölçüldü.
+- Komisyonlar, Kiralar ve Hesaplar sekmelerinde arama/filtre ve sayfalama
+  yok; kayıt sayısı artınca gerekecek.
 
 ## Muhasebe bitince: diğer sayfalar
 
@@ -63,7 +60,8 @@ Sıra: Genel Bakış → Portföy Havuzu → Müşteri Havuzu → Danışman Yö
 İşlemler → kalanlar.
 
 Altyapı hazır: `.cl-page-header` + `.cl-breadcrumb`, `.cl-tabs`/`.folder-tabs`,
-`.cl-panel`, `.section-head`, `.panel-head`, `.list-toolbar`, `.data-table`,
+`.cl-panel`, `PanelHead` (`section-head` + `panel-head`), `.list-toolbar`, `.data-table`,
+`EmptyState` / `TableSkeleton` (`components/Feedback.jsx`), `.pill`, `.cell-select`,
 `.table-pager`, `.stat-grid`/`.stat-card`, `.form-grid`, `.btn`, `.pill`.
 Bunlar `index.css` içindeki "BİLEŞEN SÖZLÜĞÜ" bölümünde tanımlı.
 
