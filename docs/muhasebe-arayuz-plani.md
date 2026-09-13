@@ -34,18 +34,24 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 8 | Hareket listesi: Tarih ve Tutar sütunlarında gerçek sıralama, mobilde sıralama kutusu | `515c4226` |
 | 9 | Boş durum ve yükleme iskeleti bileşenleri (`components/Feedback.jsx`), çalışan eylem butonları | `d3ad2274` |
 | 10 | Altı sekme aynı iskelete geçti: `PanelHead`, satır yüksekliği 80→48px, Cari Kartlar ortak araç çubuğu/sayfalama | `b3291c66` |
+| 11 | Raporlar sekmesi ortak `.data-table`'a geçti, eski rapor tablosu CSS'i silindi, ikon/buton dili birleşti | `fbffd579` |
 
 ## Sıradaki adım
 
-**11 — Raporlar sekmesi.** Tek kalan sekme; tablo içermiyor, bir rapor
-oluşturucu. Panel başlığı `PanelHead`'e geçmedi, 15 satır içi stil var.
+**12 — Genel Bakış sayfası.** Muhasebe'nin altı sekmesi bitti; sıra diğer
+sayfalarda. Genel Bakış ile başlanacak çünkü `.metric-card` kart sistemi
+orada yaşıyor: Muhasebe raporlarındaki özet kartları hâlâ `.metric-card`,
+sayfa üstündeki KPI satırı `.stat-card`. İki kart sistemi de Genel Bakış
+adımında tek sisteme indirilecek (`.metric-card` → `.stat-card`).
+Ayrıca kırıntı yolu ve sekme ikonları eklenecek.
 
-## Muhasebe'de kalanlar (11'den sonra)
+## Muhasebe'de kalanlar (daha sonra)
 
 - Silme/iptal işlemi için onay kutusu (şu an doğrudan mı yapılıyor, bakılacak).
 - Kayıt sonrası bildirim `SavedRecordNotice` olarak duruyor; toast'a
   çevrilecek mi, karar verilecek. Eklenirse gerçekten çalışmalı.
-- Kalan satır içi stiller: AccountingPage'de ~170 adet `style={{}}` var.
+- Kalan satır içi stiller: AccountingPage'de 128 adet `style={{}}` var
+  (başlangıçta 333, adım 11 sonunda 128).
   Bunlar durdukça tasarım sistemi sayfanın her yerine ulaşamıyor.
 - Ölü CSS sınıfları (JSX'te hiç kullanılmıyor): `.accounting-data-table`
   (13 CSS / 0 JSX), `.accounting-entry-form-grid` (9/0), `.cl-kpi-card` (13/0),
