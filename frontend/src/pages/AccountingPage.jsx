@@ -15,6 +15,7 @@ import {
 } from '../api/accounting';
 import { Link } from 'react-router-dom';
 import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { usersApi } from '../api/auth';
 
 const ACCOUNTING_TABS = [
@@ -1890,19 +1891,13 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div className="panel-head">
-              <div className="section-head" style={{ marginBottom: 0 }}>
-                <span className="section-head__ico"><ListOrdered size={20} strokeWidth={2} /></span>
-                <div className="section-head__text">
-                  <h3>Hareket listesi</h3>
-                  <p>
-                    {periodLabel(period)} · {currency} ·{' '}
-                    {filteredEntries.length === entries.length
-                      ? `${entries.length} kayıt`
-                      : `${entries.length} kayıttan ${filteredEntries.length} tanesi`}
-                  </p>
-                </div>
-              </div>
+            <PanelHead
+              Icon={ListOrdered}
+              title="Hareket listesi"
+              note={`${periodLabel(period)} · ${currency} · ${filteredEntries.length === entries.length
+                ? `${entries.length} kayıt`
+                : `${entries.length} kayıttan ${filteredEntries.length} tanesi`}`}
+            >
               <div className="list-toolbar">
                 <div className="list-toolbar__search">
                   <Search size={16} strokeWidth={2} />
@@ -1950,7 +1945,7 @@ export default function AccountingPage() {
                   <Download size={16} strokeWidth={2} /> Dışa Aktar
                 </button>
               </div>
-            </div>
+            </PanelHead>
             {loading ? (
               <TableSkeleton rows={entryPageSize > 10 ? 10 : entryPageSize} columns={6} label="Hareketler yükleniyor…" />
             ) : entries.length === 0 ? (
@@ -2058,14 +2053,16 @@ export default function AccountingPage() {
           </div>
           {auditTarget && (
             <div className="cl-panel" style={{ marginTop: 20 }}>
-              <div className="panel-head">
-                <div>
-                  <h3 className="panel-title">Kayıt geçmişi</h3>
-                  <p className="muted">{auditTarget.category} · {formatAccountingMoney(auditTarget.amount, auditTarget.currency)} · Değişiklikler silinmeden saklanır.</p>
-                </div>
-                <button type="button" className="btn btn-secondary" onClick={() => { setAuditTarget(null); setAuditLogs([]); }}>Geçmişi Kapat</button>
-              </div>
-              {auditLoading ? <div className="empty-state">Kayıt geçmişi yükleniyor…</div> : auditLogs.length === 0 ? <div className="empty-state">Bu kayıt için henüz denetim geçmişi bulunmuyor.</div> : (
+              <PanelHead
+                Icon={History}
+                title="Kayıt geçmişi"
+                note={`${auditTarget.category} · ${formatAccountingMoney(auditTarget.amount, auditTarget.currency)} · değişiklikler silinmeden saklanır`}
+              >
+                <button type="button" className="btn btn-secondary btn--sm" onClick={() => { setAuditTarget(null); setAuditLogs([]); }}>Geçmişi Kapat</button>
+              </PanelHead>
+              {auditLoading ? <TableSkeleton rows={3} columns={4} label="Kayıt geçmişi yükleniyor…" /> : auditLogs.length === 0 ? (
+                <EmptyState Icon={History} title="Bu kayıt için henüz denetim geçmişi bulunmuyor" />
+              ) : (
                 <div style={{ display: 'grid', gap: 8 }}>
                   {auditLogs.map((log) => <div key={log.id} style={{ borderTop: '1px solid var(--cl-border)', padding: '9px 0', fontSize: 13 }}><strong>{log.action === 'create' ? 'Oluşturuldu' : log.action === 'void' ? 'İptal edildi' : log.action === 'correct' ? 'Düzeltildi' : log.action}</strong><span style={{ color: 'var(--cl-muted)' }}> · {log.createdAt ? new Date(log.createdAt).toLocaleString('tr-TR') : '—'}{log.reason ? ` · ${log.reason}` : ''}</span></div>)}
                 </div>
@@ -2133,7 +2130,12 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <h3 className="panel-title">Hesaplar ve bakiyeler</h3>
+            <PanelHead
+              Icon={Landmark}
+              title="Hesaplar ve bakiyeler"
+              note={`${currency} görünümü · banka ve kasa hesapları`}
+              meta={`${accounts.length} hesap`}
+            />
             {loading ? (
               <TableSkeleton rows={4} columns={5} label="Hesaplar yükleniyor…" />
             ) : accounts.length === 0 ? (
@@ -2183,15 +2185,13 @@ export default function AccountingPage() {
       {activeTab === 'ledgers' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20, display: partyStatement ? 'none' : undefined }}>
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Yeni cari kart</h3>
-                <p className="muted">
-                  Ortak, müşteri, tedarikçi ve diğer muhatapları burada tanımlayın. Danışman kartları Danışman Yönetimi’nden otomatik gelir.
-                </p>
-              </div>
-              <span style={{ color: 'var(--cl-gold)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>Danışmanlar otomatik</span>
-            </div>
+            <PanelHead
+              Icon={FilePlus2}
+              title="Yeni cari kart"
+              note="Ortak, müşteri, tedarikçi ve diğer muhatapları burada tanımlayın. Danışman kartları Danışman Yönetimi’nden otomatik gelir."
+            >
+              <span className="pill pill--wait">Danışmanlar otomatik</span>
+            </PanelHead>
             <form onSubmit={handleCreateParty} className="form-row">
               <FormField label="Kart türü">
                 <select value={partyForm.type} onChange={(event) => setPartyForm({ ...partyForm, type: event.target.value })}>
@@ -2230,29 +2230,56 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel" style={{ display: partyStatement ? 'none' : undefined }}>
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Cari kartlar ve bakiyeler</h3>
-                <p className="muted">{currency} görünümü · Kira alacağı ve ödenecek danışman hakedişi dahil</p>
-              </div>
-              <span className="muted muted--sm">{filteredParties.length} / {parties.length} kart · Sayfa {partyPage} / {partyPageCount}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
-              <FormField label="Cari ara" style={{ flex: '1 1 250px' }}>
-                <input value={partySearch} onChange={(event) => setPartySearch(event.target.value)} placeholder="Ad, şirket, telefon veya vergi no" />
-              </FormField>
-              <FormField label="Kart türü">
-                <select value={partyTypeFilter} onChange={(event) => setPartyTypeFilter(event.target.value)}>
+            <PanelHead
+              Icon={Users}
+              title="Cari kartlar ve bakiyeler"
+              note={`${currency} görünümü · kira alacağı ve ödenecek danışman hakedişi dahil`}
+              meta={`${filteredParties.length} / ${parties.length} kart`}
+            >
+              <div className="list-toolbar">
+                <div className="list-toolbar__search">
+                  <Search size={16} strokeWidth={2} />
+                  <input
+                    type="search"
+                    value={partySearch}
+                    onChange={(event) => setPartySearch(event.target.value)}
+                    placeholder="Ad, şirket, telefon veya vergi no"
+                    aria-label="Cari kartlarda ara"
+                  />
+                </div>
+                <select
+                  value={partyTypeFilter}
+                  onChange={(event) => setPartyTypeFilter(event.target.value)}
+                  aria-label="Kart türüne göre filtrele"
+                >
                   <option value="all">Tüm kartlar</option>
                   {ACCOUNTING_PARTY_TYPES.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
-              </FormField>
-              {(partySearch || partyTypeFilter !== 'all') && <button type="button" className="btn btn-secondary" onClick={() => { setPartySearch(''); setPartyTypeFilter('all'); }}>Filtreleri temizle</button>}
-            </div>
+                {(partySearch || partyTypeFilter !== 'all') && (
+                  <button type="button" className="btn btn-secondary" onClick={() => { setPartySearch(''); setPartyTypeFilter('all'); }}>
+                    Filtreyi temizle
+                  </button>
+                )}
+              </div>
+            </PanelHead>
             {partyLoading ? (
               <TableSkeleton rows={5} columns={5} label="Cari kartlar yükleniyor…" />
             ) : filteredParties.length === 0 ? (
-              <div className="empty-state">{parties.length === 0 ? 'Henüz cari kart bulunmuyor.' : 'Arama veya filtreye uyan cari kart bulunamadı.'}</div>
+              parties.length === 0 ? (
+                <EmptyState
+                  Icon={Users}
+                  title="Henüz cari kart bulunmuyor"
+                  note="Ortak, müşteri ve tedarikçileri yukarıdaki formdan tanımlayabilirsiniz."
+                />
+              ) : (
+                <EmptyState
+                  Icon={SearchX}
+                  title="Arama veya filtreye uyan cari kart bulunamadı"
+                  note={`${parties.length} kart içinde arandı.`}
+                  actionLabel="Aramayı ve filtreyi temizle"
+                  onAction={() => { setPartySearch(''); setPartyTypeFilter('all'); }}
+                />
+              )
             ) : (
               <div className="table-scroll">
                 <table className="data-table" style={{ minWidth: 1050 }}>
@@ -2286,9 +2313,18 @@ export default function AccountingPage() {
                           <td data-label="Şirkete borç" className="amount" style={{ color: 'var(--cl-danger)' }}>{formatAccountingMoney(party.payable, party.currency)}</td>
                           <td data-label="Net bakiye" className="amount" style={{ color: netBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>{formatAccountingMoney(Math.abs(netBalance), party.currency)}</td>
                           <td data-label="Durum">{netBalance > 0 ? 'Şirketten alacaklı' : netBalance < 0 ? 'Şirkete borçlu' : 'Dengede'}</td>
-                          <td data-label="Ekstre"><button type="button" className="btn btn-secondary" onClick={() => handleViewPartyStatement(party)}>Ekstreyi Aç</button></td>
+                          <td data-label="Ekstre">
+                            <button type="button" className="btn btn-secondary btn--sm" onClick={() => handleViewPartyStatement(party)}>Ekstreyi Aç</button>
+                          </td>
                           <td data-label="İşlem">
-                            {party.linkedUserId ? <span className="muted muted--sm">Danışman kaydından yönetilir</span> : <><button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleEditParty(party)}>Düzenle</button> <button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleArchiveParty(party)}>Pasifleştir</button></>}
+                            {party.linkedUserId ? (
+                              <span className="muted muted--sm">Danışman kaydından yönetilir</span>
+                            ) : (
+                              <div className="row-actions row-actions--wrap">
+                                <button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleEditParty(party)}>Düzenle</button>
+                                <button type="button" className="btn btn-secondary btn--sm" disabled={masterSaving} onClick={() => handleArchiveParty(party)}>Pasifleştir</button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
@@ -2298,11 +2334,18 @@ export default function AccountingPage() {
               </div>
             )}
             {!partyLoading && filteredParties.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--cl-border)' }}>
-                <span className="muted muted--sm">{(partyPage - 1) * PARTY_PAGE_SIZE + 1}–{Math.min(partyPage * PARTY_PAGE_SIZE, filteredParties.length)} / {filteredParties.length} gösteriliyor</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" className="btn btn-secondary" disabled={partyPage <= 1} onClick={() => setPartyPage((page) => Math.max(1, page - 1))}>Önceki</button>
-                  <button type="button" className="btn btn-secondary" disabled={partyPage >= partyPageCount} onClick={() => setPartyPage((page) => Math.min(partyPageCount, page + 1))}>Sonraki</button>
+              <div className="table-pager">
+                <span>
+                  {(partyPage - 1) * PARTY_PAGE_SIZE + 1}–{Math.min(partyPage * PARTY_PAGE_SIZE, filteredParties.length)} / {filteredParties.length} gösteriliyor
+                </span>
+                <div className="table-pager__nav">
+                  <button type="button" className="icon-btn" disabled={partyPage <= 1} onClick={() => setPartyPage((page) => Math.max(1, page - 1))} title="Önceki sayfa" aria-label="Önceki sayfa">
+                    <ChevronLeft size={16} strokeWidth={2} />
+                  </button>
+                  <span className="table-pager__page">{partyPage} / {partyPageCount}</span>
+                  <button type="button" className="icon-btn" disabled={partyPage >= partyPageCount} onClick={() => setPartyPage((page) => Math.min(partyPageCount, page + 1))} title="Sonraki sayfa" aria-label="Sonraki sayfa">
+                    <ChevronRight size={16} strokeWidth={2} />
+                  </button>
                 </div>
               </div>
             )}
@@ -2310,15 +2353,13 @@ export default function AccountingPage() {
 
           {partyStatement && (
             <div className="cl-panel" style={{ marginTop: 20 }}>
-              <div className="panel-head">
-                <div>
-                  <h3 className="panel-title">{partyStatement.party?.name || 'Cari'} · Cari Ekstresi</h3>
-                  <p className="muted">
-                    {partyStatement.party?.currency || currency} · İptal edilen kayıtlar ekstreye dahil edilmez
-                  </p>
-                </div>
-                <button type="button" className="btn btn-secondary" onClick={() => setPartyStatement(null)}>Ekstreyi Kapat</button>
-              </div>
+              <PanelHead
+                Icon={ListOrdered}
+                title={`${partyStatement.party?.name || 'Cari'} · Cari Ekstresi`}
+                note={`${partyStatement.party?.currency || currency} · iptal edilen kayıtlar ekstreye dahil edilmez`}
+              >
+                <button type="button" className="btn btn-secondary btn--sm" onClick={() => setPartyStatement(null)}>Ekstreyi Kapat</button>
+              </PanelHead>
               {partyStatementLoading ? (
                 <TableSkeleton rows={4} columns={5} label="Cari ekstre yükleniyor…" />
               ) : (
@@ -2385,15 +2426,13 @@ export default function AccountingPage() {
       {activeTab === 'commissions' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Yeni komisyon kapaması</h3>
-                <p className="muted">
-                  Brüt komisyonu kapama sırasında elle girin. Danışman payı, danışman kayıt ekranındaki güncel orandan alınır.
-                </p>
-              </div>
-              <span style={{ color: 'var(--cl-gold)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>Oran otomatik alınır</span>
-            </div>
+            <PanelHead
+              Icon={FilePlus2}
+              title="Yeni komisyon kapaması"
+              note="Brüt komisyonu kapama sırasında elle girin. Danışman payı, danışman kayıt ekranındaki güncel orandan alınır."
+            >
+              <span className="pill pill--wait">Oran otomatik alınır</span>
+            </PanelHead>
             <form onSubmit={handleCreateCommission} className="form-row">
               <FormField label="Danışman">
                 <select value={commissionForm.agentId} onChange={(event) => setCommissionForm({ ...commissionForm, agentId: event.target.value })} required>
@@ -2431,15 +2470,13 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Komisyon ve hakediş listesi</h3>
-                <p className="muted">
-                  Önce şirkete tahsilat, ardından danışmana hakediş ödemesi kaydedilir.
-                </p>
-              </div>
+            <PanelHead
+              Icon={Percent}
+              title="Komisyon ve hakediş listesi"
+              note="Önce şirkete tahsilat, ardından danışmana hakediş ödemesi kaydedilir."
+            >
               <span className="muted muted--sm">{commissions.length} kayıt</span>
-            </div>
+            </PanelHead>
             {commissionLoading ? (
               <TableSkeleton rows={5} columns={6} label="Komisyonlar yükleniyor…" />
             ) : commissions.length === 0 ? (
@@ -2459,20 +2496,21 @@ export default function AccountingPage() {
                       <th>Oran</th>
                       <th>Danışman payı</th>
                       <th>Ofis payı</th>
-                      <th>Durum / işlem</th>
+                      <th>Durum</th>
+                      <th>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
                     {commissions.map((commission) => {
                       const matchingAccounts = accounts.filter((account) => account.currency === commission.currency && account.isActive !== false);
                       const isBusy = commissionActionId === commission.id;
-                      const statusLabel = commission.status === 'pending_collection'
-                        ? 'Tahsilat bekliyor'
+                      const durum = commission.status === 'pending_collection'
+                        ? { label: 'Tahsilat bekliyor', tone: 'wait' }
                         : commission.status === 'collected'
-                          ? 'Tahsil edildi · ödeme bekliyor'
+                          ? { label: 'Ödeme bekliyor', tone: 'wait' }
                           : commission.status === 'voided'
-                            ? 'İptal edildi'
-                            : 'Danışmana ödendi';
+                            ? { label: 'İptal edildi', tone: 'no' }
+                            : { label: 'Danışmana ödendi', tone: 'ok' };
                       return (
                         <tr key={commission.id} >
                           <td data-label="Tarih">{formatDate(commission.date)}</td>
@@ -2481,35 +2519,49 @@ export default function AccountingPage() {
                             <div className="muted muted--sm">{commission.propertyTitle || commission.transactionType}</div>
                           </td>
                           <td data-label="Brüt komisyon">{formatAccountingMoney(commission.grossAmount, commission.currency)}</td>
-                          <td data-label="Oran">%{Number(commission.agentSharePercent).toLocaleString('tr-TR')}</td>
+                          <td data-label="Oran">
+                            {Number.isFinite(Number(commission.agentSharePercent))
+                              ? `%${Number(commission.agentSharePercent).toLocaleString('tr-TR')}`
+                              : '—'}
+                          </td>
                           <td data-label="Danışman payı" style={{ color: 'var(--cl-danger)' }}>{formatAccountingMoney(commission.agentGrossShare, commission.currency)}</td>
                           <td data-label="Ofis payı" style={{ color: 'var(--cl-success)' }}>{formatAccountingMoney(commission.officeShare, commission.currency)}</td>
-                          <td data-label="Durum / işlem" style={{ minWidth: 250 }}>
-                            <div style={{ fontSize: 12, color: commission.status === 'agent_paid' ? 'var(--cl-success)' : 'var(--cl-muted)', marginBottom: 6 }}>{statusLabel}</div>
+                          <td data-label="Durum">
+                            <span className={`pill pill--${durum.tone}`}>{durum.label}</span>
+                          </td>
+                          <td data-label="İşlem">
                             {commission.status !== 'agent_paid' && commission.status !== 'voided' && (
-                              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <select value={getSettlementAccount(commission.id)} onChange={(event) => setSettlementAccount(commission.id, event.target.value)} disabled={isBusy}>
+                              <div className="row-actions row-actions--wrap">
+                                <select
+                                  className="cell-select"
+                                  value={getSettlementAccount(commission.id)}
+                                  onChange={(event) => setSettlementAccount(commission.id, event.target.value)}
+                                  disabled={isBusy}
+                                  aria-label="Tahsilat / ödeme hesabı"
+                                >
                                   <option value="">Hesap seçin</option>
                                   {matchingAccounts.map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
                                 </select>
                                 {commission.status === 'pending_collection' && (
-                                  <button type="button" className="btn btn-primary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleCommissionAction(commission, 'collect')}>
+                                  <button type="button" className="btn btn-primary btn--sm" disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleCommissionAction(commission, 'collect')}>
                                     {isBusy ? '…' : 'Tahsil Et'}
                                   </button>
                                 )}
                                 {commission.status === 'collected' && (
-                                  <button type="button" className="btn btn-primary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleCommissionAction(commission, 'pay')}>
+                                  <button type="button" className="btn btn-primary btn--sm" disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleCommissionAction(commission, 'pay')}>
                                     {isBusy ? '…' : 'Danışmana Öde'}
                                   </button>
                                 )}
                                 {commission.status === 'pending_collection' && (
-                                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy} onClick={() => handleCommissionAction(commission, 'void')}>
+                                  <button type="button" className="btn btn-secondary btn--sm" disabled={isBusy} onClick={() => handleCommissionAction(commission, 'void')}>
                                     {isBusy ? '…' : 'İptal Et'}
                                   </button>
                                 )}
                               </div>
                             )}
-                            {matchingAccounts.length === 0 && commission.status !== 'agent_paid' && commission.status !== 'voided' && <div style={{ color: 'var(--cl-danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
+                            {matchingAccounts.length === 0 && commission.status !== 'agent_paid' && commission.status !== 'voided' && (
+                              <p className="cell-warning">Bu para biriminde hesap yok.</p>
+                            )}
                           </td>
                         </tr>
                       );
@@ -2524,17 +2576,15 @@ export default function AccountingPage() {
       {activeTab === 'dues' && (
         <>
           <div className="cl-panel" style={{ marginBottom: 20 }}>
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Danışman kira tahakkukları</h3>
-                <p className="muted">
-                  Danışman kayıt ekranındaki aylık kira ve başlangıç tarihine göre bu dönemin tahakkuklarını oluşturun. Aynı dönem ikinci kez oluşturulmaz.
-                </p>
-              </div>
+            <PanelHead
+              Icon={KeyRound}
+              title="Danışman kira tahakkukları"
+              note="Danışman kayıt ekranındaki aylık kira ve başlangıç tarihine göre bu dönemin tahakkuklarını oluşturun. Aynı dönem ikinci kez oluşturulmaz."
+            >
               <button type="button" className="btn btn-primary" onClick={handleGenerateRents} disabled={rentGenerating || rentLoading || currency !== 'TRY'}>
                 {rentGenerating ? 'Oluşturuluyor…' : `${periodLabel(period)} kiralarını oluştur`}
               </button>
-            </div>
+            </PanelHead>
             {currency !== 'TRY' && (
               <div style={{ color: 'var(--cl-muted)', background: 'var(--cl-surface)', border: '1px solid var(--cl-border)', borderRadius: 5, padding: '9px 11px', fontSize: 13 }}>
                 Danışman kayıtlarındaki kira tutarı ilk sürümde TL olarak tutulur. Kira tahakkuklarını görmek için üstteki para birimi seçimini TL yapın.
@@ -2548,13 +2598,12 @@ export default function AccountingPage() {
           </div>
 
           <div className="cl-panel">
-            <div className="panel-head">
-              <div>
-                <h3 className="panel-title">Kira listesi</h3>
-                <p className="muted">{periodLabel(period)} · {currency}</p>
-              </div>
-              <span className="muted muted--sm">{rents.length} kayıt</span>
-            </div>
+            <PanelHead
+              Icon={KeyRound}
+              title="Kira listesi"
+              note={`${periodLabel(period)} · ${currency}`}
+              meta={`${rents.length} kayıt`}
+            />
             {rentLoading ? (
               <TableSkeleton rows={5} columns={5} label="Kira kayıtları yükleniyor…" />
             ) : rents.length === 0 ? (
@@ -2568,41 +2617,52 @@ export default function AccountingPage() {
                       <th>Danışman</th>
                       <th>Vade</th>
                       <th>Tutar</th>
-                      <th>Durum / işlem</th>
+                      <th>Durum</th>
+                      <th>İşlem</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rents.map((rent) => {
                       const matchingAccounts = accounts.filter((account) => account.currency === rent.currency && account.isActive !== false);
                       const isBusy = rentActionId === rent.id;
-                      const statusLabel = rent.status === 'pending_collection'
-                        ? 'Tahsilat bekliyor'
+                      const durum = rent.status === 'pending_collection'
+                        ? { label: 'Tahsilat bekliyor', tone: 'wait' }
                         : rent.status === 'collected'
-                          ? 'Tahsil edildi'
-                          : 'İptal edildi';
+                          ? { label: 'Tahsil edildi', tone: 'ok' }
+                          : { label: 'İptal edildi', tone: 'no' };
                       return (
                         <tr key={rent.id} >
                           <td data-label="Dönem">{periodLabel(rent.period)}</td>
                           <td data-label="Danışman"><strong>{rent.agentNameSnapshot}</strong></td>
                           <td data-label="Vade">{formatDate(rent.dueDate)}</td>
                           <td data-label="Tutar">{formatAccountingMoney(rent.amount, rent.currency)}</td>
-                          <td data-label="Durum / işlem" style={{ minWidth: 330 }}>
-                            <div style={{ fontSize: 12, color: rent.status === 'collected' ? 'var(--cl-success)' : rent.status === 'voided' ? 'var(--cl-muted)' : 'var(--cl-danger)', marginBottom: 6 }}>{statusLabel}</div>
+                          <td data-label="Durum">
+                            <span className={`pill pill--${durum.tone}`}>{durum.label}</span>
+                          </td>
+                          <td data-label="İşlem">
                             {rent.status === 'pending_collection' && (
-                              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <select value={getSettlementAccount(rent.id)} onChange={(event) => setSettlementAccount(rent.id, event.target.value)} disabled={isBusy}>
+                              <div className="row-actions row-actions--wrap">
+                                <select
+                                  className="cell-select"
+                                  value={getSettlementAccount(rent.id)}
+                                  onChange={(event) => setSettlementAccount(rent.id, event.target.value)}
+                                  disabled={isBusy}
+                                  aria-label="Tahsilat hesabı"
+                                >
                                   <option value="">Hesap seçin</option>
                                   {matchingAccounts.map((account) => <option value={account.id} key={account.id}>{account.name} · {account.currency}</option>)}
                                 </select>
-                                <button type="button" className="btn btn-primary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleRentAction(rent, 'collect')}>
+                                <button type="button" className="btn btn-primary btn--sm" disabled={isBusy || matchingAccounts.length === 0} onClick={() => handleRentAction(rent, 'collect')}>
                                   {isBusy ? '…' : 'Tahsil Et'}
                                 </button>
-                                <button type="button" className="btn btn-secondary" style={{ padding: '6px 9px', fontSize: 12 }} disabled={isBusy} onClick={() => handleRentAction(rent, 'void')}>
+                                <button type="button" className="btn btn-secondary btn--sm" disabled={isBusy} onClick={() => handleRentAction(rent, 'void')}>
                                   {isBusy ? '…' : 'İptal Et'}
                                 </button>
                               </div>
                             )}
-                            {rent.status === 'pending_collection' && matchingAccounts.length === 0 && <div style={{ color: 'var(--cl-danger)', fontSize: 11, marginTop: 5 }}>Bu para biriminde hesap yok.</div>}
+                            {rent.status === 'pending_collection' && matchingAccounts.length === 0 && (
+                              <p className="cell-warning">Bu para biriminde hesap yok.</p>
+                            )}
                           </td>
                         </tr>
                       );

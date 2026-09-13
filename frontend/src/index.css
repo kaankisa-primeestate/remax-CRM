@@ -4389,6 +4389,10 @@ button.metric-card--clickable {
   gap: var(--s2);
   flex-wrap: wrap;
 }
+/* Panel basligi icindeki bolum basligi kendi alt boslugunu tasimaz;
+   bosluk .panel-head'e ait. Onceden bu her cagri yerinde satir ici
+   stille kapatiliyordu. */
+.panel-head .section-head { margin-bottom: 0; }
 
 /* --- Istatistik kartlari --- */
 /* Talimat 10: ikon solda yuvarlak rozette, sayi buyuk ve kartin kendi
@@ -4549,6 +4553,29 @@ button.metric-card--clickable {
   gap: var(--s1);
   flex-wrap: nowrap;
 }
+/* Islem sutununda secim kutusu + buton birlikte duruyorsa sarmalanabilir. */
+.row-actions--wrap { flex-wrap: wrap; gap: var(--s2); }
+/* Tablo hucresindeki secim kutusu: sayfanin geri kalaniyla ayni dil.
+   Onceden tarayici varsayilani kullaniliyordu. */
+.cell-select {
+  min-height: 32px;
+  max-width: 200px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  background: var(--cl-surface);
+  color: var(--cl-text);
+  font-family: var(--font-body);
+  font-size: var(--t-label);
+}
+.cell-select:focus-visible { outline: none; border-color: var(--cl-gold); box-shadow: var(--cl-focus); }
+.cell-select:disabled { opacity: 0.55; cursor: not-allowed; }
+.cell-warning {
+  margin: var(--s1) 0 0;
+  color: var(--cl-danger);
+  font-size: var(--t-label);
+  font-weight: 500;
+}
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -4603,6 +4630,10 @@ button.metric-card--clickable {
   vertical-align: middle;
 }
 .data-table th.is-right, .data-table td.is-right { text-align: right; }
+/* Iki satirli hucre (ad + alt bilgi) satiri gereksiz buyutmesin:
+   varsayilan satir yuksekligiyle 56px cikiyordu, 50px'e iniyor. */
+.data-table td > strong { display: block; line-height: 1.35; }
+.data-table td > .muted--sm { line-height: 1.35; }
 /* Siralanabilir baslik: baslik metninin kendisi dugme. Pasif durumda ok
    soluk, aktif sutunda yon oku altin. */
 .data-table th .th-sort {
