@@ -1,6 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, Building2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  User, Building2, Building, Home, Store, Trees, LandPlot, CalendarClock,
+  Warehouse, HardHat, Hotel, LayoutGrid, ChevronUp, ChevronDown, ChevronRight,
+  Search, SearchX, Filter,
+} from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -9,6 +15,21 @@ import PropertyFormModal from '../components/PropertyFormModal.jsx';
 import PropertyWizardModal from '../components/PropertyWizardModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 import QuickStatusSelect from '../components/QuickStatusSelect.jsx';
+
+// Portfoy turu ikonlari. Her deger PROPERTY_TYPES'taki gercek bir turu
+// karsilar; eslesmeyen bir tur gelirse ikon basilmaz.
+const TUR_IKONLARI = {
+  apartment: Building2,
+  land: LandPlot,
+  field: Trees,
+  commercial: Store,
+  timeshare: CalendarClock,
+  villa: Home,
+  office: Building,
+  building: Warehouse,
+  project: HardHat,
+  hotel: Hotel,
+};
 
 const filterCardStyle = {
   background: 'var(--cl-surface)',
@@ -48,7 +69,6 @@ export default function PropertyListPage() {
   const [scope, setScope] = useState('mine'); // 'mine' | 'office' -- sadece Danisman icin anlamli
   const [showForm, setShowForm] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
   // "+ Hizli Ekle" (ust bar) uzerinden "Yeni Portfoy" secildiginde,
   // bu sayfaya gelir gelmez wizard'i otomatik acar -- ekstra tiklama gerekmez.
@@ -182,70 +202,89 @@ export default function PropertyListPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 12,
-          color: 'var(--cl-muted)',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          marginBottom: 12,
-          cursor: 'pointer',
-          display: 'block',
-        }}
-      >
-        ← Geri Dön
-      </button>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Portföy Havuzu</span>
+          </nav>
+          <h2 className="cl-page-title">Portföy Havuzu</h2>
+          <p className="cl-page-subtitle">
+            Ofisin satılık ve kiralık portföyünü türe göre filtreleyip yönetin.
+          </p>
+        </div>
+      </div>
       {!isBroker && (
         <div className="folder-tabs" style={{ marginBottom: 4 }}>
           <button
             className={`folder-tab ${scope === 'mine' ? 'active' : ''}`}
             onClick={() => setScope('mine')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <User size={14} /> Portföylerim
+            <User size={16} strokeWidth={2} /> Portföylerim
           </button>
           <button
             className={`folder-tab ${scope === 'office' ? 'active' : ''}`}
             onClick={() => setScope('office')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <Building2 size={14} /> Ofis Portföyü
+            <Building2 size={16} strokeWidth={2} /> Ofis Portföyü
           </button>
         </div>
       )}
       <div className="folder-tabs">
         <button
+          type="button"
           className={`folder-tab ${activeType === 'all' ? 'active' : ''}`}
           onClick={() => setActiveType('all')}
         >
-          Tümü
+          <LayoutGrid size={16} strokeWidth={2} /> Tümü
         </button>
-        {PROPERTY_TYPES.map((t) => (
-          <button
-            key={t.value}
-            className={`folder-tab ${activeType === t.value ? 'active' : ''}`}
-            onClick={() => setActiveType(t.value)}
-          >
-            {t.label}
-          </button>
-        ))}
+        {PROPERTY_TYPES.map((t) => {
+          const Ikon = TUR_IKONLARI[t.value];
+          return (
+            <button
+              type="button"
+              key={t.value}
+              className={`folder-tab ${activeType === t.value ? 'active' : ''}`}
+              onClick={() => setActiveType(t.value)}
+            >
+              {Ikon && <Ikon size={16} strokeWidth={2} />} {t.label}
+            </button>
+          );
+        })}
       </div>
       <div className="folder-panel">
-        <div className="toolbar">
-          <input
-            className="search-input"
-            placeholder="Başlık, il, ilçe veya mahalle ile ara…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        </div>
+        <PanelHead
+          Icon={Building2}
+          title="Portföy listesi"
+          note={activeType === 'all'
+            ? 'Tüm portföy türleri'
+            : (PROPERTY_TYPES.find((t) => t.value === activeType)?.label || 'Portföy')}
+          meta={loading ? undefined : `${properties.length} kayıt`}
+        >
+          <div className="list-toolbar">
+            <div className="list-toolbar__search">
+              <Search size={16} strokeWidth={2} />
+              <input
+                type="search"
+                placeholder="Başlık, il, ilçe veya mahalle ile ara…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Portföylerde ara"
+              />
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
+            >
+              <Filter size={16} strokeWidth={2} />
+              Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              {showFilters ? <ChevronUp size={14} strokeWidth={2} /> : <ChevronDown size={14} strokeWidth={2} />}
+            </button>
+          </div>
+        </PanelHead>
 
         {showFilters && (
           <div style={filterCardStyle}>
@@ -344,11 +383,23 @@ export default function PropertyListPage() {
         )}
 
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={6} columns={4} label="Portföyler yükleniyor…" />
         ) : properties.length === 0 ? (
-          <div className="empty-state">
-            Kayıt bulunamadı. Üst menüdeki "+ Hızlı Ekle" ile ilk kaydı oluşturun.
-          </div>
+          (search || activeFilterCount > 0) ? (
+            <EmptyState
+              Icon={SearchX}
+              title="Arama veya filtreyle eşleşen portföy bulunamadı"
+              note="Aramayı ve filtreleri temizleyip tekrar deneyin."
+              actionLabel="Aramayı ve filtreleri temizle"
+              onAction={() => { setSearch(''); clearFilters(); }}
+            />
+          ) : (
+            <EmptyState
+              Icon={Building2}
+              title="Bu listede henüz portföy yok"
+              note={'Üst menüdeki "+ Hızlı Ekle" düğmesiyle ilk portföyü oluşturabilirsiniz.'}
+            />
+          )
         ) : (
           <div>
             {properties.map((p) => {
