@@ -3,7 +3,7 @@ import {
   TrendingUp, TrendingDown, Wallet, Clock, FileBarChart2, ArrowUpRight, ArrowDownRight, Minus,
   ArrowLeftRight, Users, Percent, KeyRound, Landmark, BarChart3, FilePlus2, ListOrdered,
   Search, Download, Pencil, Ban, History, ChevronLeft, ChevronRight, RotateCcw, CheckCircle2,
-  ArrowUp, ArrowDown, ChevronsUpDown,
+  ArrowUp, ArrowDown, ChevronsUpDown, Inbox, SearchX,
 } from 'lucide-react';
 import {
   ACCOUNTING_ACCOUNT_TYPES,
@@ -14,6 +14,7 @@ import {
   formatAccountingMoney,
 } from '../api/accounting';
 import { Link } from 'react-router-dom';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { usersApi } from '../api/auth';
 
 const ACCOUNTING_TABS = [
@@ -469,6 +470,9 @@ export default function AccountingPage() {
   const [entryTypeFilter, setEntryTypeFilter] = useState('all');
   // Siralama: varsayilan tarihe gore yeniden eskiye (listenin mevcut sirasi).
   const [entrySort, setEntrySort] = useState({ key: 'date', direction: 'desc' });
+  // Bos durumdaki "Hareket ekle" butonu formu gercekten aciyor: panele
+  // kaydirip ilk alana odaklaniyor.
+  const entryFormRef = useRef(null);
   const [entryPage, setEntryPage] = useState(1);
   const [entryPageSize, setEntryPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -692,6 +696,14 @@ export default function AccountingPage() {
 
   // Kart grafiklerinin verisi. kpiStats ile ayni kaynaklardan beslenir,
   // ek bir API istegi yapilmaz.
+  function focusEntryForm() {
+    const panel = entryFormRef.current;
+    if (!panel) return;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const ilkAlan = panel.querySelector('select, input');
+    if (ilkAlan) ilkAlan.focus({ preventScroll: true });
+  }
+
   const kpiSeries = useMemo(() => {
     const bos = () => new Array(SPARK_BUCKETS).fill(0);
     const income = bos();
@@ -1778,7 +1790,7 @@ export default function AccountingPage() {
 
       {activeTab === 'entries' && (
         <>
-          <div className="cl-panel" style={{ marginBottom: 20 }}>
+          <div className="cl-panel" ref={entryFormRef} style={{ marginBottom: 20 }}>
             <div className="section-head">
               <span className="section-head__ico"><FilePlus2 size={20} strokeWidth={2} /></span>
               <div className="section-head__text">
@@ -1940,11 +1952,23 @@ export default function AccountingPage() {
               </div>
             </div>
             {loading ? (
-              <div className="empty-state">Yükleniyor…</div>
+              <TableSkeleton rows={entryPageSize > 10 ? 10 : entryPageSize} columns={6} label="Hareketler yükleniyor…" />
             ) : entries.length === 0 ? (
-              <div className="empty-state">Bu dönem ve para biriminde henüz hareket yok.</div>
+              <EmptyState
+                Icon={Inbox}
+                title="Bu dönem ve para biriminde henüz hareket yok"
+                note={`${periodLabel(period)} · ${currency} için kayıt bulunmuyor. Yukarıdaki formdan ilk hareketi ekleyebilirsiniz.`}
+                actionLabel="Hareket ekle"
+                onAction={focusEntryForm}
+              />
             ) : filteredEntries.length === 0 ? (
-              <div className="empty-state">Arama veya filtreyle eşleşen hareket bulunamadı.</div>
+              <EmptyState
+                Icon={SearchX}
+                title="Arama veya filtreyle eşleşen hareket bulunamadı"
+                note={`${entries.length} kayıt içinde arandı. Aramayı ve filtreyi temizleyip tekrar deneyin.`}
+                actionLabel="Aramayı ve filtreyi temizle"
+                onAction={() => { setEntrySearch(''); setEntryTypeFilter('all'); }}
+              />
             ) : (
               <div className="table-scroll">
                 <table className="data-table" style={{ minWidth: 760 }}>
@@ -2111,9 +2135,13 @@ export default function AccountingPage() {
           <div className="cl-panel">
             <h3 className="panel-title">Hesaplar ve bakiyeler</h3>
             {loading ? (
-              <div className="empty-state">Yükleniyor…</div>
+              <TableSkeleton rows={4} columns={5} label="Hesaplar yükleniyor…" />
             ) : accounts.length === 0 ? (
-              <div className="empty-state">Henüz muhasebe hesabı eklenmemiş.</div>
+              <EmptyState
+                Icon={Landmark}
+                title="Henüz muhasebe hesabı eklenmemiş"
+                note="Gelir ve giderleri kaydedebilmek için önce bir banka veya kasa hesabı oluşturun."
+              />
             ) : (
               <div className="table-scroll">
                 <table className="data-table" style={{ minWidth: 620 }}>
@@ -2222,7 +2250,7 @@ export default function AccountingPage() {
               {(partySearch || partyTypeFilter !== 'all') && <button type="button" className="btn btn-secondary" onClick={() => { setPartySearch(''); setPartyTypeFilter('all'); }}>Filtreleri temizle</button>}
             </div>
             {partyLoading ? (
-              <div className="empty-state">Cari kartlar yükleniyor…</div>
+              <TableSkeleton rows={5} columns={5} label="Cari kartlar yükleniyor…" />
             ) : filteredParties.length === 0 ? (
               <div className="empty-state">{parties.length === 0 ? 'Henüz cari kart bulunmuyor.' : 'Arama veya filtreye uyan cari kart bulunamadı.'}</div>
             ) : (
@@ -2292,7 +2320,7 @@ export default function AccountingPage() {
                 <button type="button" className="btn btn-secondary" onClick={() => setPartyStatement(null)}>Ekstreyi Kapat</button>
               </div>
               {partyStatementLoading ? (
-                <div className="empty-state">Cari ekstre yükleniyor…</div>
+                <TableSkeleton rows={4} columns={5} label="Cari ekstre yükleniyor…" />
               ) : (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -2413,9 +2441,13 @@ export default function AccountingPage() {
               <span className="muted muted--sm">{commissions.length} kayıt</span>
             </div>
             {commissionLoading ? (
-              <div className="empty-state">Komisyonlar yükleniyor…</div>
+              <TableSkeleton rows={5} columns={6} label="Komisyonlar yükleniyor…" />
             ) : commissions.length === 0 ? (
-              <div className="empty-state">Henüz Muhasebe komisyonu oluşturulmamış.</div>
+              <EmptyState
+                Icon={Percent}
+                title="Henüz Muhasebe komisyonu oluşturulmamış"
+                note="Kapanan işlemlerden komisyon oluştuğunda bu listede görünür."
+              />
             ) : (
               <div className="table-scroll">
                 <table className="data-table" style={{ minWidth: 1060 }}>
@@ -2524,7 +2556,7 @@ export default function AccountingPage() {
               <span className="muted muted--sm">{rents.length} kayıt</span>
             </div>
             {rentLoading ? (
-              <div className="empty-state">Kira kayıtları yükleniyor…</div>
+              <TableSkeleton rows={5} columns={5} label="Kira kayıtları yükleniyor…" />
             ) : rents.length === 0 ? (
               <div className="empty-state">Bu dönem için henüz kira tahakkuku yok. Üstteki düğmeyle oluşturabilirsiniz.</div>
             ) : (
@@ -2647,7 +2679,11 @@ export default function AccountingPage() {
               <span className="muted muted--sm">{parties.filter((party) => party.type === 'partner').length} ortak</span>
             </div>
             {parties.filter((party) => party.type === 'partner').length === 0 ? (
-              <div className="empty-state">Henüz ortak cari kartı yok.</div>
+              <EmptyState
+                Icon={Users}
+                title="Henüz ortak cari kartı yok"
+                note="Ortak eklendiğinde bakiyeleri bu listede izlenir."
+              />
             ) : (
               <div className="table-scroll">
                 <table className="data-table" style={{ minWidth: 900 }}>
