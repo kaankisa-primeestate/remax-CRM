@@ -3,10 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   User, Building2, Building, Home, Store, Trees, LandPlot, CalendarClock,
   Warehouse, HardHat, Hotel, LayoutGrid, ChevronUp, ChevronDown, ChevronRight,
-  Search, SearchX, Filter,
+  Search, SearchX, Filter, List, LayoutGrid as GridIcon,
 } from 'lucide-react';
 import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { PanelHead } from '../components/PanelHead';
+import { PropertyGalleryCard } from '../components/PropertyGalleryCard.jsx';
 import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -30,6 +31,17 @@ const TUR_IKONLARI = {
   project: HardHat,
   hotel: Hotel,
 };
+
+// Gorunum tercihi tarayicida saklanir; kullanici her girisinde ayni
+// gorunumle karsilasir. Erisilemezse (gizli sekme vb.) liste varsayilan.
+const GORUNUM_ANAHTARI = 'primecrm.portfoy.gorunum';
+function kayitliGorunum() {
+  try {
+    return localStorage.getItem(GORUNUM_ANAHTARI) === 'gallery' ? 'gallery' : 'list';
+  } catch {
+    return 'list';
+  }
+}
 
 const filterCardStyle = {
   background: 'var(--cl-surface)',
@@ -83,6 +95,12 @@ export default function PropertyListPage() {
     }
   }, [location.state]);
   const [showFilters, setShowFilters] = useState(false);
+  const [gorunum, setGorunum] = useState(kayitliGorunum);
+
+  function gorunumSec(deger) {
+    setGorunum(deger);
+    try { localStorage.setItem(GORUNUM_ANAHTARI, deger); } catch { /* onemli degil */ }
+  }
   const [agents, setAgents] = useState([]);
 
   const [agentId, setAgentId] = useState('');
@@ -283,6 +301,26 @@ export default function PropertyListPage() {
               Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               {showFilters ? <ChevronUp size={14} strokeWidth={2} /> : <ChevronDown size={14} strokeWidth={2} />}
             </button>
+            <div className="segmented view-switch" role="group" aria-label="Görünüm">
+              <button
+                type="button"
+                className={`segmented__item${gorunum === 'list' ? ' is-active' : ''}`}
+                aria-pressed={gorunum === 'list'}
+                onClick={() => gorunumSec('list')}
+                title="Liste görünümü"
+              >
+                <List size={16} strokeWidth={2} /> Liste
+              </button>
+              <button
+                type="button"
+                className={`segmented__item${gorunum === 'gallery' ? ' is-active' : ''}`}
+                aria-pressed={gorunum === 'gallery'}
+                onClick={() => gorunumSec('gallery')}
+                title="Galeri görünümü"
+              >
+                <GridIcon size={16} strokeWidth={2} /> Galeri
+              </button>
+            </div>
           </div>
         </PanelHead>
 
@@ -400,6 +438,22 @@ export default function PropertyListPage() {
               note={'Üst menüdeki "+ Hızlı Ekle" düğmesiyle ilk portföyü oluşturabilirsiniz.'}
             />
           )
+        ) : gorunum === 'gallery' ? (
+          <div className="gallery-grid">
+            {properties.map((p) => {
+              const isOfficeView = !isBroker && scope === 'office';
+              const ownerName = isOfficeView ? agents.find((a) => a.id === p.agentId)?.name : null;
+              return (
+                <PropertyGalleryCard
+                  key={p.id}
+                  property={p}
+                  TurIkonu={TUR_IKONLARI[p.propertyType]}
+                  fiyatMetni={formatPrice(p)}
+                  sahipAdi={ownerName}
+                />
+              );
+            })}
+          </div>
         ) : (
           <div>
             {properties.map((p) => {

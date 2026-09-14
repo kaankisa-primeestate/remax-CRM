@@ -3314,6 +3314,7 @@ button.metric-card--clickable {
 @media (max-width: 600px) {
   .opportunity-list { margin: 0 calc(-1 * var(--s4)) calc(-1 * var(--s4)); }
   .opportunity-row { padding: var(--s3) var(--s4); }
+
   .opportunity-row__customer { align-items: flex-start; text-align: left; }
 }
 @media (max-width: 600px) {
@@ -4742,6 +4743,108 @@ button.metric-card--clickable {
 }
 /* Iki satirli hucre (ad + alt bilgi) satiri gereksiz buyutmesin:
    varsayilan satir yuksekligiyle 56px cikiyordu, 50px'e iniyor. */
+/* --- Galeri gorunumu --------------------------------------------------
+   Liste yerine kart izgarasi. Sutun sayisi ekrana gore: genis ekranda
+   dort, daraldikca uc/iki/bir. 1920px'te kart ~370px olur; iki sutunda
+   790px'lik kartlar olusup ekranda yalnizca iki ilan kaliyordu. */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s4);
+}
+@media (max-width: 1439px) { .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* 1200px altinda uc sutun karti 210px'e dusuruyordu; fotograf okunmuyor. */
+@media (max-width: 1199px) { .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px)  { .gallery-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.gal-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-sm);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.gal-card:hover {
+  border-color: var(--cl-gold);
+  box-shadow: var(--sh-md);
+  transform: translateY(-1px);
+}
+.gal-card:focus-visible { outline: none; box-shadow: var(--cl-focus); }
+
+.gal-card__media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--cl-bg);
+  border-bottom: 1px solid var(--cl-border-light);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.gal-card__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Fotografi olmayan ilan bos gri kutu birakmaz; mulk turunun ikonu durur. */
+.gal-card__placeholder { color: var(--cl-faint); display: grid; place-items: center; }
+.gal-card__badges {
+  position: absolute;
+  top: var(--s2);
+  left: var(--s2);
+  display: flex;
+  gap: var(--s1);
+  flex-wrap: wrap;
+  max-width: calc(100% - var(--s4));
+}
+
+.gal-card__body {
+  padding: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.gal-card__title {
+  font-weight: 600;
+  font-size: var(--t-body);
+  line-height: 1.35;
+  color: var(--cl-text);
+  /* Baslik en fazla iki satir; uzun basliklar kart yuksekligini bozmasin. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gal-card__place { font-size: var(--t-label); color: var(--cl-muted); }
+.gal-card__specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1) var(--s3);
+  margin-top: 2px;
+  font-size: var(--t-label);
+  color: var(--cl-muted);
+}
+.gal-card__foot {
+  margin-top: auto;
+  padding-top: var(--s3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.gal-card__price {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--cl-primary-900);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gorunum secici: liste / galeri. Segmentli secicinin ikonlu surumu. */
+.view-switch { flex: none; }
+.view-switch .segmented__item { display: inline-flex; align-items: center; gap: var(--s1); }
+
 /* Hucre icinde ikon + metin. */
 .cell-with-icon { display: inline-flex; align-items: center; gap: var(--s2); }
 .cell-with-icon > svg { flex: none; color: var(--cl-muted); }
