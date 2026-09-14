@@ -3255,6 +3255,63 @@ button.metric-card--clickable {
   width: 100%;
   margin-top: var(--s2);
 }
+
+/* Sicak Firsatlar: eslesme satiri. Skor rozetinin rengi eslesme oranina
+   gore hesaplandigi icin yalnizca o satir ici kalir. */
+.opportunity-list { margin: 0 calc(-1 * var(--s5)) calc(-1 * var(--s5)); }
+.opportunity-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  padding: var(--s3) var(--s5);
+  border-top: 1px solid var(--cl-border-light);
+}
+.opportunity-row:hover { background: var(--cl-bg); }
+.opportunity-row__score {
+  flex: none;
+  min-width: 48px;
+  padding: var(--s1) var(--s3);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+}
+.opportunity-row__property {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+.opportunity-row__title {
+  font-weight: 600;
+  font-size: var(--t-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.opportunity-row__meta { font-size: var(--t-label); color: var(--cl-muted); font-weight: 500; }
+.opportunity-row__customer {
+  flex: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  text-decoration: none;
+  font-size: var(--t-label);
+  font-weight: 600;
+  color: var(--cl-primary-800);
+}
+.opportunity-row__customer-name { display: inline-flex; align-items: center; gap: var(--s1); }
+@media (max-width: 600px) {
+  .opportunity-list { margin: 0 calc(-1 * var(--s4)) calc(-1 * var(--s4)); }
+  .opportunity-row { padding: var(--s3) var(--s4); }
+  .opportunity-row__customer { align-items: flex-start; text-align: left; }
+}
 @media (max-width: 600px) {
   /* Dar ekranda ikili izgara: secenekler 2 sutuna diziliyor, dokunma
      alani genis kaliyor. */
@@ -4346,6 +4403,7 @@ button.metric-card--clickable {
    veya .form-grid'e aittir. --wide daha genis bir taban genislik ister. */
 .form-row > .form-field { margin: 0; }
 .form-field--wide { margin: 0; min-width: 200px; }
+.form-field--grow { margin: 0; flex: 1 1 200px; min-width: 200px; }
 
 /* Form eylem butonlari: kaydet birincil ve alanlardan belirgin sekilde
    yuksek, temizle ayni yukseklikte cerceveli. */

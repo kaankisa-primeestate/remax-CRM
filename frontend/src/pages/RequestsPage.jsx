@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, AlertTriangle, User } from 'lucide-react';
+import { Flame, AlertTriangle, User, ChevronRight, Search, SearchX, RotateCcw } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { customersApi } from '../api/customers';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -56,93 +58,100 @@ export default function RequestsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <h2 className="dossier__name" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Flame size={20} style={{ color: 'var(--cl-danger)' }} /> Sıcak Fırsatlar
-        </h2>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Müşteri veya ilan ara…"
-          style={{ maxWidth: 260 }}
-        />
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Sıcak Fırsatlar</span>
+          </nav>
+          <h2 className="cl-page-title">Sıcak Fırsatlar</h2>
+          <p className="cl-page-subtitle">
+            {isBroker
+              ? 'Ofis genelindeki müşteri ve portföy eşleşmeleri, en yüksek orandan en düşüğe sıralı.'
+              : 'Sizinle ilgili müşteri ve portföy eşleşmeleri, en yüksek orandan en düşüğe sıralı.'}
+            {' '}Bir satıra tıklayınca ilgili portföye gidersiniz.
+          </p>
+        </div>
       </div>
-      <p style={{ fontSize: 13, color: 'var(--cl-muted)', marginTop: -10, marginBottom: 20 }}>
-        {isBroker
-          ? 'Ofis genelindeki tüm danışmanların müşteri ve portföyleri arasındaki eşleşmeler, en yüksek orandan en düşüğe sıralı.'
-          : 'Sizinle ilgili (kendi müşteriniz ya da kendi portföyünüz olan) tüm eşleşmeler, en yüksek orandan en düşüğe sıralı.'}
-        {' '}Bir satıra tıklayınca ilgili portföye gidersiniz.
-      </p>
 
-      {error && (
-        <div className="empty-state" style={{ color: 'var(--cl-danger)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-          <AlertTriangle size={15} /> {error} <button type="button" className="btn btn-secondary" style={{ marginLeft: 8 }} onClick={load}>Tekrar dene</button>
-        </div>
-      )}
+      <div className="folder-panel">
+        <PanelHead
+          Icon={Flame}
+          title="Eşleşme listesi"
+          note="Müşteri ve portföy bilgileri ne kadar dolu olursa eşleştirme o kadar isabetli olur."
+          meta={loading || error ? undefined : `${filtered.length} eşleşme`}
+        >
+          <div className="list-toolbar">
+            <div className="list-toolbar__search">
+              <Search size={16} strokeWidth={2} />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Müşteri veya ilan ara…"
+                aria-label="Eşleşmelerde ara"
+              />
+            </div>
+          </div>
+        </PanelHead>
 
-      {loading ? (
-        <div className="empty-state">Eşleşmeler taranıyor…</div>
-      ) : error ? null : filtered.length === 0 ? (
-        <div className="empty-state">
-          {search.trim() ? 'Aramanızla eşleşen bir sonuç yok.' : 'Şu an güçlü bir eşleşme bulunamadı — müşteri ve portföy bilgileri ne kadar dolu olursa eşleştirme o kadar isabetli olur.'}
-        </div>
-      ) : (
-        <div className="folder-panel" style={{ padding: 0 }}>
+        {error ? (
+          <EmptyState
+            Icon={AlertTriangle}
+            title="Eşleşmeler yüklenemedi"
+            note={error}
+            actionLabel="Tekrar dene"
+            onAction={load}
+          />
+        ) : loading ? (
+          <TableSkeleton rows={5} columns={4} label="Eşleşmeler taranıyor…" />
+        ) : filtered.length === 0 ? (
+          search.trim() ? (
+            <EmptyState
+              Icon={SearchX}
+              title="Aramanızla eşleşen bir sonuç yok"
+              note="Aramayı temizleyip tüm eşleşmeleri görebilirsiniz."
+              actionLabel="Aramayı temizle"
+              onAction={() => setSearch('')}
+            />
+          ) : (
+            <EmptyState
+              Icon={Flame}
+              title="Şu an güçlü bir eşleşme bulunamadı"
+              note="Müşteri ve portföy bilgileri ne kadar dolu olursa eşleştirme o kadar isabetli olur."
+            />
+          )
+        ) : (
+        <div className="opportunity-list">
           {filtered.map((p, i) => {
             const colors = scoreColor(p.score);
             return (
-              <div
-                key={`${p.customer.id}-${p.property.id}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '12px 16px',
-                  borderTop: i > 0 ? '1px solid var(--cl-border)' : 'none',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontWeight: 700,
-                    fontSize: 13,
-                    background: colors.bg,
-                    color: colors.fg,
-                    borderRadius: 999,
-                    padding: '4px 10px',
-                    flexShrink: 0,
-                    minWidth: 48,
-                    textAlign: 'center',
-                  }}
-                >
+              <div className="opportunity-row" key={`${p.customer.id}-${p.property.id}`}>
+                <span className="opportunity-row__score" style={{ background: colors.bg, color: colors.fg }}>
                   %{p.score}
                 </span>
-                <Link to={`/portfoyler/${p.property.id}`} style={{ flex: 1, minWidth: 160, textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.property.title}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
+                <Link to={`/portfoyler/${p.property.id}`} className="opportunity-row__property">
+                  <span className="opportunity-row__title">{p.property.title}</span>
+                  <span className="opportunity-row__meta">
                     {p.property.district} · {money(p.property.price)}
                     {isBroker && p.propertyAgentName && ` · ${p.propertyAgentName}`}
-                  </div>
+                  </span>
                 </Link>
-                <Link
-                  to={`/musteriler/${p.customer.id}`}
-                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--cl-primary-800)', textAlign: 'right', flexShrink: 0, textDecoration: 'none', display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <User size={12} /> {p.customer.firstName} {p.customer.lastName}
+                <Link to={`/musteriler/${p.customer.id}`} className="opportunity-row__customer">
+                  <span className="opportunity-row__customer-name">
+                    <User size={12} strokeWidth={2} /> {p.customer.firstName} {p.customer.lastName}
                   </span>
                   {isBroker && p.customerAgentName && (
-                    <span style={{ fontSize: 11, color: 'var(--cl-muted)', fontWeight: 400 }}>{p.customerAgentName}</span>
+                    <span className="opportunity-row__meta">{p.customerAgentName}</span>
                   )}
                 </Link>
               </div>
             );
           })}
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

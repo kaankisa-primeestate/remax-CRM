@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { AlertTriangle, Calendar, Pencil, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { AlertTriangle, Calendar, Pencil, X, ChevronRight, ClipboardList, FilePlus2, CheckCircle2 } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { tasksApi } from '../api/tasks';
 
 function isOverdue(task) {
@@ -21,7 +23,6 @@ function formatDueDate(dueDate) {
 }
 
 export default function TasksPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -120,28 +121,27 @@ export default function TasksPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 12,
-          color: 'var(--cl-muted)',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          marginBottom: 12,
-          cursor: 'pointer',
-          display: 'block',
-        }}
-      >
-        ← Geri Dön
-      </button>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>Görevler</h2>
-
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Görevler</span>
+          </nav>
+          <h2 className="cl-page-title">Görevler</h2>
+          <p className="cl-page-subtitle">
+            Kendi görevlerinizi ekleyin, son tarihleri takip edin ve tamamlandıkça işaretleyin.
+          </p>
+        </div>
+      </div>
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="form-field" style={{ flex: 1, minWidth: 200, margin: 0 }}>
+        <PanelHead
+          Icon={FilePlus2}
+          title="Yeni görev"
+          note="Kısa bir başlık yazın; isterseniz son tarih de belirleyin."
+        />
+        <form onSubmit={handleAdd} className="form-row">
+          <div className="form-field form-field--grow">
             <label>Yeni Görev</label>
             <input
               id="task-quick-add-title"
@@ -150,32 +150,46 @@ export default function TasksPage() {
               placeholder="Örn: Ahmet Bey'i ara"
             />
           </div>
-          <div className="form-field" style={{ margin: 0 }}>
+          <div className="form-field">
             <label>Son Tarih (opsiyonel)</label>
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
           <button type="submit" className="btn btn-primary" disabled={saving || !title.trim()}>
-            {saving ? 'Ekleniyor…' : '+ Ekle'}
+            {saving ? 'Ekleniyor…' : (<><FilePlus2 size={16} strokeWidth={2} /> Ekle</>)}
           </button>
         </form>
       </div>
 
       <div className="folder-panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16 }}>
-            {showCompleted ? 'Tüm Görevler' : 'Bekleyen Görevler'}
-          </h3>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setShowCompleted((v) => !v)}>
-            {showCompleted ? 'Sadece Bekleyenleri Göster' : 'Tamamlananları da Göster'}
+        <PanelHead
+          Icon={ClipboardList}
+          title={showCompleted ? 'Tüm görevler' : 'Bekleyen görevler'}
+          note={showCompleted ? 'Tamamlananlar dahil' : 'Tamamlananlar gizli'}
+          meta={loading ? undefined : `${visibleTasks.length} görev`}
+        >
+          <button type="button" className="btn btn-secondary btn--sm" onClick={() => setShowCompleted((v) => !v)}>
+            {showCompleted ? 'Sadece bekleyenleri göster' : 'Tamamlananları da göster'}
           </button>
-        </div>
+        </PanelHead>
 
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={5} columns={3} label="Görevler yükleniyor…" />
         ) : visibleTasks.length === 0 ? (
-          <div className="empty-state">
-            {showCompleted ? 'Henüz görev eklenmemiş.' : 'Bekleyen görev yok.'}
-          </div>
+          showCompleted ? (
+            <EmptyState
+              Icon={ClipboardList}
+              title="Henüz görev eklenmemiş"
+              note="Yukarıdaki formdan ilk görevinizi ekleyebilirsiniz."
+            />
+          ) : (
+            <EmptyState
+              Icon={CheckCircle2}
+              title="Bekleyen görev yok"
+              note="Tamamlanmış görevleri de görmek isterseniz listeyi genişletebilirsiniz."
+              actionLabel="Tamamlananları da göster"
+              onAction={() => setShowCompleted(true)}
+            />
+          )
         ) : (
           visibleTasks.map((task) => (
             <div key={task.id} className="task-row">

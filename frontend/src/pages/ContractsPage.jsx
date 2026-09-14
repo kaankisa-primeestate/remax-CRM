@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, AlertTriangle } from 'lucide-react';
+import { Check, AlertTriangle, ChevronRight, FileText, SearchX } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { appointmentsApi } from '../api/appointments';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
@@ -61,32 +63,60 @@ export default function ContractsPage() {
 
   return (
     <div>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>Sözleşmeler & Tapu</h2>
-
-      <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yer Gösterme Kayıtları</h3>
-        <p style={{ color: 'var(--cl-muted)', fontSize: 13, marginBottom: 14 }}>
-          Danışmanların müşterilere yaptığı ilan gösterimlerinin hukuki kayıt arşivi. Beyan onaylı kayıtlar,
-          danışmanın komisyon hakkını kanıtlayan belgelerdir.
-        </p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className={filter === 'all' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setFilter('all')}>
-            Tümü ({showings.length})
-          </button>
-          <button type="button" className={filter === 'accepted' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setFilter('accepted')}>
-            <Check size={13} /> Beyan Alındı ({showings.filter((s) => s.disclosureAccepted).length})
-          </button>
-          <button type="button" className={filter === 'pending' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setFilter('pending')}>
-            <AlertTriangle size={13} /> Beklemede ({showings.filter((s) => !s.disclosureAccepted).length})
-          </button>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Sözleşmeler &amp; Tapu</span>
+          </nav>
+          <h2 className="cl-page-title">Sözleşmeler &amp; Tapu</h2>
+          <p className="cl-page-subtitle">
+            Danışmanların müşterilere yaptığı ilan gösterimlerinin hukuki kayıt arşivi.
+            Beyan onaylı kayıtlar, danışmanın komisyon hakkını kanıtlayan belgelerdir.
+          </p>
         </div>
       </div>
 
       <div className="folder-panel">
+        <PanelHead
+          Icon={FileText}
+          title="Yer gösterme kayıtları"
+          note={filter === 'accepted' ? 'Beyanı alınmış kayıtlar'
+            : filter === 'pending' ? 'Beyanı bekleyen kayıtlar'
+            : 'Tüm kayıtlar'}
+          meta={loading ? undefined : `${visible.length} kayıt`}
+        >
+          <div className="segmented" role="group" aria-label="Beyan durumuna göre filtre">
+            <button type="button" className={`segmented__item${filter === 'all' ? ' is-active' : ''}`} aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+              Tümü ({showings.length})
+            </button>
+            <button type="button" className={`segmented__item${filter === 'accepted' ? ' is-active' : ''}`} aria-pressed={filter === 'accepted'} onClick={() => setFilter('accepted')}>
+              <Check size={14} strokeWidth={2} /> Beyan Alındı ({showings.filter((s) => s.disclosureAccepted).length})
+            </button>
+            <button type="button" className={`segmented__item${filter === 'pending' ? ' is-active' : ''}`} aria-pressed={filter === 'pending'} onClick={() => setFilter('pending')}>
+              <AlertTriangle size={14} strokeWidth={2} /> Beklemede ({showings.filter((s) => !s.disclosureAccepted).length})
+            </button>
+          </div>
+        </PanelHead>
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={5} columns={4} label="Yer gösterme kayıtları yükleniyor…" />
         ) : visible.length === 0 ? (
-          <div className="empty-state">Bu filtrede yer gösterme kaydı yok.</div>
+          filter === 'all' ? (
+            <EmptyState
+              Icon={FileText}
+              title="Henüz yer gösterme kaydı yok"
+              note="Danışmanlar ilan gösterimi kaydettikçe bu arşiv dolar."
+            />
+          ) : (
+            <EmptyState
+              Icon={SearchX}
+              title="Bu filtrede yer gösterme kaydı yok"
+              note="Tüm kayıtları görmek için filtreyi kaldırabilirsiniz."
+              actionLabel="Tüm kayıtları göster"
+              onAction={() => setFilter('all')}
+            />
+          )
         ) : (
           visible.map((s) => {
             const customer = customers.find((c) => c.id === s.customerId);
@@ -119,12 +149,6 @@ export default function ContractsPage() {
         )}
       </div>
 
-      <div className="folder-panel" style={{ marginTop: 20 }}>
-        <p style={{ color: 'var(--cl-muted)', fontSize: 13 }}>
-          Bu bölüm ileride genişletilecek: sözleşme bitiş tarihleri (Broker Dashboard'da zaten takip ediliyor),
-          vekaletname durumları ve tapu sürecinin aşamaları da buraya eklenecek.
-        </p>
-      </div>
     </div>
   );
 }
