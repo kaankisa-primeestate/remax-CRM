@@ -44,8 +44,16 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 
 ## Sıradaki adım
 
-**19 — Google Takvim entegrasyonu (tek yön: CRM → Google).**
-Kullanıcı bu işi görsel işin önüne aldı. Kalan görsel sayfalar bekliyor.
+**19 — Piyasa + Piyasa Değer Analizi (liste + sihirbaz).**
+Değerleme sihirbazı 64 satır içi stille kalan en ağır sayfa.
+
+---
+
+## BEKLEYEN İŞ — Google Takvim entegrasyonu (tek yön: CRM → Google)
+
+**Aciliyeti yok** (kullanıcı 14.09.2026'da böyle söyledi). Görsel iş
+bitince ya da kullanıcı istediğinde yapılacak. Aşağıdaki kararlar
+verilmiş durumda, sıfırdan konuşmaya gerek yok.
 
 ### Durum ve karar verilenler
 - Yön: yalnızca CRM → Google. Google'dan CRM'e çekme yapılmayacak.
@@ -93,8 +101,8 @@ sekmesinde ikon yok. Sıra geldiğinde kullanıcıya sorulacak.
 | ~~16~~ | ~~İşlemler + İşlem Detay~~ | bitti |
 | ~~17~~ | ~~Küçük listeler~~ | bitti |
 | ~~18~~ | ~~Takvim~~ | bitti |
-| 19 | **Google Takvim entegrasyonu** | öne alındı |
 | 19 | Piyasa + Değer Analizi (liste + sihirbaz) | 64, ağır |
+| — | **Google Takvim entegrasyonu** | beklemede, aciliyeti yok |
 | 20 | Danışman tarafı | Panelim, Aidatlarım, Cari Hesabım, Komisyonlar |
 | 21 | Küçük sayfalar | Ayarlar, Hukuk, İlan Entegrasyonu, Gider Kategorisi, Finans |
 | 22 | Son geçiş | Kalan satır içi stiller, ölü CSS, kırılımları üçe indirme |
