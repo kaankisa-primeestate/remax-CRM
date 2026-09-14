@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FileText, Check, ChevronRight, ArrowLeft } from 'lucide-react';
+import { FileText, Check, ChevronRight, ArrowLeft, ImageOff } from 'lucide-react';
 import { propertiesApi, PROPERTY_TYPES, formatPropertyPrice } from '../api/properties';
 import { apiClient } from '../api/client.js';
 import { buildWhatsappUrl } from '../utils/contact.js';
@@ -23,6 +23,7 @@ export default function PropertyDetailPage() {
   const [showShare, setShowShare] = useState(false);
   const [sendingAuth, setSendingAuth] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [anaFoto, setAnaFoto] = useState(0); // kunyedeki buyuk fotografin sirasi
   const [matches, setMatches] = useState([]);
 
   const [loadError, setLoadError] = useState(false);
@@ -109,6 +110,31 @@ export default function PropertyDetailPage() {
   });
   const activeFeatures = categoryFieldDefs.filter((f) => f.type === 'boolean' && !!fieldRawValue(f));
 
+  // Kunye satirlari: sabit alanlar + kategoriye ozel alanlar tek listede.
+  // Bos deger yazan satir acilmaz.
+  const kunyeSatirlari = [
+    ['Emlak Tipi', typeLabel],
+    ['Metrekare', property.areaM2 ? `${property.areaM2} m²` : null],
+    ['Tapu Durumu', property.deedStatus],
+    ['Krediye Uygunluk', property.mortgageEligible ? 'Uygun' : 'Uygun Değil'],
+    ...detailFields.map((field) => {
+      const v = fieldRawValue(field);
+      const metin = field.type === 'date'
+        ? new Date(v).toLocaleDateString('tr-TR')
+        : (typeof v === 'number' ? new Intl.NumberFormat('tr-TR').format(v) : v);
+      return [field.label, metin];
+    }),
+    ['Sözleşme Bitişi', property.contractEndDate
+      ? new Date(property.contractEndDate).toLocaleDateString('tr-TR')
+      : null],
+  ].filter(([, deger]) => deger !== undefined && deger !== null && deger !== '');
+
+  const fotograflar = property.photoUrls || [];
+  const kapakIndex = Math.min(anaFoto, Math.max(0, fotograflar.length - 1));
+  // Serit tek satirda kalsin: bes hucre. Fazlasi varsa son hucre "+N" olur.
+  const seritKucukler = fotograflar.length > 5 ? fotograflar.slice(0, 4) : fotograflar.slice(0, 5);
+  const kalanFoto = fotograflar.length - seritKucukler.length;
+
   return (
     <div>
       {/* Kirinti yolu nerede oldugunu soyler; "Geri" ise listeye
@@ -164,47 +190,73 @@ export default function PropertyDetailPage() {
           </div>
         )}
 
-        <div className="dossier__field-grid">
-          <div className="dossier__field">
-            <label>Konum</label>
-            <div>{property.neighborhood}, {property.district} / {property.province}</div>
-          </div>
-          <div className="dossier__field">
-            <label>Fiyat</label>
-            <div style={{ fontFamily: 'var(--font-body)' }}>{priceLabel}</div>
-          </div>
-          <div className="dossier__field">
-            <label>Metrekare</label>
-            <div>{property.areaM2} m²</div>
-          </div>
-          <div className="dossier__field">
-            <label>Tapu Durumu</label>
-            <div>{property.deedStatus}</div>
-          </div>
-          <div className="dossier__field">
-            <label>Krediye Uygunluk</label>
-            <div>{property.mortgageEligible ? 'Uygun' : 'Uygun Değil'}</div>
-          </div>
-          {property.contractEndDate && (
-            <div className="dossier__field">
-              <label>Sözleşme Bitiş Tarihi</label>
-              <div>{new Date(property.contractEndDate).toLocaleDateString('tr-TR')}</div>
-            </div>
-          )}
-
-          {detailFields.map((field) => {
-            const v = fieldRawValue(field);
-            const displayValue = field.type === 'date'
-              ? new Date(v).toLocaleDateString('tr-TR')
-              : (typeof v === 'number' ? new Intl.NumberFormat('tr-TR').format(v) : v);
-            return (
-              <div className="dossier__field" key={field.key}>
-                <label>{field.label}</label>
-                <div>{displayValue}</div>
+        {/* Kunye: solda fotograf, saginda bilgiler (ilan sitelerindeki duzen) */}
+        <div className="pd-hero">
+          <div className="pd-media">
+            {fotograflar.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className="pd-media__main"
+                  onClick={() => setLightboxIndex(kapakIndex)}
+                  aria-label="Fotoğrafı büyüt"
+                >
+                  <img src={fotograflar[kapakIndex]} alt={`${property.title} fotoğraf ${kapakIndex + 1}`} />
+                  <span className="pd-media__count">{kapakIndex + 1}/{fotograflar.length} Fotoğraf</span>
+                </button>
+                {fotograflar.length > 1 && (
+                  <div className="pd-media__strip">
+                    {seritKucukler.map((url, i) => (
+                      <button
+                        type="button"
+                        key={i}
+                        className="pd-media__thumb"
+                        aria-current={i === kapakIndex}
+                        onClick={() => setAnaFoto(i)}
+                        aria-label={`${i + 1}. fotoğrafı göster`}
+                      >
+                        <img src={url} alt="" />
+                      </button>
+                    ))}
+                    {kalanFoto > 0 && (
+                      <button
+                        type="button"
+                        className="pd-media__thumb pd-media__more"
+                        onClick={() => setLightboxIndex(seritKucukler.length)}
+                        aria-label={`Kalan ${kalanFoto} fotoğrafı göster`}
+                      >
+                        +{kalanFoto}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="pd-media__main" aria-hidden="true">
+                <span className="pd-media__placeholder"><ImageOff size={40} strokeWidth={1.5} /></span>
               </div>
-            );
-          })}
+            )}
+          </div>
 
+          <div className="pd-spec">
+            <div className="pd-spec__price">
+              <span className="pd-spec__amount">{priceLabel}</span>
+              <span className="pd-spec__place">
+                {[property.neighborhood, property.district, property.province].filter(Boolean).join(' / ')}
+              </span>
+            </div>
+            <div className="pd-spec__rows">
+              {kunyeSatirlari.map(([etiket, deger]) => (
+                <div className="pd-spec__row" key={etiket}>
+                  <span className="pd-spec__label">{etiket}</span>
+                  <span className="pd-spec__value">{deger}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="dossier__field-grid">
           <div className="dossier__field" style={{ gridColumn: '1 / -1' }}>
             <label>Öne Çıkan Özellikler</label>
             <div>
@@ -226,24 +278,6 @@ export default function PropertyDetailPage() {
             </div>
           )}
         </div>
-
-        {property.photoUrls && property.photoUrls.length > 0 && (
-          <>
-            <h3 style={{ fontFamily: 'var(--cl-font-heading)', fontSize: 18, marginBottom: 12 }}>Fotoğraflar</h3>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {property.photoUrls.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt={`${property.title} fotoğraf ${i + 1}`}
-                  style={{ width: 160, height: 120, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--cl-border)', cursor: 'pointer' }}
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                  onClick={() => setLightboxIndex(i)}
-                />
-              ))}
-            </div>
-          </>
-        )}
 
         {matches.length > 0 && (
           <>

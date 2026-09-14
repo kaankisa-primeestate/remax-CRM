@@ -4888,6 +4888,128 @@ button.metric-card--clickable {
 .cus-card__avatar--landlord { background: rgba(214,69,69,.12); color: var(--cl-danger); }
 .cus-card__avatar--investor { background: rgba(16,35,61,.10); color: var(--cl-primary-900); }
 
+/* --- Portfoy detay kunyesi: solda fotograf, sagda bilgiler --- */
+.pd-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: var(--s5);
+  margin-bottom: var(--s5);
+  align-items: start;
+}
+
+/* Fotograf sutunu */
+.pd-media__main {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--cl-bg);
+  padding: 0;
+  cursor: pointer;
+}
+.pd-media__main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.pd-media__placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cl-muted);
+}
+/* Fotograf sayaci -- sahibinden'deki "1/22 Fotograf" gibi */
+.pd-media__count {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: rgba(16, 35, 61, 0.72);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.pd-media__strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+.pd-media__thumb {
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  padding: 0;
+  background: var(--cl-bg);
+  cursor: pointer;
+}
+.pd-media__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pd-media__thumb[aria-current="true"] { border-color: var(--cl-gold); box-shadow: 0 0 0 1px var(--cl-gold); }
+.pd-media__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--cl-muted);
+}
+
+/* Kunye tablosu */
+.pd-spec { border: 1px solid var(--cl-border); border-radius: var(--r-md); overflow: hidden; }
+.pd-spec__price {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s4) var(--s4) var(--s3);
+  border-bottom: 1px solid var(--cl-border);
+}
+.pd-spec__amount {
+  font-family: var(--cl-font-heading);
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--cl-primary-900);
+}
+.pd-spec__place { font-size: 13px; color: var(--cl-muted); text-align: right; }
+.pd-spec__rows { display: block; }
+.pd-spec__row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: var(--s3);
+  padding: 7px var(--s4);
+  font-size: 13px;
+  border-top: 1px solid var(--cl-border);
+}
+.pd-spec__row:first-child { border-top: 0; }
+.pd-spec__row:nth-child(odd) { background: var(--cl-bg); }
+.pd-spec__label { color: var(--cl-muted); }
+.pd-spec__value { color: var(--cl-text); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+
+/* Dar ekranda alt alta: once fotograf, sonra kunye */
+@media (max-width: 1199px) {
+  .pd-hero { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .pd-media__strip {
+    display: flex;
+    gap: var(--s2);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pd-media__thumb { flex: 0 0 96px; }
+  .pd-spec__amount { font-size: 20px; }
+  .pd-spec__row { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 8px var(--s3); }
+  .pd-spec__value { text-align: left; }
+}
+
 .cus-card__who { display: flex; flex-direction: column; min-width: 0; }
 .cus-card__name {
   font-weight: 600; font-size: var(--t-body); color: var(--cl-text);
