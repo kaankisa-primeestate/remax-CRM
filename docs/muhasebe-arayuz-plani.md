@@ -43,6 +43,8 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 18 | Takvim: sayfa başlığı, görünüm sekmeleri kendi satırına, ajanda paneli ve boş durumlar | `8edd0f56` |
 | 19 | **Üç panel sistemi tek ölçüde birleşti** (92 kullanım) + Piyasa ve Piyasa Değer Analizleri | `88c51072` |
 | 20 | Değerleme sihirbazı + danışman tarafı (Panelim, Aidatlarım, Komisyonlar, Cari Hesabım) | `95d6241d` |
+| — | **Portföy Havuzu galeri görünümü** (Liste / Galeri seçeneği, 4 sütun, Cloudinary küçültme, fotoğrafsızda yer tutucu) | `32523445` |
+| — | **Müşteri Havuzu kart görünümü** (Liste / Kartlar, baş harf avatarı, tip rozeti, bütçe/zaman/bölge satırları) + eksik "Yatırımcı" rozet rengi | (bu commit) |
 
 ## Sıradaki adım
 
@@ -53,6 +55,18 @@ stille küçük; tek adımda gidebilir.
 Sonra **22 — son geçiş:** kalan satır içi stiller, ölü CSS sınıfları
 (`.accounting-data-table`, `.accounting-entry-form-grid`, `.cl-kpi-card`,
 `.cl-kpi-row`), kırılım sayısını üçe indirme.
+
+### Galeri/kart görünümü — not
+- Görünüm tercihi `localStorage`'da, iki sayfa için **ayrı anahtar**:
+  `primecrm.portfoy.gorunum` ve `primecrm.musteri.gorunum`.
+- Sütun sayısı: 1920'de 4, ≤1439'da 3, ≤1199'da 2, ≤560'ta 1.
+  (1200 altında üç sütun kartı 210px'e düşürüyordu, fotoğraf okunmuyordu.)
+- **Teklif edildi, onay bekliyor:** kiralık fiyatlara "/ay" eklemek.
+  Şu anda ₺145.000 kiralık, ₺8.500.000 satılık yan yana ayırt edilemiyor
+  (hem listede hem galeride, eskiden beri böyle).
+- **Temizlik notu:** `TIMELINE_OPTIONS` iki ayrı dosyada kopyalanmış
+  (`CustomerFormModal.jsx`, `QuickAddCustomerModal.jsx`) ve içerikleri
+  farklı; bilerek birleştirilmedi, iki çalışan formu riske atmamak için.
 
 ### Bekleyen iki sayfa
 - **Danışman Yönetimi** — kullanıcı 14.09'da sonraya bıraktı (101 stil).

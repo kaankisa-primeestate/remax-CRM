@@ -496,6 +496,7 @@ button {
 .status-badge--seller { background: rgba(184, 134, 46, 0.14); color: var(--cl-warning); }
 .status-badge--tenant { background: rgba(21, 154, 99, 0.12); color: var(--cl-success); }
 .status-badge--landlord { background: rgba(214, 69, 69, 0.1); color: var(--cl-danger); }
+.status-badge--investor { background: rgba(16, 35, 61, 0.08); color: var(--cl-primary-900); }
 
 /* Portföy durumu */
 .status-badge--active { background: rgba(21, 154, 99, 0.12); color: var(--cl-success); }
@@ -4844,6 +4845,67 @@ button.metric-card--clickable {
 /* Gorunum secici: liste / galeri. Segmentli secicinin ikonlu surumu. */
 .view-switch { flex: none; }
 .view-switch .segmented__item { display: inline-flex; align-items: center; gap: var(--s1); }
+
+/* --- Musteri karti (galeri gorunumu) ----------------------------------
+   Musteri kaydinda fotograf alani yok; bas harflerden rozet uretilir.
+   Bu yuzden "galeri" degil, bilgi karti izgarasidir: listede gorunen
+   dort alanin ustune zaman cizelgesi ve bolge tercihi eklenir. */
+.cus-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-sm);
+  padding: var(--s4);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.cus-card:hover {
+  border-color: var(--cl-gold);
+  box-shadow: var(--sh-md);
+  transform: translateY(-1px);
+}
+.cus-card:focus-visible { outline: none; box-shadow: var(--cl-focus); }
+
+.cus-card__head { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
+.cus-card__avatar {
+  width: 44px; height: 44px; flex: none;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  background: var(--cl-bg);
+  color: var(--cl-muted);
+}
+/* Avatar rengi musteri turunu tekrar eder; rozetle ayni dili konusur. */
+.cus-card__avatar--buyer { background: rgba(53,106,230,.12); color: var(--cl-info); }
+.cus-card__avatar--seller { background: rgba(196,154,85,.18); color: #a9793c; }
+.cus-card__avatar--tenant { background: rgba(21,154,99,.14); color: var(--cl-success); }
+.cus-card__avatar--landlord { background: rgba(214,69,69,.12); color: var(--cl-danger); }
+.cus-card__avatar--investor { background: rgba(16,35,61,.10); color: var(--cl-primary-900); }
+
+.cus-card__who { display: flex; flex-direction: column; min-width: 0; }
+.cus-card__name {
+  font-weight: 600; font-size: var(--t-body); color: var(--cl-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cus-card__phone {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  font-size: var(--t-label); color: var(--cl-muted);
+}
+.cus-card__badges { display: flex; flex-wrap: wrap; gap: var(--s1); }
+
+.cus-card__rows { display: flex; flex-direction: column; gap: var(--s1); margin-top: auto; }
+.cus-card__row { display: flex; justify-content: space-between; gap: var(--s3); font-size: var(--t-label); }
+.cus-card__label { color: var(--cl-muted); flex: none; }
+.cus-card__value {
+  font-weight: 600; color: var(--cl-text); text-align: right;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* Hucre icinde ikon + metin. */
 .cell-with-icon { display: inline-flex; align-items: center; gap: var(--s2); }

@@ -3,9 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Flame, X, ChevronUp, ChevronDown, ChevronRight, Users, ShoppingBag, Tag,
   KeyRound, Home, TrendingUp, LayoutGrid, Search, SearchX, Filter,
+  List, LayoutGrid as GridIcon,
 } from 'lucide-react';
 import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { PanelHead } from '../components/PanelHead';
+import { CustomerGalleryCard } from '../components/CustomerGalleryCard.jsx';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -23,6 +25,17 @@ const TUR_IKONLARI = {
   landlord: Home,
   investor: TrendingUp,
 };
+
+// Gorunum tercihi tarayicida saklanir; portfoyden ayri bir anahtar
+// kullaniliyor, iki sayfa birbirinin tercihini degistirmesin.
+const GORUNUM_ANAHTARI = 'primecrm.musteri.gorunum';
+function kayitliGorunum() {
+  try {
+    return localStorage.getItem(GORUNUM_ANAHTARI) === 'gallery' ? 'gallery' : 'list';
+  } catch {
+    return 'list';
+  }
+}
 
 const filterCardStyle = {
   background: 'var(--cl-surface)',
@@ -82,6 +95,12 @@ export default function CustomerListPage() {
     }
   }, [location.state]);
   const [showFilters, setShowFilters] = useState(false);
+  const [gorunum, setGorunum] = useState(kayitliGorunum);
+
+  function gorunumSec(deger) {
+    setGorunum(deger);
+    try { localStorage.setItem(GORUNUM_ANAHTARI, deger); } catch { /* onemli degil */ }
+  }
   const [agents, setAgents] = useState([]);
   const [hotOnly, setHotOnly] = useState(false);
 
@@ -213,6 +232,26 @@ export default function CustomerListPage() {
               Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               {showFilters ? <ChevronUp size={14} strokeWidth={2} /> : <ChevronDown size={14} strokeWidth={2} />}
             </button>
+            <div className="segmented view-switch" role="group" aria-label="Görünüm">
+              <button
+                type="button"
+                className={`segmented__item${gorunum === 'list' ? ' is-active' : ''}`}
+                aria-pressed={gorunum === 'list'}
+                onClick={() => gorunumSec('list')}
+                title="Liste görünümü"
+              >
+                <List size={16} strokeWidth={2} /> Liste
+              </button>
+              <button
+                type="button"
+                className={`segmented__item${gorunum === 'gallery' ? ' is-active' : ''}`}
+                aria-pressed={gorunum === 'gallery'}
+                onClick={() => gorunumSec('gallery')}
+                title="Kart görünümü"
+              >
+                <GridIcon size={16} strokeWidth={2} /> Kartlar
+              </button>
+            </div>
           </div>
         </PanelHead>
 
@@ -305,6 +344,12 @@ export default function CustomerListPage() {
               note={'Üst menüdeki "+ Hızlı Ekle" düğmesiyle ilk müşteriyi oluşturabilirsiniz.'}
             />
           )
+        ) : gorunum === 'gallery' ? (
+          <div className="gallery-grid">
+            {displayedCustomers.map((c) => (
+              <CustomerGalleryCard key={c.id} customer={c} butceMetni={formatBudget(c)} />
+            ))}
+          </div>
         ) : (
           <div>
             {displayedCustomers.map((c) => (
