@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, CalendarRange, ListTodo, X, Clock, Check, Hourglass, Pencil, MessageSquare, Home, StickyNote, Send } from 'lucide-react';
+import { Calendar, CalendarRange, ListTodo, X, Clock, Check, Hourglass, Pencil, MessageSquare, Home, StickyNote, Send, ChevronRight, Plus, CalendarClock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { appointmentsApi, APPOINTMENT_TYPES } from '../api/appointments';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
@@ -404,31 +407,39 @@ export default function CalendarPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent',
-          border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block',
-        }}
-      >
-        ← Geri Dön
-      </button>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-        <h2 className="dossier__name" style={{ margin: 0 }}>Takvim</h2>
-        <div className="calendar-header-actions">
-          <button type="button" className="btn btn-primary calendar-new-entry-button" onClick={() => setNewEntryMenuOpen(true)}>
-            + Yeni Ekle
-          </button>
-          <div className="folder-tabs">
-            {VIEW_TABS.map((t) => (
-              <button key={t.key} className={`folder-tab ${view === t.key ? 'active' : ''}`} onClick={() => setView(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <t.Icon size={14} /> {t.label}
-              </button>
-            ))}
-          </div>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Takvim</span>
+          </nav>
+          <h2 className="cl-page-title">Takvim</h2>
+          <p className="cl-page-subtitle">
+            Randevular, görevler, gösterimler ve finansal vadeler tek takvimde.
+          </p>
         </div>
+        <div className="cl-page-controls">
+          <button type="button" className="cl-header-action-btn calendar-new-entry-button" onClick={() => setNewEntryMenuOpen(true)}>
+            <Plus size={16} strokeWidth={2.5} /> Yeni Ekle
+          </button>
+        </div>
+      </div>
+
+      {/* Gorunum sekmeleri diger sayfalardaki gibi kendi satirinda:
+          basligin icinde dururken secili sekme ile eylem butonu ayni
+          altin rengi paylasip birbirine karisiyordu. */}
+      <div className="folder-tabs">
+        {VIEW_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            className={`folder-tab ${view === t.key ? 'active' : ''}`}
+            onClick={() => setView(t.key)}
+          >
+            <t.Icon size={16} strokeWidth={2} /> {t.label}
+          </button>
+        ))}
       </div>
 
       {newEntryMenuOpen && (
@@ -583,9 +594,9 @@ export default function CalendarPage() {
 
             <div className="calendar-day-detail-modal__events">
               {eventsLoading ? (
-                <div className="empty-state">Yükleniyor…</div>
+                <TableSkeleton rows={3} columns={2} label="Gün kayıtları yükleniyor…" />
               ) : selectedDayEvents.length === 0 ? (
-                <div className="empty-state">Bu gün için planlanmış bir şey yok.</div>
+                <EmptyState Icon={CalendarClock} title="Bu gün için planlanmış bir şey yok" />
               ) : (
                 selectedDayEvents.map((event) => {
                   const colors = CALENDAR_EVENT_COLORS[event.type] || { bg: '#eee', fg: '#333' };
@@ -641,20 +652,25 @@ export default function CalendarPage() {
       {view === 'agenda' && (
         <>
           <div className="folder-panel" style={{ marginBottom: 20 }}>
-            <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div className="form-field" style={{ flex: 1, minWidth: 180, margin: 0 }}>
+            <PanelHead
+              Icon={CalendarClock}
+              title="Yeni randevu"
+              note="Başlık ve tarih zorunlu; saat ve tür isteğe bağlı."
+            />
+            <form onSubmit={handleAdd} className="form-row">
+              <div className="form-field form-field--grow">
                 <label>Başlık</label>
                 <input id="calendar-new-entry-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn: Ahmet Bey ile görüşme" />
               </div>
-              <div className="form-field" style={{ margin: 0 }}>
+              <div className="form-field">
                 <label>Tarih</label>
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
-              <div className="form-field" style={{ margin: 0 }}>
+              <div className="form-field">
                 <label>Saat (opsiyonel)</label>
                 <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
               </div>
-              <div className="form-field" style={{ margin: 0 }}>
+              <div className="form-field">
                 <label>Tür</label>
                 <select value={type} onChange={(e) => setType(e.target.value)}>
                   {APPOINTMENT_TYPES.map((t) => (
@@ -665,7 +681,7 @@ export default function CalendarPage() {
 
               {type === 'showing' && (
                 <>
-                  <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                  <div className="form-field form-field--wide">
                     <label>Müşteri</label>
                     <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
                       <option value="">Seçiniz</option>
@@ -674,7 +690,7 @@ export default function CalendarPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="form-field" style={{ margin: 0, minWidth: 160 }}>
+                  <div className="form-field form-field--wide">
                     <label>Portföy</label>
                     <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
                       <option value="">Seçiniz</option>
@@ -687,23 +703,41 @@ export default function CalendarPage() {
               )}
 
               <button type="submit" className="btn btn-primary" disabled={saving || !title.trim()}>
-                {saving ? 'Ekleniyor…' : '+ Ekle'}
+                {saving ? 'Ekleniyor…' : (<><Plus size={16} strokeWidth={2.5} /> Ekle</>)}
               </button>
             </form>
           </div>
 
           <div className="folder-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ fontFamily: 'var(--cl-font-heading)', margin: 0, fontSize: 16 }}>Ajanda</h3>
-              <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setShowPast((v) => !v)}>
-                {showPast ? 'Sadece Yaklaşanları Göster' : 'Geçmişi de Göster'}
+            <PanelHead
+              Icon={ListTodo}
+              title="Ajanda"
+              note={showPast ? 'Geçmiş kayıtlar dahil' : 'Yaklaşan kayıtlar'}
+              meta={loading ? undefined : `${grouped.reduce((n, g) => n + g.items.length, 0)} randevu`}
+            >
+              <button type="button" className="btn btn-secondary btn--sm" onClick={() => setShowPast((v) => !v)}>
+                {showPast ? 'Sadece yaklaşanları göster' : 'Geçmişi de göster'}
               </button>
-            </div>
+            </PanelHead>
 
             {loading ? (
-              <div className="empty-state">Yükleniyor…</div>
+              <TableSkeleton rows={5} columns={3} label="Ajanda yükleniyor…" />
             ) : grouped.length === 0 ? (
-              <div className="empty-state">Yaklaşan randevu yok.</div>
+              showPast ? (
+                <EmptyState
+                  Icon={CalendarClock}
+                  title="Henüz randevu kaydı yok"
+                  note="Yukarıdaki formdan ilk randevunuzu ekleyebilirsiniz."
+                />
+              ) : (
+                <EmptyState
+                  Icon={CalendarClock}
+                  title="Yaklaşan randevu yok"
+                  note="Geçmiş randevuları da görmek isterseniz listeyi genişletebilirsiniz."
+                  actionLabel="Geçmişi de göster"
+                  onAction={() => setShowPast(true)}
+                />
+              )
             ) : (
               grouped.map((group) => (
                 <div key={group.date} className="agenda-group">
