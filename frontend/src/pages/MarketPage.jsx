@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LineChart, Newspaper } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LineChart, Newspaper, ChevronRight, AlertTriangle } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import TradingViewWidget from '../components/TradingViewWidget.jsx';
 import { marketApi } from '../api/market';
 
@@ -80,7 +82,6 @@ function formatRelativeDate(isoString) {
 // filtreleniyor). Altta, ikincil olarak Dolar/Euro/Altin/BIST canli
 // verileri + Turkiye odakli ekonomi takvimi (TradingView ucretsiz embed).
 export default function MarketPage() {
-  const navigate = useNavigate();
   const [news, setNews] = useState([]);
   const [newsLoading, setNewsLoading] = useState(true);
   const [newsError, setNewsError] = useState(false);
@@ -95,40 +96,38 @@ export default function MarketPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 12,
-          color: 'var(--cl-muted)',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          marginBottom: 12,
-          cursor: 'pointer',
-          display: 'block',
-        }}
-      >
-        ← Geri Dön
-      </button>
-      <h2 className="dossier__name" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <LineChart size={22} style={{ color: 'var(--cl-gold)' }} /> Piyasa
-      </h2>
-
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Piyasa</span>
+          </nav>
+          <h2 className="cl-page-title">Piyasa</h2>
+          <p className="cl-page-subtitle">
+            Emlak ve ekonomi haberleri, döviz/altın/borsa verileri ve ekonomi takvimi.
+          </p>
+        </div>
+      </div>
       <div className="panel" style={{ marginBottom: 20 }}>
-        <h3 className="panel__title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Newspaper size={16} /> Emlak & Ekonomi Haberleri
-        </h3>
-        <p style={{ fontSize: 12, color: 'var(--cl-muted)', marginTop: -6, marginBottom: 12 }}>
-          Enflasyon, konut kredisi faizleri, kira artış oranları, TÜİK konut satış verileri ve benzeri konularda güncel haberler — birkaç güvenilir kaynaktan otomatik derlenir.
-        </p>
+        <PanelHead
+          Icon={Newspaper}
+          title="Emlak & Ekonomi Haberleri"
+          note="Enflasyon, konut kredisi faizleri, kira artış oranları ve TÜİK konut satış verileri — birkaç güvenilir kaynaktan otomatik derlenir."
+        />
         {newsLoading ? (
-          <div className="empty-state">Haberler yükleniyor…</div>
+          <TableSkeleton rows={4} columns={1} label="Haberler yükleniyor…" />
         ) : newsError ? (
-          <div className="empty-state">Haberler şu an alınamadı, birazdan tekrar deneyin.</div>
+          <EmptyState
+            Icon={AlertTriangle}
+            title="Haberler şu an alınamadı"
+            note="Kaynaklara ulaşılamadı; birazdan tekrar deneyin."
+          />
         ) : news.length === 0 ? (
-          <div className="empty-state">Şu an gösterilecek haber bulunamadı.</div>
+          <EmptyState
+            Icon={Newspaper}
+            title="Şu an gösterilecek haber bulunamadı"
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {news.map((item, i) => (
@@ -152,7 +151,7 @@ export default function MarketPage() {
       </div>
 
       <div className="panel" style={{ marginBottom: 20 }}>
-        <h3 className="panel__title">Döviz, Altın & Borsa</h3>
+        <PanelHead Icon={LineChart} title="Döviz, Altın & Borsa" />
         <TradingViewWidget
           scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js"
           config={MARKET_OVERVIEW_CONFIG}
@@ -161,7 +160,7 @@ export default function MarketPage() {
       </div>
 
       <div className="panel">
-        <h3 className="panel__title">Ekonomi Takvimi (Türkiye)</h3>
+        <PanelHead Icon={LineChart} title="Ekonomi Takvimi (Türkiye)" />
         <TradingViewWidget
           scriptSrc="https://s3.tradingview.com/external-embedding/embed-widget-events.js"
           config={ECONOMIC_CALENDAR_CONFIG}

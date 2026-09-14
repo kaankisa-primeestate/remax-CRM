@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BarChart3, X } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { BarChart3, X, ChevronRight, Plus } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { valuationsApi, PROPERTY_TYPE_LABELS } from '../api/valuations';
 
 const money = (n) => (n != null ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(n) : '—');
@@ -39,23 +41,41 @@ export default function ValuationsListPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 className="dossier__name" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <BarChart3 size={20} style={{ color: 'var(--cl-gold)' }} /> Piyasa Değer Analizleri
-        </h2>
-        <button type="button" className="btn btn-primary" onClick={() => navigate('/degerleme/yeni')}>
-          + Yeni Analiz
-        </button>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Piyasa Değer Analizi</span>
+          </nav>
+          <h2 className="cl-page-title">Piyasa Değer Analizleri</h2>
+          <p className="cl-page-subtitle">
+            Müşteriye sunulabilir, gerekçeli değer analizleri hazırlayın ve arşivleyin.
+          </p>
+        </div>
+        <div className="cl-page-controls">
+          <button type="button" className="cl-header-action-btn" onClick={() => navigate('/degerleme/yeni')}>
+            <Plus size={16} strokeWidth={2.5} /> Yeni Analiz
+          </button>
+        </div>
       </div>
 
       <div className="folder-panel">
+        <PanelHead
+          Icon={BarChart3}
+          title="Analiz listesi"
+          meta={loading ? undefined : `${valuations.length} analiz`}
+        />
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={5} columns={4} label="Analizler yükleniyor…" />
         ) : valuations.length === 0 ? (
-          <div className="empty-state">
-            Henüz bir değer analizi oluşturmadınız. Bir müşteriye "kaç paraya satsam?" sorusuna profesyonel bir cevap
-            hazırlamak için "+ Yeni Analiz"e tıklayın.
-          </div>
+          <EmptyState
+            Icon={BarChart3}
+            title="Henüz bir değer analizi oluşturmadınız"
+            note={'Bir müşteriye "kaç paraya satsam?" sorusuna gerekçeli cevap hazırlamak için yeni analiz başlatın.'}
+            actionLabel="Yeni analiz başlat"
+            onAction={() => navigate('/degerleme/yeni')}
+          />
         ) : (
           valuations.map((v) => {
             const statusInfo = STATUS_LABELS[v.status] || STATUS_LABELS.draft;
