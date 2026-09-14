@@ -37,19 +37,18 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 11 | Raporlar sekmesi ortak `.data-table`'a geçti, eski rapor tablosu CSS'i silindi, ikon/buton dili birleşti | `fbffd579` |
 | 12 | İki kart sistemi tek dile geldi (`.metric-card` → belirteç), Genel Bakış sayfa başlığı ve dönem seçici | `de7621f2` |
 | 13 | Portföy Havuzu: sayfa başlığı + kırıntı yolu, 11 sekmeye ikon, ortak araç çubuğu, boş/yükleme durumları | `a7379e8b` |
+| 14 | Müşteri Havuzu aynı dönüşüm + Portföy/Müşteri Detay kırıntı yolu ve "Geri" düğmesi | `622ab2e5` |
 
 ## Sıradaki adım
 
-**14 — Portföy Detay + Müşteri Havuzu/Detay.** Portföy Detay sayfası
-kırıntı yolunun ikinci basamağını alacak (Ana Sayfa › Portföy Havuzu ›
-ilan adı). Müşteri Havuzu, Portföy Havuzu ile aynı yapıda olduğu için
-aynı dönüşüm uygulanacak.
+**15 — Danışman Yönetimi.** 101 satır içi stil ile en ağır ikinci sayfa.
+`.cl-page-header` var ama kırıntı yolu ve `PanelHead` yok; üç sekmesinde
+ikon yok.
 
 ## Kalan sayfa sırası (adım tahmini)
 
 | # | Adım | Sayfalar |
 |---|---|---|
-| 14 | Portföy Detay + Müşteri Havuzu/Detay | |
 | 15 | Danışman Yönetimi | 101 satır içi stil, ağır |
 | 16 | İşlemler + İşlem Detay | 91, ağır |
 | 17 | Küçük listeler | Görevler, Sıcak Fırsatlar, Sözleşmeler |
