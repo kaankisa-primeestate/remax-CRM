@@ -48,11 +48,18 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 
 ## Sıradaki adım
 
-**21 — Küçük sayfalar:** Ofis Ayarları, Hukuk/İhtarname, İlan
-Entegrasyonu, Gider Kategorisi Detayı, Finans. Hepsi 2-15 satır içi
-stille küçük; tek adımda gidebilir.
+**21. adım iptal edildi.** Ofis Ayarları, Hukuk/İhtarname ve İlan
+Entegrasyonu sayfalarının üçü de 15 satır ve içerikleri aynı: bir başlık
+ve "Bu bölüm yakında detaylandırılacak" yazan gri bir paragraf. API
+çağrısı, veri, tıklanacak alan yok. Görsel geçiş yapılacak bir şey
+bulunmuyor; içerik geldiğinde ele alınacak. (Adımı satır içi stil
+sayısına bakarak listeye almıştım, içlerine bakmamıştım.)
 
-Sonra **22 — son geçiş:** kalan satır içi stiller, ölü CSS sınıfları
+**Finans kaldırıldı** (aşağıya bakın).
+
+Sırada **22 — son geçiş** var.
+
+**22 — son geçiş:** kalan satır içi stiller, ölü CSS sınıfları
 (`.accounting-data-table`, `.accounting-entry-form-grid`, `.cl-kpi-card`,
 `.cl-kpi-row`), kırılım sayısını üçe indirme.
 
@@ -70,6 +77,41 @@ Sonra **22 — son geçiş:** kalan satır içi stiller, ölü CSS sınıfları
 - **Temizlik notu:** `TIMELINE_OPTIONS` iki ayrı dosyada kopyalanmış
   (`CustomerFormModal.jsx`, `QuickAddCustomerModal.jsx`) ve içerikleri
   farklı; bilerek birleştirilmedi, iki çalışan formu riske atmamak için.
+
+### Finans kaldırıldı (14.09.2026)
+
+Kullanıcı: *"finans aslında şu an aktif değil. Onu tamamen kaldırmak
+istiyorum... her seferinde önümüze çıkıyor. Ben bunu sevmiyorum."*
+
+**Bulgu:** Finans sayfası zaten rotaya bağlı değildi — `App.jsx` içinde
+`/finans` rotası yok, `FinancePage` import bile edilmiyordu. 8 dosya,
+~2.100 satır ölü kod.
+
+**Kırık bağlantı:** Broker panosundaki "Akıllı Aksiyon Merkezi"nde
+gecikmiş aidat kutusu `/finans`'a gidiyordu; tıklayınca tamamen boş
+sayfa açılıyordu (tarayıcıda ölçüldü: 0 karakter). `/aidatlar`'a
+çevrildi.
+
+**Silinenler:** `pages/FinancePage.jsx`, `components/finance/` (7 dosya),
+ve yalnızca onların kullandığı `api/cashFlow.js`, `api/chequeNotes.js`,
+`api/partners.js`, `api/recurringExpenses.js`.
+
+**Bilerek bırakılanlar:**
+- `api/bankAccounts.js`, `api/expenses.js`, `api/agentLedger.js` —
+  Aidatlar, Komisyonlar, Cari Hesabım ve Gider Kategorisi Detayı
+  sayfalarında canlı kullanımda.
+- `api/axios.js` — `bankAccounts.js` bunu kullanıyor.
+- **Backend'in tamamı** (bank-accounts, cash-flow, cheque-notes,
+  expenses, partners, recurring-expenses). Sebep: Muhasebe'nin "Finans
+  Aktarım Önizlemesi" (`accounting-migration.service.ts`) bu tabloların
+  hepsini okuyor. Modüller silinirse eski Finans verilerine erişen
+  köprü de gider. Veriler duruyor, arayüz gitti.
+
+**Karar bekleyen:** `pages/ExpenseCategoryDetailPage.jsx` +
+`/giderler/:categoryId` rotası. Gerçek kod (145 satır, API'den veri
+çekiyor) ama uygulamada **hiçbir yerden bağlantı yok** — sadece URL elle
+yazılarak açılıyor. Eski Finans'ın gider tablosunu okuyor, yeni
+Muhasebe'yi değil. Silinsin mi, yoksa Muhasebe'den bir yere bağlansın mı?
 
 ### Bekleyen iki sayfa
 - **Danışman Yönetimi** — kullanıcı 14.09'da sonraya bıraktı (101 stil).

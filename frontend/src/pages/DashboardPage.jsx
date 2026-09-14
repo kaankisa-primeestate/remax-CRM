@@ -342,7 +342,7 @@ export default function DashboardPage() {
                 }
                 if (p.kind === 'overdue_due') {
                   return (
-                    <Link to="/finans" className="action-item action-item--clickable" key={`due-${p.dueId}`}>
+                    <Link to="/aidatlar" className="action-item action-item--clickable" key={`due-${p.dueId}`}>
                       <span className="action-item__dot"><AlertCircle size={14} style={{ color: 'var(--cl-danger)' }} /></span>
                       <div className="action-item__body">
                         <div className="action-item__title">{p.title}</div>
