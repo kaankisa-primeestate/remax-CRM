@@ -3110,6 +3110,30 @@ button.metric-card--clickable {
 .cl-breadcrumb a:focus-visible { outline: none; box-shadow: var(--cl-focus); }
 .cl-breadcrumb svg { flex: none; opacity: 0.55; }
 .cl-breadcrumb [aria-current='page'] { color: var(--cl-text); font-weight: 600; }
+/* Detay sayfasindaki kirinti yolu sayfa basligi blogunun disinda durur;
+   kendi alt boslugunu tasir. */
+.cl-breadcrumb--detail { margin-bottom: var(--s4); }
+/* "Geri": listeye filtreleriyle birlikte doner. Kirinti yolundaki
+   baglanti ise her zaman listenin bastan haline gider; ikisi farkli
+   islerdir, bu yuzden ikisi de duruyor. */
+.cl-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-right: var(--s2);
+  padding: 3px var(--s2);
+  border: 1px solid var(--cl-border);
+  border-radius: var(--r-sm);
+  background: var(--cl-surface);
+  color: var(--cl-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.cl-back:hover { color: var(--cl-text); border-color: var(--cl-gold); }
+.cl-back:focus-visible { outline: none; box-shadow: var(--cl-focus); }
 .cl-page-title {
   font-family: var(--cl-font-heading);
   font-size: 30px;
@@ -4507,6 +4531,27 @@ button.metric-card--clickable {
 .pill--ok { background: rgba(22, 163, 74, 0.10); color: var(--cl-success); }
 .pill--wait { background: rgba(217, 119, 6, 0.10); color: var(--cl-warning); }
 .pill--no { background: rgba(220, 38, 38, 0.10); color: var(--cl-danger); }
+/* Rozet icindeki kaldirma dugmesi (aktif filtre cipi). */
+.pill__remove {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin-left: var(--s1);
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 999px;
+}
+.pill__remove:focus-visible { outline: none; box-shadow: var(--cl-focus); }
+.active-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
 
 /* --- Satir ici ikon butonlari --- */
 .row-actions {

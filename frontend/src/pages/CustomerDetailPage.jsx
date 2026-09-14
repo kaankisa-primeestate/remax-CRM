@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ChevronRight, ArrowLeft } from 'lucide-react';
 import { propertiesApi } from '../api/properties';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import StatusBadge from '../components/StatusBadge.jsx';
@@ -126,23 +127,20 @@ export default function CustomerDetailPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 12,
-          color: 'var(--cl-muted)',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-        }}
-      >
-        ← Geri Dön
-      </button>
+      {/* Kirinti yolu nerede oldugunu soyler; "Geri" ise listeye
+          filtreleriyle birlikte doner. Ikisi ayri isler. */}
+      <nav className="cl-breadcrumb cl-breadcrumb--detail" aria-label="Sayfa yolu">
+        <button type="button" className="cl-back" onClick={() => navigate(-1)}>
+          <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" /> Geri
+        </button>
+        <Link to="/">Ana Sayfa</Link>
+        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <Link to="/musteriler">Müşteri Havuzu</Link>
+        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <span aria-current="page">{customer.firstName} {customer.lastName}</span>
+      </nav>
 
-      <div className="dossier" style={{ marginTop: 16 }}>
+      <div className="dossier">
         <div className="dossier__header">
           <div>
             <h2 className="dossier__name">

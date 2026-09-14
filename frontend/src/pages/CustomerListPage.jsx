@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Flame, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Flame, X, ChevronUp, ChevronDown, ChevronRight, Users, ShoppingBag, Tag,
+  KeyRound, Home, TrendingUp, LayoutGrid, Search, SearchX, Filter,
+} from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { customersApi, CUSTOMER_TYPES } from '../api/customers';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -8,6 +13,16 @@ import StatusBadge from '../components/StatusBadge.jsx';
 import CustomerFormModal from '../components/CustomerFormModal.jsx';
 import QuickAddCustomerModal from '../components/QuickAddCustomerModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
+
+// Musteri turu ikonlari. Her deger CUSTOMER_TYPES'taki gercek bir turu
+// karsilar; eslesmeyen bir tur gelirse ikon basilmaz.
+const TUR_IKONLARI = {
+  buyer: ShoppingBag,
+  seller: Tag,
+  tenant: KeyRound,
+  landlord: Home,
+  investor: TrendingUp,
+};
 
 const filterCardStyle = {
   background: 'var(--cl-surface)',
@@ -53,7 +68,6 @@ export default function CustomerListPage() {
   const [showForm, setShowForm] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
   // "+ Hizli Ekle" (ust bar) uzerinden "Yeni Musteri" secildiginde,
   // bu sayfaya gelir gelmez formu otomatik acar -- ekstra tiklama gerekmez.
@@ -134,69 +148,85 @@ export default function CustomerListPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 12,
-          color: 'var(--cl-muted)',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          marginBottom: 12,
-          cursor: 'pointer',
-          display: 'block',
-        }}
-      >
-        ← Geri Dön
-      </button>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Müşteri Havuzu</span>
+          </nav>
+          <h2 className="cl-page-title">Müşteri Havuzu</h2>
+          <p className="cl-page-subtitle">
+            Alıcı, satıcı, kiracı ve yatırımcı kayıtlarını türe göre filtreleyip yönetin.
+          </p>
+        </div>
+      </div>
       <div className="folder-tabs">
         <button
+          type="button"
           className={`folder-tab ${activeType === 'all' ? 'active' : ''}`}
           onClick={() => setActiveType('all')}
         >
-          Tümü
+          <LayoutGrid size={16} strokeWidth={2} /> Tümü
         </button>
-        {CUSTOMER_TYPES.map((t) => (
-          <button
-            key={t.value}
-            className={`folder-tab ${activeType === t.value ? 'active' : ''}`}
-            onClick={() => setActiveType(t.value)}
-          >
-            {t.label}
-          </button>
-        ))}
+        {CUSTOMER_TYPES.map((t) => {
+          const Ikon = TUR_IKONLARI[t.value];
+          return (
+            <button
+              type="button"
+              key={t.value}
+              className={`folder-tab ${activeType === t.value ? 'active' : ''}`}
+              onClick={() => setActiveType(t.value)}
+            >
+              {Ikon && <Ikon size={16} strokeWidth={2} />} {t.label}
+            </button>
+          );
+        })}
       </div>
       <div className="folder-panel">
-        <div className="toolbar">
-          <input
-            className="search-input"
-            placeholder="Ad, soyad veya telefon ile ara…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button className="btn btn-secondary" onClick={() => setShowFilters((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''} {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        </div>
+        <PanelHead
+          Icon={Users}
+          title="Müşteri listesi"
+          note={activeType === 'all'
+            ? 'Tüm müşteri türleri'
+            : (CUSTOMER_TYPES.find((t) => t.value === activeType)?.label || 'Müşteri')}
+          meta={loading ? undefined : `${displayedCustomers.length} kayıt`}
+        >
+          <div className="list-toolbar">
+            <div className="list-toolbar__search">
+              <Search size={16} strokeWidth={2} />
+              <input
+                type="search"
+                placeholder="Ad, soyad veya telefon ile ara…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Müşterilerde ara"
+              />
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
+            >
+              <Filter size={16} strokeWidth={2} />
+              Filtreler{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              {showFilters ? <ChevronUp size={14} strokeWidth={2} /> : <ChevronDown size={14} strokeWidth={2} />}
+            </button>
+          </div>
+        </PanelHead>
 
         {hotOnly && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <span
-              style={{
-                fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12, background: 'rgba(196, 154, 85, 0.15)', color: '#8a6420',
-                padding: '4px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              <Flame size={13} /> Sıcak Fırsatlar filtresi aktif
+          <div className="active-filter-row">
+            <span className="pill pill--wait">
+              <Flame size={13} strokeWidth={2} /> Sıcak Fırsatlar filtresi aktif
               <button
                 type="button"
+                className="pill__remove"
                 onClick={() => setHotOnly(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a6420', display: 'inline-flex', padding: 0, lineHeight: 1 }}
-                aria-label="Filtreyi kaldır"
+                aria-label="Sıcak Fırsatlar filtresini kaldır"
               >
-                <X size={13} />
+                <X size={13} strokeWidth={2.5} />
               </button>
             </span>
           </div>
@@ -250,13 +280,31 @@ export default function CustomerListPage() {
         )}
 
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={6} columns={4} label="Müşteriler yükleniyor…" />
         ) : displayedCustomers.length === 0 ? (
-          <div className="empty-state">
-            {hotOnly
-              ? 'Şu an "Hemen" almak/kiralamak isteyen bir müşteri yok.'
-              : 'Kayıt bulunamadı. Üst menüdeki "+ Hızlı Ekle" ile ilk kaydı oluşturun.'}
-          </div>
+          hotOnly ? (
+            <EmptyState
+              Icon={Flame}
+              title={'Şu an "Hemen" almak/kiralamak isteyen bir müşteri yok'}
+              note="Sıcak Fırsatlar filtresini kaldırıp tüm müşterileri görebilirsiniz."
+              actionLabel="Sıcak Fırsatlar filtresini kaldır"
+              onAction={() => setHotOnly(false)}
+            />
+          ) : (search || activeFilterCount > 0) ? (
+            <EmptyState
+              Icon={SearchX}
+              title="Arama veya filtreyle eşleşen müşteri bulunamadı"
+              note="Aramayı ve filtreleri temizleyip tekrar deneyin."
+              actionLabel="Aramayı ve filtreleri temizle"
+              onAction={() => { setSearch(''); clearFilters(); }}
+            />
+          ) : (
+            <EmptyState
+              Icon={Users}
+              title="Bu listede henüz müşteri yok"
+              note={'Üst menüdeki "+ Hızlı Ekle" düğmesiyle ilk müşteriyi oluşturabilirsiniz.'}
+            />
+          )
         ) : (
           <div>
             {displayedCustomers.map((c) => (
