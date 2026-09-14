@@ -41,11 +41,13 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 16 | İşlemler + İşlem Detay: sayfa başlığı, segmentli seçici (`.segmented`), kanban kartı temizliği | `e99414cc` |
 | 17 | Görevler, Sıcak Fırsatlar, Sözleşmeler: sayfa başlığı, panel başlığı, boş durumlar; işlevsiz panel kaldırıldı | `13927972` |
 | 18 | Takvim: sayfa başlığı, görünüm sekmeleri kendi satırına, ajanda paneli ve boş durumlar | `8edd0f56` |
+| 19 | **Üç panel sistemi tek ölçüde birleşti** (92 kullanım) + Piyasa ve Piyasa Değer Analizleri | `88c51072` |
 
 ## Sıradaki adım
 
-**19 — Piyasa + Piyasa Değer Analizi (liste + sihirbaz).**
-Değerleme sihirbazı 64 satır içi stille kalan en ağır sayfa.
+**20 — Değerleme sihirbazı (`/degerleme/yeni`) + Danışman tarafı.**
+Sihirbaz 64 satır içi stille kalan en ağır sayfa. Danışman tarafı:
+Panelim, Aidatlarım, Cari Hesabım, Komisyonlar.
 
 ---
 
@@ -101,7 +103,8 @@ sekmesinde ikon yok. Sıra geldiğinde kullanıcıya sorulacak.
 | ~~16~~ | ~~İşlemler + İşlem Detay~~ | bitti |
 | ~~17~~ | ~~Küçük listeler~~ | bitti |
 | ~~18~~ | ~~Takvim~~ | bitti |
-| 19 | Piyasa + Değer Analizi (liste + sihirbaz) | 64, ağır |
+| ~~19~~ | ~~Piyasa + Değer Analizi listesi~~ | bitti |
+| 20 | Değerleme sihirbazı | 64, ağır |
 | — | **Google Takvim entegrasyonu** | beklemede, aciliyeti yok |
 | 20 | Danışman tarafı | Panelim, Aidatlarım, Cari Hesabım, Komisyonlar |
 | 21 | Küçük sayfalar | Ayarlar, Hukuk, İlan Entegrasyonu, Gider Kategorisi, Finans |
