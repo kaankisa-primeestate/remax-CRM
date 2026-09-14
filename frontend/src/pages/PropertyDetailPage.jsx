@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FileText, Check, ChevronRight, ArrowLeft } from 'lucide-react';
-import { propertiesApi, PROPERTY_TYPES } from '../api/properties';
+import { propertiesApi, PROPERTY_TYPES, formatPropertyPrice } from '../api/properties';
 import { apiClient } from '../api/client.js';
 import { buildWhatsappUrl } from '../utils/contact.js';
 import { CATEGORY_FIELDS } from '../data/categoryFields';
@@ -94,11 +94,7 @@ export default function PropertyDetailPage() {
   // KENDI ilanini duzenleyebilir (Ofis Portfoyu'nden gelen baskasinin
   // ilaninda duzenleme/silme/durum degistirme butonlari gizlenir).
   const canEdit = isBroker || property.agentId === user?.id;
-  const priceLabel = new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: property.priceCurrency || 'TRY',
-    maximumFractionDigits: 0,
-  }).format(property.price);
+  const priceLabel = formatPropertyPrice(property);
 
   // Kategoriye ozel alanlari (CATEGORY_FIELDS) kullanarak detaylari ve
   // one cikan ozellikleri dinamik olarak hesapla -- wizard'da toplanan

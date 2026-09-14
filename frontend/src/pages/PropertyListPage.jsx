@@ -8,7 +8,7 @@ import {
 import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { PanelHead } from '../components/PanelHead';
 import { PropertyGalleryCard } from '../components/PropertyGalleryCard.jsx';
-import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES } from '../api/properties';
+import { propertiesApi, PROPERTY_TYPES, PROPERTY_STATUSES, formatPropertyPrice } from '../api/properties';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 import { ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
@@ -210,13 +210,6 @@ export default function PropertyListPage() {
     setHasParking(false);
     setKeyword('');
   }
-
-  const formatPrice = (p) =>
-    new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: p.priceCurrency || 'TRY',
-      maximumFractionDigits: 0,
-    }).format(p.price);
 
   return (
     <div>
@@ -448,7 +441,7 @@ export default function PropertyListPage() {
                   key={p.id}
                   property={p}
                   TurIkonu={TUR_IKONLARI[p.propertyType]}
-                  fiyatMetni={formatPrice(p)}
+                  fiyatMetni={formatPropertyPrice(p)}
                   sahipAdi={ownerName}
                 />
               );
@@ -478,7 +471,7 @@ export default function PropertyListPage() {
                     {p.district}
                     {isOfficeView && ownerName && ` · ${ownerName}`}
                   </span>
-                  <span className="record-row__budget">{formatPrice(p)}</span>
+                  <span className="record-row__budget">{formatPropertyPrice(p)}</span>
                 </Link>
               );
             })}

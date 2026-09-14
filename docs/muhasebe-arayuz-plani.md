@@ -61,9 +61,12 @@ Sonra **22 — son geçiş:** kalan satır içi stiller, ölü CSS sınıfları
   `primecrm.portfoy.gorunum` ve `primecrm.musteri.gorunum`.
 - Sütun sayısı: 1920'de 4, ≤1439'da 3, ≤1199'da 2, ≤560'ta 1.
   (1200 altında üç sütun kartı 210px'e düşürüyordu, fotoğraf okunmuyordu.)
-- **Teklif edildi, onay bekliyor:** kiralık fiyatlara "/ay" eklemek.
-  Şu anda ₺145.000 kiralık, ₺8.500.000 satılık yan yana ayırt edilemiyor
-  (hem listede hem galeride, eskiden beri böyle).
+- **Yapıldı:** kiralık fiyatların sonuna "kira" ekleniyor
+  (₺145.000 kira). Etiket sihirbazın ilk adımındaki Satılık/Kiralık
+  seçiminden (`listingType`) geliyor, tutardan tahmin edilmiyor —
+  yanlış etiket çıkması mümkün değil. Fiyat biçimlendirici üç yerde
+  kopyalanmıştı (liste, detay, herkese açık ilan); tek ortak
+  `formatPropertyPrice` yardımcısında birleşti.
 - **Temizlik notu:** `TIMELINE_OPTIONS` iki ayrı dosyada kopyalanmış
   (`CustomerFormModal.jsx`, `QuickAddCustomerModal.jsx`) ve içerikleri
   farklı; bilerek birleştirilmedi, iki çalışan formu riske atmamak için.

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/client.js';
+import { formatPropertyPrice } from '../api/properties';
 import PhotoLightbox from '../components/PhotoLightbox.jsx';
 
 const OFFICE_WHATSAPP = '905423781540';
@@ -50,11 +51,7 @@ export default function PublicPropertyPage() {
 
   const typeLabel = PROPERTY_TYPE_LABELS[property.propertyType] || property.propertyType;
   const isResidential = property.propertyType === 'apartment' || property.propertyType === 'timeshare';
-  const priceLabel = new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: property.priceCurrency || 'TRY',
-    maximumFractionDigits: 0,
-  }).format(property.price);
+  const priceLabel = formatPropertyPrice(property);
   const extras = [
     property.hasPool && 'Havuz',
     property.hasGym && 'Spor Salonu',
