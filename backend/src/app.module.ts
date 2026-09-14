@@ -21,15 +21,11 @@ import { PropertyCommentsModule } from './property-comments/property-comments.mo
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
-import { ExpensesModule } from './expenses/expenses.module';
 import { AgentDuesModule } from './agent-dues/agent-dues.module';
 import { AgentLedgerModule } from './agent-ledger/agent-ledger.module';
 import { MarketNewsModule } from './market-news/market-news.module';
 import { ValuationsModule } from './valuations/valuations.module';
-import { RecurringExpensesModule } from './recurring-expenses/recurring-expenses.module';
 import { ChequeNotesModule } from './cheque-notes/cheque-notes.module';
-import { CashFlowModule } from './cash-flow/cash-flow.module';
-import { PartnersModule } from './partners/partners.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { AccountingModule } from './accounting/accounting.module';
 
@@ -103,15 +99,11 @@ import { AccountingModule } from './accounting/accounting.module';
     AnnouncementsModule,
     TransactionsModule,
     BankAccountsModule,
-    ExpensesModule,
     AgentDuesModule,
     AgentLedgerModule,
     MarketNewsModule,
     ValuationsModule,
-    RecurringExpensesModule,
     ChequeNotesModule,
-    CashFlowModule,
-    PartnersModule,
     CalendarModule,
     AccountingModule,
   ],

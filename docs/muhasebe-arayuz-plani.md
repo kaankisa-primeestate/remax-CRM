@@ -107,11 +107,45 @@ ve yalnızca onların kullandığı `api/cashFlow.js`, `api/chequeNotes.js`,
   hepsini okuyor. Modüller silinirse eski Finans verilerine erişen
   köprü de gider. Veriler duruyor, arayüz gitti.
 
-**Karar bekleyen:** `pages/ExpenseCategoryDetailPage.jsx` +
-`/giderler/:categoryId` rotası. Gerçek kod (145 satır, API'den veri
-çekiyor) ama uygulamada **hiçbir yerden bağlantı yok** — sadece URL elle
-yazılarak açılıyor. Eski Finans'ın gider tablosunu okuyor, yeni
-Muhasebe'yi değil. Silinsin mi, yoksa Muhasebe'den bir yere bağlansın mı?
+### İkinci tur: eski Finans backend'i de kaldırıldı (14.09.2026)
+
+Kullanıcı: *"Finans ile bağlantılı olan her şey eski. İçinde veri yok.
+Veriler tamamen test amaçlı benim oluşturduklarım. Dolayısıyla hiç şüphe
+duymadan ve korkmadan tamamını silebilirsin."*
+
+**Silinenler (ikinci tur):**
+- `pages/ExpenseCategoryDetailPage.jsx` + `/giderler/:categoryId` rotası
+  (hiçbir yerden bağlantısı yoktu) ve `api/expenses.js`
+- Backend modülleri: `cash-flow`, `partners`, `recurring-expenses`,
+  `expenses`
+- `accounting-migration.service.ts` + `/accounting/migration/preview`
+  ucu + Muhasebe'deki "Finans Aktarım Önizlemesi" paneli ve
+  `getMigrationPreview`. (Aktarılacak veri yoksa önizlemenin anlamı yok.)
+
+**Kaldırılamayan iki modül — sebebi:** `bank-accounts` ve `cheque-notes`
+ekranlarda görünmüyor ama **canlı iş mantığının içinde**:
+- `commissions.service.ts` — komisyon çek/senetle ödendiğinde `ChequeNote`,
+  nakit/banka ile ödendiğinde `BankTransaction` (çıkış) oluşturuyor.
+- `agent-ledger.service.ts` — cari hesap çıkışı için `BankTransaction`.
+- `agent-dues.service.ts` — aidat "Ödendi İşaretle" akışında hesap
+  seçilince `BankTransaction` (giriş).
+Ayrıca Aidatlar ve Komisyonlar sayfalarındaki "Ödendi İşaretle"
+akışındaki hesap seçici bu tablodan besleniyor. Bunları silmek kod
+temizliği değil, komisyon ödeme ve cari hesap mantığının yeniden
+yazılması olur — Muhasebe'nin kendi `accounting-account` /
+`accounting-entry` tablolarına taşınması gerekir. Ayrı bir iş olarak
+duruyor.
+
+**Not — veritabanı:** `DB_SYNCHRONIZE` varsayılanı `true`. Silinen
+entity'lerin tabloları bir sonraki açılışta düşürülür. Kullanıcı
+verilerin test verisi olduğunu belirtti.
+
+**Karar bekleyen:** `AccountingPage.jsx` içindeki
+`activeTab === 'migration'` bloğu artık yalnızca **"Muhasebe Temiz
+Başlangıç"** panelini taşıyor. Ama `ACCOUNTING_TABS` listesinde
+'migration' diye bir sekme yok ve `setActiveTab` hiçbir yerde bu değerle
+çağrılmıyor — yani blok **hiç açılamıyor**. Temiz Başlangıç aracı
+sekme çubuğuna bağlansın mı, yoksa o da silinsin mi?
 
 ### Bekleyen iki sayfa
 - **Danışman Yönetimi** — kullanıcı 14.09'da sonraya bıraktı (101 stil).

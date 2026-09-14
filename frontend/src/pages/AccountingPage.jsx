@@ -555,8 +555,6 @@ export default function AccountingPage() {
   const [reportPage, setReportPage] = useState(1);
   const [managementReport, setManagementReport] = useState(null);
   const [managementReportLoading, setManagementReportLoading] = useState(false);
-  const [migrationPreview, setMigrationPreview] = useState(null);
-  const [migrationLoading, setMigrationLoading] = useState(false);
   const [resetPreview, setResetPreview] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -888,19 +886,6 @@ export default function AccountingPage() {
     return undefined;
   }, [activeTab, loadManagementReport, loadAgents]);
 
-  const loadMigrationPreview = useCallback(async () => {
-    setMigrationLoading(true);
-    setError('');
-    try {
-      const preview = await accountingApi.getMigrationPreview();
-      setMigrationPreview(preview || null);
-    } catch (loadError) {
-      setError(loadError.response?.data?.message || 'Finans aktarım önizlemesi yüklenemedi.');
-    } finally {
-      setMigrationLoading(false);
-    }
-  }, []);
-
   const loadResetPreview = useCallback(async () => {
     setResetLoading(true);
     setError('');
@@ -933,12 +918,6 @@ export default function AccountingPage() {
       setResetting(false);
     }
   };
-
-  useEffect(() => {
-    if (activeTab !== 'migration') return undefined;
-    loadMigrationPreview();
-    return undefined;
-  }, [activeTab, loadMigrationPreview]);
 
   useEffect(() => {
     if (activeTab !== 'entries') return undefined;
@@ -3125,90 +3104,6 @@ export default function AccountingPage() {
 
       {activeTab === 'migration' && (
         <>
-          <div className="cl-panel" style={{ marginBottom: 20, borderLeft: '4px solid var(--cl-gold)' }}>
-            <PanelHead
-              Icon={History}
-              title="Finans Aktarım Önizlemesi"
-              note="Eski Finans kayıtlarını yeni Muhasebe'ye taşımadan önce kaynak verileri, toplamları ve olası eşleşme sorunlarını gösterir."
-            >
-              <span className="pill pill--wait">Salt okunur</span>
-            </PanelHead>
-            <div style={{ background: '#fdf3e0', border: '1px solid #e8c477', borderRadius: 6, padding: '10px 12px', color: '#6b4a1c', fontSize: 13, marginBottom: 14 }}>
-              Bu ekran yalnızca sayım ve karşılaştırma yapar. Eski Finans kayıtlarını silmez, yeni Muhasebe kaydı oluşturmaz ve mevcut bakiyeleri değiştirmez.
-            </div>
-            <button type="button" className="btn btn-primary" onClick={loadMigrationPreview} disabled={migrationLoading}>
-              {migrationLoading ? 'Önizleme hazırlanıyor…' : migrationPreview ? 'Önizlemeyi Yenile' : 'Aktarım Önizlemesini Getir'}
-            </button>
-            {migrationPreview?.generatedAt && <span style={{ marginLeft: 10, color: 'var(--cl-muted)', fontSize: 12 }}>Son okuma: {formatDate(migrationPreview.generatedAt.slice(0, 10))}</span>}
-          </div>
-
-          {migrationLoading ? (
-            <div className="cl-panel"><div className="empty-state">Eski Finans tabloları okunuyor…</div></div>
-          ) : !migrationPreview ? (
-            <div className="cl-panel"><div className="empty-state">Önizlemeyi başlatmak için yukarıdaki düğmeye basın.</div></div>
-          ) : (
-            <>
-              <div className="metric-grid">
-                <div className="metric-card"><div className="metric-card__label">Eski hesap</div><div className="metric-card__value">{migrationPreview.sourceCounts?.bankAccounts || 0}</div><div className="metric-card__delta is-muted">Banka / kasa / kredi kartı</div></div>
-                <div className="metric-card"><div className="metric-card__label">Eski para hareketi</div><div className="metric-card__value">{migrationPreview.sourceCounts?.bankTransactions || 0}</div><div className="metric-card__delta is-muted">Hesap giriş / çıkışları</div></div>
-                <div className="metric-card"><div className="metric-card__label">Eski gider</div><div className="metric-card__value">{migrationPreview.sourceCounts?.expenses || 0}</div><div className="metric-card__delta is-muted">Gider kayıtları</div></div>
-                <div className="metric-card"><div className="metric-card__label">Eski komisyon</div><div className="metric-card__value">{migrationPreview.sourceCounts?.commissions || 0}</div><div className="metric-card__delta is-muted">Tahakkuk kayıtları</div></div>
-              </div>
-
-              <div className="cl-panel" style={{ marginTop: 20 }}>
-                <div className="panel-head">
-                  <div>
-                    <h3 className="panel-title">Para hareketi toplamları</h3>
-                    <p className="muted">Eski Finans hesaplarının kendi para birimlerine göre; kur çevrimi yapılmadan.</p>
-                  </div>
-                </div>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead><tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}><th style={{ padding: '7px 8px' }}>Para birimi</th><th style={{ padding: '7px 8px', textAlign: 'right' }}>Giriş</th><th style={{ padding: '7px 8px', textAlign: 'right' }}>Çıkış</th><th style={{ padding: '7px 8px', textAlign: 'right' }}>Hareket</th></tr></thead>
-                    <tbody>{ACCOUNTING_CURRENCIES.map((item) => { const total = migrationPreview.totalsByCurrency?.[item.value] || {}; return <tr key={item.value} style={{ borderTop: '1px solid var(--cl-border)' }}><td style={{ padding: '9px 8px' }}><strong>{item.label}</strong></td><td style={{ padding: '9px 8px', textAlign: 'right', color: 'var(--cl-success)', fontFamily: 'var(--font-body)' }}>{formatAccountingMoney(total.income, item.value)}</td><td style={{ padding: '9px 8px', textAlign: 'right', color: 'var(--cl-danger)', fontFamily: 'var(--font-body)' }}>{formatAccountingMoney(total.expense, item.value)}</td><td style={{ padding: '9px 8px', textAlign: 'right', fontFamily: 'var(--font-body)' }}>{total.transactionCount || 0}</td></tr>; })}</tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="panel-grid-2" style={{ marginTop: 20 }}>
-                <div className="cl-panel">
-                  <h3 className="panel-title">Kaynak kayıt sayıları</h3>
-                  <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
-                    {[
-                      ['Eski gider kategorileri', migrationPreview.sourceCounts?.expenseCategories],
-                      ['Tekrarlayan gider şablonları', migrationPreview.sourceCounts?.recurringExpenseTemplates],
-                      ['Komisyon ödemeleri', migrationPreview.sourceCounts?.commissionPayments],
-                      ['Danışman aidatları', migrationPreview.sourceCounts?.agentDues],
-                      ['Ortak kartları', migrationPreview.sourceCounts?.partners],
-                      ['Ortak cari hareketleri', migrationPreview.sourceCounts?.partnerLedgerEntries],
-                      ['Danışman cari düzeltmeleri', migrationPreview.sourceCounts?.agentLedgerAdjustments],
-                      ['Çek / senet kayıtları', migrationPreview.sourceCounts?.chequeNotes],
-                    ].map(([label, count]) => <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, borderBottom: '1px solid var(--cl-border)', paddingBottom: 6 }}><span>{label}</span><strong>{count || 0}</strong></div>)}
-                  </div>
-                </div>
-                <div className="cl-panel">
-                  <h3 className="panel-title">Aktarım kalite kontrolü</h3>
-                  <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Hesapsız banka hareketi</span><strong style={{ color: migrationPreview.qualityChecks?.transactionsWithoutAccount ? 'var(--cl-danger)' : 'var(--cl-success)' }}>{migrationPreview.qualityChecks?.transactionsWithoutAccount || 0}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Ödeme hesabı olmayan gider</span><strong style={{ color: migrationPreview.qualityChecks?.expensesWithoutBankAccount ? 'var(--cl-danger)' : 'var(--cl-success)' }}>{migrationPreview.qualityChecks?.expensesWithoutBankAccount || 0}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Kategorisi eşleşmeyen gider</span><strong style={{ color: migrationPreview.qualityChecks?.orphanedExpenseCategories ? 'var(--cl-danger)' : 'var(--cl-success)' }}>{migrationPreview.qualityChecks?.orphanedExpenseCategories || 0}</strong></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>Ödenmiş / ödenmemiş aidat</span><strong>{migrationPreview.qualityChecks?.duesPaid || 0} / {migrationPreview.qualityChecks?.duesUnpaid || 0}</strong></div>
-                    <div style={{ color: 'var(--cl-muted)', fontSize: 12, marginTop: 4 }}>Komisyon durumları: {Object.entries(migrationPreview.qualityChecks?.commissionStatusCounts || {}).map(([status, count]) => `${status}: ${count}`).join(' · ') || 'kayıt yok'}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="cl-panel" style={{ marginTop: 20 }}>
-                <h3 className="panel-title">Aktarım eşleştirme özeti</h3>
-                <div className="panel-grid-2" style={{ marginBottom: 0 }}>
-                  {Object.entries(migrationPreview.mapping || {}).map(([source, target]) => <div key={source} style={{ border: '1px solid var(--cl-border)', borderRadius: 6, padding: 10, background: 'var(--cl-bg)' }}><div style={{ color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 10, textTransform: 'uppercase', marginBottom: 4 }}>{source}</div><div style={{ fontSize: 13 }}>{target}</div></div>)}
-                </div>
-                {migrationPreview.warnings?.length > 0 && <div style={{ marginTop: 14, background: '#fbe0dc', border: '1px solid #d38b7c', borderRadius: 6, padding: '10px 12px', color: 'var(--cl-danger)', fontSize: 13 }}><strong>Aktarım öncesi dikkat edilmesi gerekenler:</strong><ul style={{ margin: '6px 0 0 18px', padding: 0 }}>{migrationPreview.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
-                {migrationPreview.warnings?.length === 0 && <div style={{ marginTop: 14, background: '#e6f4ea', border: '1px solid #9bc4a5', borderRadius: 6, padding: '10px 12px', color: 'var(--cl-success)', fontSize: 13 }}>Önizleme sırasında aktarımı engelleyen bir eşleşme uyarısı bulunmadı.</div>}
-              </div>
-            </>
-          )}
-
           <div className="cl-panel" style={{ marginTop: 24, border: '1px solid #d38b7c', background: '#fffaf8' }}>
             <PanelHead
               Icon={Ban}
