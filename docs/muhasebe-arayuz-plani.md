@@ -40,11 +40,45 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 14 | Müşteri Havuzu aynı dönüşüm + Portföy/Müşteri Detay kırıntı yolu ve "Geri" düğmesi | `622ab2e5` |
 | 16 | İşlemler + İşlem Detay: sayfa başlığı, segmentli seçici (`.segmented`), kanban kartı temizliği | `e99414cc` |
 | 17 | Görevler, Sıcak Fırsatlar, Sözleşmeler: sayfa başlığı, panel başlığı, boş durumlar; işlevsiz panel kaldırıldı | `13927972` |
+| 18 | Takvim: sayfa başlığı, görünüm sekmeleri kendi satırına, ajanda paneli ve boş durumlar | `8edd0f56` |
 
 ## Sıradaki adım
 
-**18 — Takvim.** 50 satır içi stil; sayfa başlığı yok. Ay/hafta gezinme
-satırı adım 7'de taşma açısından düzeltilmişti ama hâlâ satır içi stilli.
+**19 — Google Takvim entegrasyonu (tek yön: CRM → Google).**
+Kullanıcı bu işi görsel işin önüne aldı. Kalan görsel sayfalar bekliyor.
+
+### Durum ve karar verilenler
+- Yön: yalnızca CRM → Google. Google'dan CRM'e çekme yapılmayacak.
+- Kapsam: `https://www.googleapis.com/auth/calendar.events`
+- Her danışman kendi hesabını isteğe bağlı bağlar, istediğinde keser.
+- Takvimdeki 7 olay türünden yalnızca **randevular** kullanıcı kaydı;
+  diğer 6'sı CRM verisinden türetiliyor (görev, gösterim, teklif
+  geçerliliği, komisyon vadesi, aidat, sözleşme bitişi). İlk sürümde
+  yalnızca randevular gönderilecek.
+
+### Kullanıcıdan beklenen (paralel yürüyor)
+1. Google Cloud projesi + Calendar API etkinleştirme
+2. OAuth izin ekranı — **Workspace varsa "Dahili" (onay gerekmez),
+   kişisel Gmail ise "Harici" (Google doğrulaması, haftalar sürer)**
+3. OAuth istemcisi (Web), yönlendirme adresi:
+   `https://api.bu-crm.site/auth/google/callback`
+4. Client ID / Secret **Render ortam değişkenlerine kullanıcı girecek**;
+   koda yazılmayacak, sohbete de yazılmayacak.
+
+**Cevap bekleyen soru:** danışmanlar şirket alan adıyla Google Workspace
+mi kullanıyor, kişisel Gmail mi? Takvimi bu belirliyor.
+
+### Yapılacak teknik iş
+- `Appointment` kaydına süre/bitiş alanı (Google bitiş saati zorunlu
+  istiyor; şu an sadece `date` + serbest metin `time` var).
+- `googleEventId`, `googleCalendarId`, `syncedAt`, `syncStatus` alanları.
+- Kullanıcı başına şifreli refresh token saklama.
+- OAuth başlat/callback uçları, bağlantı kesme ucu.
+- Randevu oluştur/güncelle/sil → Google'a yansıtma.
+- Takvim sayfasına bağlantı durumu ve "Bağlan / Bağlantıyı kes" arayüzü.
+
+**NOT: Test modunda refresh token 7 günde bir geçersiz oluyor — uygulama
+yayınlanmadan gerçek kullanıma açılamaz.**
 
 **BEKLEMEDE — 15: Danışman Yönetimi.** Kullanıcı bu sayfayı sonraya
 bırakmak istedi (14. adımdan sonra). 101 satır içi stille en ağır ikinci
@@ -58,7 +92,8 @@ sekmesinde ikon yok. Sıra geldiğinde kullanıcıya sorulacak.
 | 15 | Danışman Yönetimi | **beklemede** (kullanıcı isteği) |
 | ~~16~~ | ~~İşlemler + İşlem Detay~~ | bitti |
 | ~~17~~ | ~~Küçük listeler~~ | bitti |
-| 18 | Takvim | |
+| ~~18~~ | ~~Takvim~~ | bitti |
+| 19 | **Google Takvim entegrasyonu** | öne alındı |
 | 19 | Piyasa + Değer Analizi (liste + sihirbaz) | 64, ağır |
 | 20 | Danışman tarafı | Panelim, Aidatlarım, Cari Hesabım, Komisyonlar |
 | 21 | Küçük sayfalar | Ayarlar, Hukuk, İlan Entegrasyonu, Gider Kategorisi, Finans |
