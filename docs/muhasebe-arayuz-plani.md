@@ -42,12 +42,22 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 17 | Görevler, Sıcak Fırsatlar, Sözleşmeler: sayfa başlığı, panel başlığı, boş durumlar; işlevsiz panel kaldırıldı | `13927972` |
 | 18 | Takvim: sayfa başlığı, görünüm sekmeleri kendi satırına, ajanda paneli ve boş durumlar | `8edd0f56` |
 | 19 | **Üç panel sistemi tek ölçüde birleşti** (92 kullanım) + Piyasa ve Piyasa Değer Analizleri | `88c51072` |
+| 20 | Değerleme sihirbazı + danışman tarafı (Panelim, Aidatlarım, Komisyonlar, Cari Hesabım) | `95d6241d` |
 
 ## Sıradaki adım
 
-**20 — Değerleme sihirbazı (`/degerleme/yeni`) + Danışman tarafı.**
-Sihirbaz 64 satır içi stille kalan en ağır sayfa. Danışman tarafı:
-Panelim, Aidatlarım, Cari Hesabım, Komisyonlar.
+**21 — Küçük sayfalar:** Ofis Ayarları, Hukuk/İhtarname, İlan
+Entegrasyonu, Gider Kategorisi Detayı, Finans. Hepsi 2-15 satır içi
+stille küçük; tek adımda gidebilir.
+
+Sonra **22 — son geçiş:** kalan satır içi stiller, ölü CSS sınıfları
+(`.accounting-data-table`, `.accounting-entry-form-grid`, `.cl-kpi-card`,
+`.cl-kpi-row`), kırılım sayısını üçe indirme.
+
+### Bekleyen iki sayfa
+- **Danışman Yönetimi** — kullanıcı 14.09'da sonraya bıraktı (101 stil).
+- **İşlem Detayı** — 90 satır içi stille en ağır ikinci sayfa; adım 16'da
+  yalnızca kırıntı yolu eklendi, iç düzeni hâlâ elden geçmedi.
 
 ---
 
@@ -104,9 +114,8 @@ sekmesinde ikon yok. Sıra geldiğinde kullanıcıya sorulacak.
 | ~~17~~ | ~~Küçük listeler~~ | bitti |
 | ~~18~~ | ~~Takvim~~ | bitti |
 | ~~19~~ | ~~Piyasa + Değer Analizi listesi~~ | bitti |
-| 20 | Değerleme sihirbazı | 64, ağır |
+| ~~20~~ | ~~Değerleme sihirbazı + danışman tarafı~~ | bitti |
 | — | **Google Takvim entegrasyonu** | beklemede, aciliyeti yok |
-| 20 | Danışman tarafı | Panelim, Aidatlarım, Cari Hesabım, Komisyonlar |
 | 21 | Küçük sayfalar | Ayarlar, Hukuk, İlan Entegrasyonu, Gider Kategorisi, Finans |
 | 22 | Son geçiş | Kalan satır içi stiller, ölü CSS, kırılımları üçe indirme |
 
@@ -118,8 +127,8 @@ dolaylı olarak düzeldi ama kendi sayfa başlığı hâlâ yok.
 - Silme/iptal işlemi için onay kutusu (şu an doğrudan mı yapılıyor, bakılacak).
 - Kayıt sonrası bildirim `SavedRecordNotice` olarak duruyor; toast'a
   çevrilecek mi, karar verilecek. Eklenirse gerçekten çalışmalı.
-- Kalan satır içi stiller: AccountingPage'de 128 adet `style={{}}` var
-  (başlangıçta 333, adım 11 sonunda 128).
+- Kalan satır içi stiller: AccountingPage'de 128 adet (başlangıçta 333).
+  Tüm projede 1186 (oturum başında 1325).
   Bunlar durdukça tasarım sistemi sayfanın her yerine ulaşamıyor.
 - Ölü CSS sınıfları (JSX'te hiç kullanılmıyor): `.accounting-data-table`
   (13 CSS / 0 JSX), `.accounting-entry-form-grid` (9/0), `.cl-kpi-card` (13/0),
