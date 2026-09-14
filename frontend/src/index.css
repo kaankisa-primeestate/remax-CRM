@@ -4408,6 +4408,7 @@ button.metric-card--clickable {
 .form-row > .form-field { margin: 0; }
 .form-field--wide { margin: 0; min-width: 200px; }
 .form-field--grow { margin: 0; flex: 1 1 200px; min-width: 200px; }
+.form-field--limited { max-width: 400px; }
 
 /* Form eylem butonlari: kaydet birincil ve alanlardan belirgin sekilde
    yuksek, temizle ayni yukseklikte cerceveli. */
@@ -4741,6 +4742,9 @@ button.metric-card--clickable {
 }
 /* Iki satirli hucre (ad + alt bilgi) satiri gereksiz buyutmesin:
    varsayilan satir yuksekligiyle 56px cikiyordu, 50px'e iniyor. */
+/* Hucre icinde ikon + metin. */
+.cell-with-icon { display: inline-flex; align-items: center; gap: var(--s2); }
+.cell-with-icon > svg { flex: none; color: var(--cl-muted); }
 .data-table td > strong { display: block; line-height: 1.35; }
 .data-table td > .muted--sm,
 .data-table td > .accounting-report-subtext { line-height: 1.35; }

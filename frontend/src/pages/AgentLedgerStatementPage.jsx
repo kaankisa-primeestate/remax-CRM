@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { PartyPopper, Send, Home, Receipt, Wallet, Circle, CreditCard, FileText, MessageCircle, BarChart3 } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { PartyPopper, Send, Home, Receipt, Wallet, Circle, CreditCard, FileText, MessageCircle, BarChart3, ChevronRight, ArrowLeft } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { agentLedgerApi } from '../api/agentLedger';
 import { usersApi } from '../api/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -147,21 +148,23 @@ export default function AgentLedgerStatementPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
-      >
-        ← Geri Dön
-      </button>
+      <nav className="cl-breadcrumb cl-breadcrumb--detail" aria-label="Sayfa yolu">
+        <button type="button" className="cl-back" onClick={() => navigate(-1)}>
+          <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" /> Geri
+        </button>
+        <Link to="/">Ana Sayfa</Link>
+        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <span aria-current="page">Cari Hesap Ekstresi</span>
+      </nav>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
-        <h2 className="dossier__name" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CreditCard size={20} style={{ color: 'var(--cl-gold)' }} /> Cari Hesap Ekstresi: {displayName}
-        </h2>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" disabled={pdfDownloading} onClick={handleDownloadPdf} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            {pdfDownloading ? 'Hazırlanıyor…' : (<><FileText size={14} /> PDF İndir</>)}
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <h2 className="cl-page-title">Cari Hesap Ekstresi</h2>
+          <p className="cl-page-subtitle">{displayName}</p>
+        </div>
+        <div className="cl-page-controls">
+          <button type="button" className="btn btn-secondary" disabled={pdfDownloading} onClick={handleDownloadPdf}>
+            {pdfDownloading ? 'Hazırlanıyor…' : (<><FileText size={16} strokeWidth={2} /> PDF İndir</>)}
           </button>
           {isBroker && agentInfo?.phone && (
             <button type="button" className="btn btn-secondary" onClick={handleWhatsApp} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -238,9 +241,9 @@ export default function AgentLedgerStatementPage() {
       )}
 
       {loading ? (
-        <div className="empty-state">Yükleniyor…</div>
-      ) : !statement ? (
-        <div className="empty-state">Ekstre alınamadı.</div>
+        <TableSkeleton rows={5} columns={4} label="Ekstre yükleniyor…" />
+      ) : !statement?.summary ? (
+        <EmptyState Icon={CreditCard} title="Ekstre alınamadı" note="Bağlantıyı kontrol edip sayfayı yenileyin." />
       ) : (
         <>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -267,35 +270,37 @@ export default function AgentLedgerStatementPage() {
 
           <div className="folder-panel">
             {statement.entries.length === 0 ? (
-              <div className="empty-state">Bu tarih aralığında hareket yok.</div>
+              <EmptyState Icon={Receipt} title="Bu tarih aralığında hareket yok" />
             ) : (
               <div className="table-scroll">
-                <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse', fontSize: 13 }}>
+                <table className="data-table" style={{ minWidth: 640 }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                      <th style={{ padding: '8px' }}>Tarih</th>
-                      <th style={{ padding: '8px' }}>Açıklama</th>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>Borç</th>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>Alacak</th>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>Bakiye</th>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Açıklama</th>
+                      <th className="is-right">Borç</th>
+                      <th className="is-right">Alacak</th>
+                      <th className="is-right">Bakiye</th>
                     </tr>
                   </thead>
                   <tbody>
                     {statement.entries.map((e, i) => {
                       const meta = CATEGORY_META[e.category] || { Icon: Circle, label: e.category };
                       return (
-                        <tr key={i} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                          <td style={{ padding: '8px', whiteSpace: 'nowrap' }}>{new Date(e.date).toLocaleDateString('tr-TR')}</td>
-                          <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <meta.Icon size={13} style={{ color: 'var(--cl-muted)', flexShrink: 0 }} /> {e.label}
+                        <tr key={i}>
+                          <td data-label="Tarih">{new Date(e.date).toLocaleDateString('tr-TR')}</td>
+                          <td data-label="Açıklama">
+                            <span className="cell-with-icon">
+                              <meta.Icon size={13} strokeWidth={2} /> {e.label}
+                            </span>
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: e.debit ? 'var(--cl-danger)' : 'var(--cl-muted)' }}>
+                          <td data-label="Borç" className="amount is-right" style={{ color: e.debit ? 'var(--cl-danger)' : 'var(--cl-muted)' }}>
                             {e.debit ? money(e.debit) : '—'}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-body)', color: e.credit ? 'var(--cl-success)' : 'var(--cl-muted)' }}>
+                          <td data-label="Alacak" className="amount is-right" style={{ color: e.credit ? 'var(--cl-success)' : 'var(--cl-muted)' }}>
                             {e.credit ? money(e.credit) : '—'}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'var(--font-body)', fontWeight: 700, color: e.runningBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
+                          <td data-label="Bakiye" className="amount is-right" style={{ fontWeight: 700, color: e.runningBalance >= 0 ? 'var(--cl-success)' : 'var(--cl-danger)' }}>
                             {e.runningBalance >= 0 ? '+' : '−'}{money(Math.abs(e.runningBalance))}
                           </td>
                         </tr>

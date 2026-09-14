@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Check, X } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { AlertTriangle, Check, X, ChevronRight, Receipt } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { agentDuesApi, currentPeriod, periodLabel } from '../api/agentDues';
 import { bankAccountsApi, formatMoney } from '../api/bankAccounts';
 import { usersApi } from '../api/auth';
@@ -104,7 +105,19 @@ export default function AgentDuesPage() {
 
   return (
     <div>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>Danışman Aidatları</h2>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Danışman Aidatları</span>
+          </nav>
+          <h2 className="cl-page-title">Danışman Aidatları</h2>
+          <p className="cl-page-subtitle">
+            Aylık aidat tahakkuklarını oluşturun ve tahsilat durumunu izleyin.
+          </p>
+        </div>
+      </div>
 
       {unpaidOverdue.length > 0 && (
         <div className="dues-warning-banner">
@@ -136,53 +149,55 @@ export default function AgentDuesPage() {
 
       <div className="folder-panel">
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={5} columns={4} label="Aidatlar yükleniyor…" />
         ) : dues.length === 0 ? (
-          <div className="empty-state">
-            {isBroker ? 'Henüz aidat kaydı yok. Yukarıdan bu ayın kayıtlarını oluşturabilirsin.' : 'Henüz aidat kaydınız yok.'}
-          </div>
+          <EmptyState
+            Icon={Receipt}
+            title={isBroker ? 'Henüz aidat kaydı yok' : 'Henüz aidat kaydınız yok'}
+            note={isBroker ? 'Yukarıdaki düğmeyle bu ayın kayıtlarını oluşturabilirsiniz.' : undefined}
+          />
         ) : (
           <div className="table-scroll">
-            <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="data-table" style={{ minWidth: 600 }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--cl-muted)', fontFamily: 'var(--font-body)', fontSize: 11, textTransform: 'uppercase' }}>
-                  <th style={{ padding: '6px 8px' }}>Dönem</th>
-                  {isBroker && <th style={{ padding: '6px 8px' }}>Danışman</th>}
-                  <th style={{ padding: '6px 8px' }}>Tutar</th>
-                  <th style={{ padding: '6px 8px' }}>Durum</th>
-                  <th style={{ padding: '6px 8px' }}></th>
+                <tr>
+                  <th>Dönem</th>
+                  {isBroker && <th>Danışman</th>}
+                  <th className="is-right">Tutar</th>
+                  <th>Durum</th>
+                  <th>İşlem</th>
                 </tr>
               </thead>
               <tbody>
                 {dues.map((due) => (
-                  <tr key={due.id} style={{ borderTop: '1px solid var(--cl-border)' }}>
-                    <td style={{ padding: '8px' }}>{periodLabel(due.period)}</td>
-                    {isBroker && <td style={{ padding: '8px' }}>{agentNameById[due.agentId] || '—'}</td>}
-                    <td style={{ padding: '8px', fontFamily: 'var(--font-body)' }}>{formatMoney(due.expectedAmount)}</td>
-                    <td style={{ padding: '8px' }}>
+                  <tr key={due.id}>
+                    <td data-label="Dönem">{periodLabel(due.period)}</td>
+                    {isBroker && <td data-label="Danışman">{agentNameById[due.agentId] || '—'}</td>}
+                    <td data-label="Tutar" className="amount is-right">{formatMoney(due.expectedAmount)}</td>
+                    <td data-label="Durum">
                       {due.paid ? (
-                        <span className="dues-status dues-status--paid" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <Check size={12} /> Ödendi ({new Date(due.paidDate).toLocaleDateString('tr-TR')})
+                        <span className="pill pill--ok">
+                          <Check size={12} strokeWidth={2.5} /> Ödendi ({new Date(due.paidDate).toLocaleDateString('tr-TR')})
                         </span>
                       ) : (
-                        <span className="dues-status dues-status--unpaid" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <AlertTriangle size={12} /> Ödenmedi
+                        <span className="pill pill--no">
+                          <AlertTriangle size={12} strokeWidth={2} /> Ödenmedi
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    <td data-label="İşlem">
                       {isBroker && !due.paid && (
                         payingId === due.id ? (
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} style={{ fontSize: 12, padding: '4px 6px' }} />
-                            <select value={payAccountId} onChange={(e) => setPayAccountId(e.target.value)} style={{ fontSize: 12, padding: '4px 6px' }}>
+                          <div className="row-actions row-actions--wrap">
+                            <input type="date" className="cell-select" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+                            <select className="cell-select" value={payAccountId} onChange={(e) => setPayAccountId(e.target.value)}>
                               <option value="">Hesap seçilmedi</option>
                               {accounts.map((acc) => (
                                 <option key={acc.id} value={acc.id}>{acc.bankName} — {acc.accountName}</option>
                               ))}
                             </select>
-                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => confirmPay(due.id)}>Onayla</button>
-                            <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => setPayingId(null)}>Vazgeç</button>
+                            <button type="button" className="btn btn-primary btn--sm" onClick={() => confirmPay(due.id)}>Onayla</button>
+                            <button type="button" className="btn btn-secondary btn--sm" onClick={() => setPayingId(null)}>Vazgeç</button>
                           </div>
                         ) : (
                           <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => startPay(due)}>

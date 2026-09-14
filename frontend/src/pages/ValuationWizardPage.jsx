@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Check, X, FileText } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Check, X, FileText, ChevronRight, ArrowLeft, BarChart3, Building2 } from 'lucide-react';
+import { TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { valuationsApi, PROPERTY_GROUPS, PROPERTY_TYPE_LABELS, COMP_TYPES } from '../api/valuations';
 import { propertiesApi } from '../api/properties';
 
@@ -272,30 +274,48 @@ export default function ValuationWizardPage() {
   const groupInfo = PROPERTY_GROUPS.find((g) => g.value === selectedGroup);
 
   if (loading) {
-    return <div className="empty-state">Yükleniyor…</div>;
+    return <TableSkeleton rows={5} columns={3} label="Analiz yükleniyor…" />;
   }
 
   if (isNew && !sourceStepDone) {
     return (
       <div>
-        <button type="button" onClick={() => navigate('/degerleme')} style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}>
-          ← Analizler Listesine Dön
-        </button>
-        <h2 className="dossier__name" style={{ marginBottom: 16 }}>Yeni Piyasa Değer Analizi</h2>
+        <nav className="cl-breadcrumb cl-breadcrumb--detail" aria-label="Sayfa yolu">
+          <button type="button" className="cl-back" onClick={() => navigate(-1)}>
+            <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" /> Geri
+          </button>
+          <Link to="/">Ana Sayfa</Link>
+          <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+          <Link to="/degerleme">Piyasa Değer Analizi</Link>
+          <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+          <span aria-current="page">Yeni analiz</span>
+        </nav>
+        <div className="cl-page-header">
+          <div className="cl-page-header__text">
+            <h2 className="cl-page-title">Yeni Piyasa Değer Analizi</h2>
+            <p className="cl-page-subtitle">
+              Önce mülkü seçin; sonraki adımlarda detay, emsal ve sonuç bilgilerini gireceksiniz.
+            </p>
+          </div>
+        </div>
 
         <div className="folder-panel" style={{ marginBottom: 20 }}>
-          <h4 style={{ marginTop: 0 }}>1. Bu analiz hangi mülk için?</h4>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <button type="button" className={sourceMode === 'external' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setSourceMode('external')}>
-              Harici Mülk (Sistemde Kayıtlı Değil)
+          <PanelHead
+            Icon={Building2}
+            title="Bu analiz hangi mülk için?"
+            note="Sistemde kayıtlı bir portföyü seçebilir ya da harici bir mülk tanımlayabilirsiniz."
+          />
+          <div className="segmented" role="group" aria-label="Mülk kaynağı">
+            <button type="button" className={`segmented__item${sourceMode === 'external' ? ' is-active' : ''}`} aria-pressed={sourceMode === 'external'} onClick={() => setSourceMode('external')}>
+              Harici mülk
             </button>
-            <button type="button" className={sourceMode === 'portfolio' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setSourceMode('portfolio')}>
-              Mevcut Portföyden Seç
+            <button type="button" className={`segmented__item${sourceMode === 'portfolio' ? ' is-active' : ''}`} aria-pressed={sourceMode === 'portfolio'} onClick={() => setSourceMode('portfolio')}>
+              Mevcut portföyden seç
             </button>
           </div>
 
           {sourceMode === 'portfolio' && (
-            <div className="form-field" style={{ maxWidth: 400 }}>
+            <div className="form-field form-field--limited">
               <label>Portföy</label>
               <select value={selectedPropertyId} onChange={(e) => handleSelectPortfolioProperty(e.target.value)}>
                 <option value="">Seçiniz</option>
@@ -314,7 +334,7 @@ export default function ValuationWizardPage() {
 
         {sourceMode === 'external' && (
           <div className="folder-panel" style={{ marginBottom: 20 }}>
-            <h4 style={{ marginTop: 0 }}>2. Mülk Türünü Seçin</h4>
+            <PanelHead Icon={Building2} title="Mülk türünü seçin" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
               {PROPERTY_GROUPS.map((g) => (
                 <button
@@ -347,7 +367,7 @@ export default function ValuationWizardPage() {
 
         {selectedGroup && (
           <div className="folder-panel">
-            <h4 style={{ marginTop: 0 }}>3. Temel Bilgiler</h4>
+            <PanelHead Icon={FileText} title="Temel bilgiler" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10 }}>
               <div className="form-field">
                 <label>Başlık *</label>
@@ -385,19 +405,26 @@ export default function ValuationWizardPage() {
 
   return (
     <div>
-      <button type="button" onClick={() => navigate('/degerleme')} style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}>
-        ← Analizler Listesine Dön
-      </button>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <h2 className="dossier__name" style={{ margin: 0 }}>{form.subjectTitle}</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--cl-muted)' }}>
+      <nav className="cl-breadcrumb cl-breadcrumb--detail" aria-label="Sayfa yolu">
+        <button type="button" className="cl-back" onClick={() => navigate(-1)}>
+          <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" /> Geri
+        </button>
+        <Link to="/">Ana Sayfa</Link>
+        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <Link to="/degerleme">Piyasa Değer Analizi</Link>
+        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <span aria-current="page">{form.subjectTitle}</span>
+      </nav>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <h2 className="cl-page-title">{form.subjectTitle}</h2>
+          <p className="cl-page-subtitle">
             {PROPERTY_TYPE_LABELS[selectedType] || selectedType} · {form.subjectDistrict}, {form.subjectProvince}
           </p>
         </div>
       </div>
 
-      <div className="folder-tabs" style={{ marginBottom: 0 }}>
+      <div className="folder-tabs">
         {WIZARD_STEPS.map((s) => (
           <button key={s.key} type="button" className={`folder-tab${step === s.key ? ' active' : ''}`} onClick={() => setStep(s.key)}>
             {s.label}
@@ -405,10 +432,10 @@ export default function ValuationWizardPage() {
         ))}
       </div>
 
-      <div className="folder-panel" style={{ marginTop: 0, borderTopLeftRadius: 0 }}>
+      <div className="folder-panel">
         {step === 'details' && (
           <div>
-            <h4 style={{ marginTop: 0 }}>Mülk Detayları</h4>
+            <PanelHead Icon={Building2} title="Mülk detayları" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10, marginBottom: 16 }}>
               <div className="form-field">
                 <label>Başlık</label>
@@ -563,7 +590,10 @@ export default function ValuationWizardPage() {
 
         {step === 'comps' && (
           <div>
-            <h4 style={{ marginTop: 0 }}>{selectedGroup === 'commercial' ? 'Emsal Kira / Gelir Karşılaştırması' : 'Emsal Karşılaştırma Tablosu'}</h4>
+            <PanelHead
+              Icon={BarChart3}
+              title={selectedGroup === 'commercial' ? 'Emsal kira / gelir karşılaştırması' : 'Emsal karşılaştırma tablosu'}
+            />
             <p style={{ fontSize: 12, color: 'var(--cl-muted)' }}>
               En az 3 emsal eklemeniz önerilir — en yakın 3-6 ay içindeki satışlar/kiralar en güvenilir sonucu verir.
             </p>
@@ -640,7 +670,7 @@ export default function ValuationWizardPage() {
 
         {step === 'result' && (
           <div>
-            <h4 style={{ marginTop: 0 }}>SWOT Analizi</h4>
+            <PanelHead Icon={FileText} title="SWOT analizi" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(max(200px, 45%), 1fr))', gap: 10, marginBottom: 20 }}>
               <div className="form-field">
                 <label>Güçlü Yönler (+)</label>

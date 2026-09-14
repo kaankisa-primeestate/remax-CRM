@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { CreditCard, X } from 'lucide-react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { CreditCard, X, ChevronRight, Percent } from 'lucide-react';
+import { EmptyState, TableSkeleton } from '../components/Feedback';
 import { commissionsApi, COMMISSION_STATUSES } from '../api/commissions';
 import { usersApi } from '../api/auth';
 import { agentLedgerApi } from '../api/agentLedger';
@@ -223,23 +224,19 @@ export default function CommissionsPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 12,
-          color: 'var(--cl-muted)',
-          background: 'transparent',
-          border: 'none',
-          padding: 0,
-          marginBottom: 12,
-          cursor: 'pointer',
-          display: 'block',
-        }}
-      >
-        ← Geri Dön
-      </button>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">Komisyonlar</span>
+          </nav>
+          <h2 className="cl-page-title">Komisyonlar</h2>
+          <p className="cl-page-subtitle">
+            Hakediş ve tahsilat durumunuzu duruma göre filtreleyerek izleyin.
+          </p>
+        </div>
+      </div>
       <div className="folder-tabs">
         <button
           className={`folder-tab ${activeStatus === 'all' ? 'active' : ''}`}
@@ -295,11 +292,13 @@ export default function CommissionsPage() {
         </div>
 
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={5} columns={4} label="Komisyonlar yükleniyor…" />
         ) : commissions.length === 0 ? (
-          <div className="empty-state">
-            Kayıt bulunamadı. "Yeni Komisyon Kaydı" ile ilk kaydı oluşturun.
-          </div>
+          <EmptyState
+            Icon={Percent}
+            title="Komisyon kaydı bulunamadı"
+            note={'"Yeni Komisyon Kaydı" ile ilk kaydı oluşturabilirsiniz.'}
+          />
         ) : (
           <div>
             {commissions.map((c) => {

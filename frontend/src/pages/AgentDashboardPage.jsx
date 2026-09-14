@@ -195,12 +195,14 @@ export default function AgentDashboardPage() {
 
   return (
     <div>
-      <h2 className="dossier__name" style={{ marginBottom: 4 }}>
-        Merhaba{firstName ? `, ${firstName}` : ''}
-      </h2>
-      <p style={{ color: 'var(--cl-muted)', fontSize: 13, marginBottom: 12 }}>
-        {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-      </p>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <h2 className="cl-page-title">Merhaba{firstName ? `, ${firstName}` : ''}</h2>
+          <p className="cl-page-subtitle">
+            {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+      </div>
 
       <div className="market-ticker">
         <TradingViewWidget
