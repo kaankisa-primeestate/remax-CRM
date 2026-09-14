@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, Handshake, ClipboardList, Check, Hourglass, FolderOpen, X } from 'lucide-react';
+import {
+  Clock, Handshake, ClipboardList, Check, Hourglass, FolderOpen, X,
+  ChevronRight, FilePlus2, Repeat,
+} from 'lucide-react';
+import { TableSkeleton } from '../components/Feedback';
+import { PanelHead } from '../components/PanelHead';
 import { transactionsApi, TRANSACTION_STAGES } from '../api/transactions';
 import { customersApi } from '../api/customers';
 import { propertiesApi } from '../api/properties';
@@ -138,16 +143,32 @@ export default function TransactionsPage() {
   // Yaz" secebiliyor (bkz. TransactionDetailPage.jsx).
   return (
     <div>
-      <h2 className="dossier__name" style={{ marginBottom: 16 }}>İşlemler (Uçtan Uca Takip)</h2>
+      <div className="cl-page-header">
+        <div className="cl-page-header__text">
+          <nav className="cl-breadcrumb" aria-label="Sayfa yolu">
+            <Link to="/">Ana Sayfa</Link>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            <span aria-current="page">İşlemler</span>
+          </nav>
+          <h2 className="cl-page-title">İşlemler</h2>
+          <p className="cl-page-subtitle">
+            Görüşmeden kapanışa kadar işlemlerinizi uçtan uca takip edin.
+          </p>
+        </div>
+      </div>
 
       <div className="folder-panel" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontFamily: 'var(--cl-font-heading)', marginTop: 0, fontSize: 16 }}>Yeni İşlem Başlat</h3>
-        <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="form-field" style={{ margin: 0, minWidth: 200 }}>
+        <PanelHead
+          Icon={FilePlus2}
+          title="Yeni işlem başlat"
+          note="Müşteri ve portföyü seçip işlemi ilk aşamada açın."
+        />
+        <form onSubmit={handleAdd} className="form-row">
+          <div className="form-field form-field--wide">
             <label>Müşteri</label>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
-              <button type="button" className={customerMode === 'system' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setCustomerMode('system')}>Sistemde Kayıtlı</button>
-              <button type="button" className={customerMode === 'external' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setCustomerMode('external')}>Harici</button>
+            <div className="segmented segmented--sm" role="group" aria-label="Müşteri kaynağı">
+              <button type="button" className={`segmented__item${customerMode === 'system' ? ' is-active' : ''}`} aria-pressed={customerMode === 'system'} onClick={() => setCustomerMode('system')}>Sistemde Kayıtlı</button>
+              <button type="button" className={`segmented__item${customerMode === 'external' ? ' is-active' : ''}`} aria-pressed={customerMode === 'external'} onClick={() => setCustomerMode('external')}>Harici</button>
             </div>
             {customerMode === 'system' ? (
               <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
@@ -160,11 +181,11 @@ export default function TransactionsPage() {
               <input value={externalCustomerLabel} onChange={(e) => setExternalCustomerLabel(e.target.value)} placeholder="Örn: Zeynep Hanım (0555...)" />
             )}
           </div>
-          <div className="form-field" style={{ margin: 0, minWidth: 200 }}>
+          <div className="form-field form-field--wide">
             <label>Portföy (opsiyonel)</label>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
-              <button type="button" className={propertyMode === 'system' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setPropertyMode('system')}>Sistemde Kayıtlı</button>
-              <button type="button" className={propertyMode === 'external' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => setPropertyMode('external')}>Harici</button>
+            <div className="segmented segmented--sm" role="group" aria-label="Portföy kaynağı">
+              <button type="button" className={`segmented__item${propertyMode === 'system' ? ' is-active' : ''}`} aria-pressed={propertyMode === 'system'} onClick={() => setPropertyMode('system')}>Sistemde Kayıtlı</button>
+              <button type="button" className={`segmented__item${propertyMode === 'external' ? ' is-active' : ''}`} aria-pressed={propertyMode === 'external'} onClick={() => setPropertyMode('external')}>Harici</button>
             </div>
             {propertyMode === 'system' ? (
               <select value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
@@ -177,19 +198,19 @@ export default function TransactionsPage() {
               <input value={externalPropertyLabel} onChange={(e) => setExternalPropertyLabel(e.target.value)} placeholder="Örn: Kadıköy 3+1 Daire" />
             )}
           </div>
-          <div className="form-field" style={{ margin: 0 }}>
+          <div className="form-field">
             <label>Teklif Tutarı (opsiyonel)</label>
             <input type="number" min="0" value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} placeholder="₺" />
           </div>
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Ekleniyor…' : '+ İşlem Başlat'}
+            {saving ? 'Ekleniyor…' : (<><FilePlus2 size={16} strokeWidth={2} /> İşlem Başlat</>)}
           </button>
         </form>
       </div>
 
       <div className="folder-panel">
         {loading ? (
-          <div className="empty-state">Yükleniyor…</div>
+          <TableSkeleton rows={4} columns={5} label="İşlemler yükleniyor…" />
         ) : (
           <div className="kanban-board">
             {TRANSACTION_STAGES.map((stage) => {
@@ -228,8 +249,8 @@ export default function TransactionsPage() {
                           onDragEnd={handleDragEnd}
                         >
                           {staleness.level !== 'none' && (
-                            <div className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              <Clock size={12} /> {staleness.days} gündür bekliyor
+                            <div className={staleness.level === 'danger' ? 'staleness-badge staleness-badge--danger' : 'staleness-badge staleness-badge--warning'}>
+                              <Clock size={12} strokeWidth={2} /> {staleness.days} gündür bekliyor
                             </div>
                           )}
                           {t.collaboratorAgentId && (
@@ -237,7 +258,7 @@ export default function TransactionsPage() {
                               <Handshake size={12} /> İşbirlikli{t.splitFinalizedAt ? '' : ' · onay bekliyor'}
                             </div>
                           )}
-                          <Link to={`/islemler/${t.id}`} className="transaction-card__title" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                          <Link to={`/islemler/${t.id}`} className="transaction-card__title">
                             {!property && <ClipboardList size={13} style={{ color: 'var(--cl-muted)', flexShrink: 0 }} />}
                             {property ? property.title : (t.externalPropertyLabel || 'Portföy Belirlenmedi')}
                           </Link>
@@ -255,8 +276,8 @@ export default function TransactionsPage() {
                             </div>
                           )}
                           {t.stage === 'closed' && !t.dealApproved && isBroker && (
-                            <button type="button" className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px', marginTop: 6, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} onClick={() => navigate(`/islemler/${t.id}?tab=financial`)}>
-                              <FolderOpen size={12} /> İncele ve Onayla
+                            <button type="button" className="btn btn-primary btn--sm transaction-card__action" onClick={() => navigate(`/islemler/${t.id}?tab=financial`)}>
+                              <FolderOpen size={14} strokeWidth={2} /> İncele ve Onayla
                             </button>
                           )}
                           <div className="transaction-card__actions">

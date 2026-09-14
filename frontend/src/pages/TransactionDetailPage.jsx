@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
+  ChevronRight,
+  ArrowLeft,
   Clock,
   Eye,
   Tag,
@@ -459,13 +461,18 @@ export default function TransactionDetailPage() {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate('/islemler')}
-        style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--cl-muted)', background: 'transparent', border: 'none', padding: 0, marginBottom: 12, cursor: 'pointer', display: 'block' }}
-      >
-        ← İşlemler Panosuna Dön
-      </button>
+      {/* Kirinti yolu nerede oldugunu soyler; "Geri" ise panoya
+          filtreleriyle birlikte doner. Ikisi ayri isler. */}
+      <nav className="cl-breadcrumb cl-breadcrumb--detail" aria-label="Sayfa yolu">
+        <button type="button" className="cl-back" onClick={() => navigate(-1)}>
+          <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" /> Geri
+        </button>
+        <Link to="/">Ana Sayfa</Link>
+        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <Link to="/islemler">İşlemler</Link>
+        <ChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+        <span aria-current="page">{property?.title || tx.externalPropertyLabel || 'İşlem Dosyası'}</span>
+      </nav>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
         <div>

@@ -3210,9 +3210,9 @@ button.metric-card--clickable {
   box-shadow: var(--cl-focus);
 }
 
-/* Donem secici: birbirine bitisik segmentli dugme. Sayfa basligindaki
-   kontrollerle ayni yukseklikte (40px) durur. */
-.period-switch {
+/* Segmentli secici: birbirine bitisik, tek secimli dugme grubu.
+   Donem secimi, "Sistemde kayitli / Harici" gibi ikili secimler icin. */
+.segmented {
   display: inline-flex;
   flex-wrap: wrap;
   /* Ayiricilar kenarlik yerine 1px'lik bosluktan geliyor: dugmeler alt
@@ -3224,7 +3224,7 @@ button.metric-card--clickable {
   border-radius: var(--r-sm);
   overflow: hidden;
 }
-.period-switch__item {
+.segmented__item {
   flex: 1 1 auto;
   min-height: 38px;
   padding: 0 var(--s3);
@@ -3238,13 +3238,27 @@ button.metric-card--clickable {
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.period-switch__item:hover { background: var(--cl-bg); color: var(--cl-text); }
-.period-switch__item.is-active { background: var(--cl-gold); color: #fff; }
-.period-switch__item:focus-visible { outline: none; box-shadow: var(--cl-focus); }
+.segmented__item:hover { background: var(--cl-bg); color: var(--cl-text); }
+.segmented__item.is-active { background: var(--cl-gold); color: #fff; }
+.segmented__item:focus-visible { outline: none; box-shadow: var(--cl-focus); }
+/* Kucuk surum: bir form alaninin icinde, etiket ile girdi arasinda durur. */
+.segmented--sm { margin-bottom: var(--s1); }
+.segmented--sm .segmented__item { min-height: 30px; font-size: 12px; padding: 0 var(--s2); }
+
+/* Islem karti: baslik baglantisi ve tam genislikteki eylem dugmesi. */
+.transaction-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.transaction-card__action {
+  width: 100%;
+  margin-top: var(--s2);
+}
 @media (max-width: 600px) {
-  /* Dar ekranda ikili izgara: dort secenek 2x2 duruyor, dokunma alani
-     genis kaliyor. */
-  .period-switch {
+  /* Dar ekranda ikili izgara: secenekler 2 sutuna diziliyor, dokunma
+     alani genis kaliyor. */
+  .segmented {
     display: grid;
     grid-template-columns: 1fr 1fr;
     width: 100%;
@@ -4328,6 +4342,11 @@ button.metric-card--clickable {
   font-size: var(--t-body);
   color: var(--cl-muted);
 }
+/* Form satirindaki alanlar kendi dis boslugunu tasimaz; bosluk .form-row
+   veya .form-grid'e aittir. --wide daha genis bir taban genislik ister. */
+.form-row > .form-field { margin: 0; }
+.form-field--wide { margin: 0; min-width: 200px; }
+
 /* Form eylem butonlari: kaydet birincil ve alanlardan belirgin sekilde
    yuksek, temizle ayni yukseklikte cerceveli. */
 .form-actions .btn {

@@ -215,12 +215,12 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="cl-page-controls">
-          <div className="period-switch" role="group" aria-label="Dönem seçimi">
+          <div className="segmented" role="group" aria-label="Dönem seçimi">
             {PERIOD_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                className={`period-switch__item${period === opt.value ? ' is-active' : ''}`}
+                className={`segmented__item${period === opt.value ? ' is-active' : ''}`}
                 aria-pressed={period === opt.value}
                 onClick={() => setPeriod(opt.value)}
               >
