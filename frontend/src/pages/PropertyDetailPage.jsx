@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FileText, Check, ChevronRight, ArrowLeft, ImageOff } from 'lucide-react';
 import { propertiesApi, PROPERTY_TYPES, formatPropertyPrice } from '../api/properties';
 import { apiClient } from '../api/client.js';
+import { usersApi } from '../api/auth';
 import { buildWhatsappUrl } from '../utils/contact.js';
 import { CATEGORY_FIELDS } from '../data/categoryFields';
 import { ListingTypeBadge } from '../components/PropertyStatusBadge.jsx';
@@ -24,6 +25,7 @@ export default function PropertyDetailPage() {
   const [sendingAuth, setSendingAuth] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [anaFoto, setAnaFoto] = useState(0); // kunyedeki buyuk fotografin sirasi
+  const [danismanlar, setDanismanlar] = useState([]); // kimin ilani gosterebilmek icin
   const [matches, setMatches] = useState([]);
 
   const [loadError, setLoadError] = useState(false);
@@ -44,6 +46,12 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     propertiesApi.matchingCustomers(id).then(setMatches).catch(() => setMatches([]));
   }, [id]);
+
+  // Danisman kadrosu: yalnizca isim doner, Danisman'a da acik. Kunyede
+  // "kimin ilani" yazabilmek icin -- ofisteki diger danismanlar gorsun.
+  useEffect(() => {
+    usersApi.listAgentRoster().then(setDanismanlar).catch(() => setDanismanlar([]));
+  }, []);
 
   async function handleUpdate(payload) {
     await propertiesApi.update(id, payload);
@@ -112,7 +120,16 @@ export default function PropertyDetailPage() {
 
   // Kunye satirlari: sabit alanlar + kategoriye ozel alanlar tek listede.
   // Bos deger yazan satir acilmaz.
+  const danismanAdi = danismanlar.find((a) => a.id === property.agentId)?.name;
+  // Kayit kimligi UUID; ilan sitelerindeki gibi sirali numaramiz yok.
+  // Ilk sekiz karakter ofis icinde ayirt etmeye ve aramaya yeter.
+  const ilanNo = property.id ? String(property.id).slice(0, 8).toUpperCase() : null;
+
   const kunyeSatirlari = [
+    ['İlan No', ilanNo],
+    ['İlan Tarihi', property.createdAt
+      ? new Date(property.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+      : null],
     ['Emlak Tipi', typeLabel],
     ['Metrekare', property.areaM2 ? `${property.areaM2} m²` : null],
     ['Tapu Durumu', property.deedStatus],
@@ -127,6 +144,7 @@ export default function PropertyDetailPage() {
     ['Sözleşme Bitişi', property.contractEndDate
       ? new Date(property.contractEndDate).toLocaleDateString('tr-TR')
       : null],
+    ['Danışman', danismanAdi],
   ].filter(([, deger]) => deger !== undefined && deger !== null && deger !== '');
 
   const fotograflar = property.photoUrls || [];
