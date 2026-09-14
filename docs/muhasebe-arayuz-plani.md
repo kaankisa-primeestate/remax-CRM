@@ -39,11 +39,12 @@ UI/UX YENİLEME GELİŞTİRİCİ UYGULAMA TALİMATI" (37 madde).
 | 13 | Portföy Havuzu: sayfa başlığı + kırıntı yolu, 11 sekmeye ikon, ortak araç çubuğu, boş/yükleme durumları | `a7379e8b` |
 | 14 | Müşteri Havuzu aynı dönüşüm + Portföy/Müşteri Detay kırıntı yolu ve "Geri" düğmesi | `622ab2e5` |
 | 16 | İşlemler + İşlem Detay: sayfa başlığı, segmentli seçici (`.segmented`), kanban kartı temizliği | `e99414cc` |
+| 17 | Görevler, Sıcak Fırsatlar, Sözleşmeler: sayfa başlığı, panel başlığı, boş durumlar; işlevsiz panel kaldırıldı | `13927972` |
 
 ## Sıradaki adım
 
-**17 — Küçük listeler: Görevler, Sıcak Fırsatlar, Sözleşmeler.** Üçü de
-benzer yapıda; tek adımda gidebilir.
+**18 — Takvim.** 50 satır içi stil; sayfa başlığı yok. Ay/hafta gezinme
+satırı adım 7'de taşma açısından düzeltilmişti ama hâlâ satır içi stilli.
 
 **BEKLEMEDE — 15: Danışman Yönetimi.** Kullanıcı bu sayfayı sonraya
 bırakmak istedi (14. adımdan sonra). 101 satır içi stille en ağır ikinci
@@ -56,7 +57,7 @@ sekmesinde ikon yok. Sıra geldiğinde kullanıcıya sorulacak.
 |---|---|---|
 | 15 | Danışman Yönetimi | **beklemede** (kullanıcı isteği) |
 | ~~16~~ | ~~İşlemler + İşlem Detay~~ | bitti |
-| 17 | Küçük listeler | Görevler, Sıcak Fırsatlar, Sözleşmeler |
+| ~~17~~ | ~~Küçük listeler~~ | bitti |
 | 18 | Takvim | |
 | 19 | Piyasa + Değer Analizi (liste + sihirbaz) | 64, ağır |
 | 20 | Danışman tarafı | Panelim, Aidatlarım, Cari Hesabım, Komisyonlar |
